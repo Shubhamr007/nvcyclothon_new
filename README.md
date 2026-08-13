@@ -18,9 +18,10 @@ python3 -m pip install -r backend/requirements.txt
 python3 -m uvicorn backend.app.main:app --reload
 ```
 
-Start the frontend in another terminal:
+Start the frontend in another terminal (from the `client/` folder):
 
 ```bash
+cd client
 npm install
 npm run dev
 ```
