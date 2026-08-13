@@ -1,0 +1,7 @@
+export const EVENT = { name: 'NV Cyclothon', date: '18 October 2026', location: 'Rewa, Madhya Pradesh', startTime: '5:30 AM', association: 'Rewa District Cycling Association' };
+export const RIDE_OPTIONS = [
+  { distance: '60 Km Road Challenge', length: '60 KM', title: 'Road Challenge', description: 'A 60 km road test for determined riders.', fee: 'Early bird ₹899', pricing: '₹899 early bird · ₹1,099 regular · ₹1,299 last week', capacity: 100, jersey: true, kit: ['Jersey', 'Medal', 'Bib number', 'E-certificate', 'Hydration', 'Medical support', 'Photography'], color: 'lime' },
+  { distance: '30 Km MTB Challenge', length: '30 KM', title: 'MTB Challenge', description: 'A 30 km mountain-bike challenge built for adventure.', fee: 'Early bird ₹799', pricing: '₹799 early bird · ₹999 regular · ₹1,199 last week', capacity: 150, jersey: true, kit: ['Jersey', 'Medal', 'Bib number', 'E-certificate', 'Hydration', 'Medical support', 'Photography'], color: 'orange' },
+  { distance: '10 Km Green Ride', length: '10 KM', title: 'Green Ride', description: 'A 10 km community ride for a cleaner, greener city.', fee: 'Early bird ₹399', pricing: '₹399 early bird · ₹499 regular · ₹599 last week', capacity: 200, jersey: false, kit: ['Bib', 'Medal', 'E-certificate', 'Hydration'], color: 'pink' },
+  { distance: 'Kid-o-thon', length: 'KIDS', title: 'Kid-o-thon', description: 'A joyful, family-friendly ride for young cyclists.', fee: '₹299 fixed', pricing: '₹299 fixed fee', capacity: 50, jersey: false, kit: ['Medal', 'Certificate', 'Refreshment'], color: 'sky' },
+];
