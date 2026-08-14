@@ -1,6 +1,6 @@
 import { EVENT } from "../constants";
-import lightHeroImage from "../../../../assets/hero_image_light.png";
-import darkHeroImage from "../../../../assets/hero_image_dark.png";
+import lightHeroImage from "../../../../assets/detailed_hero_image.png";
+import darkHeroImage from "../../../../assets/detailed_hero_image.png";
 import { useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { useReducedMotion } from "framer-motion";
