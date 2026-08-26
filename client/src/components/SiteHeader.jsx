@@ -25,7 +25,7 @@ export function SiteHeader({ theme, onToggleTheme }) {
         >
           <a href="/#about">The ride</a>
           <a href="/#routes">Routes</a>
-          <a href="/#impact">Impact</a>
+          <a href="/#about">Impact</a>
           <a href="/#sponsors">Sponsors</a>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">

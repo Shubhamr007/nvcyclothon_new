@@ -18,6 +18,7 @@ export function HomePage() {
   return (
     <>
       <BicycleHero />
+      {settings.feature_section?.enabled && <ManagedFeatureSection feature={settings.feature_section} />}
       <SocialProofAndExperience />
       {sections.editions !== false && <Editions />}
       {sections.about !== false && (
@@ -115,5 +116,20 @@ export function HomePage() {
       )}
       {sections.sponsors !== false && <PeopleAndSponsors />}
     </>
+  );
+}
+
+function ManagedFeatureSection({ feature }) {
+  return (
+    <section className="bg-[#ff5f3d] px-5 py-20 text-white">
+      <div className="mx-auto grid max-w-[1240px] gap-8 md:grid-cols-[1fr_.9fr] md:items-center">
+        <Reveal>
+          {feature.eyebrow && <p className="text-xs font-black tracking-[.22em] text-[#071313] uppercase">{feature.eyebrow}</p>}
+          {feature.title && <h2 className="mt-4 text-4xl font-black leading-none tracking-[-.05em] uppercase md:text-6xl">{feature.title}</h2>}
+          {feature.body && <p className="mt-6 max-w-2xl text-base leading-7 text-white/85">{feature.body}</p>}
+        </Reveal>
+        {feature.image_url && <Reveal delay={0.1}><img src={feature.image_url} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover shadow-[8px_8px_0_#071313]" loading="lazy" /></Reveal>}
+      </div>
+    </section>
   );
 }

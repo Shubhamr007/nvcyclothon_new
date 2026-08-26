@@ -96,6 +96,11 @@ describe("NV Cyclothon Node backend", () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it("does not expose orders without an authenticated admin route", async () => {
+    const response = await request(runtime.app).get("/api/orders");
+    expect(response.statusCode).toBe(404);
+  });
+
   it("allows volunteer check-in with manual and QR flows", async () => {
     const manualPayload = {
       full_name: "Manual Rider",
@@ -300,6 +305,75 @@ describe("NV Cyclothon Node backend", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ event_date: "not-a-date" });
     expect(invalid.statusCode).toBe(400);
+  });
+
+  it("enforces registration closure on the server", async () => {
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    await request(runtime.app)
+      .patch("/api/admin/settings")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ registration_open: false });
+    const response = await request(runtime.app)
+      .post("/api/cyclothon/registrations")
+      .send({
+        full_name: "Closed Rider",
+        email: "closed-rider@example.com",
+        phone: "+91 9345678901",
+        age: 30,
+        city: "Rewa",
+        gender: "Male",
+        ride_category: "10 Km Green Ride",
+        emergency_contact: "9345678902",
+        t_shirt_size: "M",
+        waiver_accepted: true,
+        privacy_accepted: true,
+      });
+    expect(response.statusCode).toBe(403);
+
+    await request(runtime.app)
+      .patch("/api/admin/settings")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ registration_open: true });
+  });
+
+  it("lets admins provision volunteer credentials for public check-in", async () => {
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    const created = await request(runtime.app)
+      .post("/api/admin/volunteers")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        volunteer_id: "desk-01",
+        display_name: "Registration Desk 1",
+        password: "race-day-password-01",
+      });
+    expect(created.statusCode).toBe(201);
+    expect(created.body.password_hash).toBeUndefined();
+    expect(created.body.active).toBe(true);
+
+    const session = await request(runtime.app)
+      .post("/api/checkin/session")
+      .send({ volunteer_name: "desk-01", volunteer_pin: "race-day-password-01" });
+    expect(session.statusCode).toBe(200);
+    expect(session.body.volunteer_name).toBe("Registration Desk 1");
+
+    const disabled = await request(runtime.app)
+      .patch(`/api/admin/volunteers/${created.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ active: false });
+    expect(disabled.statusCode).toBe(200);
+
+    const rejected = await request(runtime.app)
+      .post("/api/checkin/session")
+      .send({ volunteer_name: "desk-01", volunteer_pin: "race-day-password-01" });
+    expect(rejected.statusCode).toBe(401);
   });
 
   it("supports community wall submissions with moderation and status toggling", async () => {

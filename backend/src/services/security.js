@@ -66,6 +66,7 @@ function issueAdminToken(config) {
     scope: "admin",
     expiresInSeconds: config.adminSessionTtlSeconds,
     secret: config.adminApiKey,
+    claims: { subject: "admin" },
   });
 }
 
@@ -105,7 +106,7 @@ function requireAdmin(config) {
       if ((scheme || "").toLowerCase() !== "bearer" || !token) {
         throw new UnauthorizedError("Admin authentication is required");
       }
-      verifyAdminToken(token, config);
+      req.adminSession = verifyAdminToken(token, config);
       next();
     } catch (error) {
       next(error);

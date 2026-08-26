@@ -33,6 +33,14 @@ function defaultSiteSettings() {
     event_location: "Rewa, Madhya Pradesh",
     edition_label: "3rd Edition",
     registration_open: true,
+    hero_images: [],
+    feature_section: {
+      enabled: false,
+      eyebrow: "",
+      title: "",
+      body: "",
+      image_url: "",
+    },
     sections,
     updated_at: null,
   };
@@ -46,11 +54,15 @@ function mergeSiteSettings(current, patch) {
     "event_location",
     "edition_label",
     "registration_open",
+    "hero_images",
   ];
   for (const key of allowedKeys) {
     if (patch[key] !== undefined) {
       next[key] = patch[key];
     }
+  }
+  if (patch.feature_section && typeof patch.feature_section === "object") {
+    next.feature_section = { ...current.feature_section, ...patch.feature_section };
   }
   if (patch.sections && typeof patch.sections === "object") {
     const nextSections = { ...current.sections };
@@ -83,6 +95,7 @@ class MockRepository {
       chief_guests: [],
       delegations: [],
       community_posts: [],
+      volunteer_accounts: [],
     };
     this.ids = {
       products: 1,
@@ -96,6 +109,7 @@ class MockRepository {
       chief_guests: 1,
       delegations: 1,
       community_posts: 1,
+      volunteer_accounts: 1,
     };
     this.siteSettings = defaultSiteSettings();
   }
@@ -396,6 +410,23 @@ class MockRepository {
     registration.razorpay_signature = payload.razorpay_signature;
     registration.payment_verified_at = this.now();
 
+    return this.clone(registration);
+  }
+
+  async markCyclothonPaymentFromWebhook({ orderId, paymentId }) {
+    const registration = this.tables.cyclothon_registrations.find(
+      (item) => item.razorpay_order_id === orderId
+    );
+    if (!registration) {
+      throw new NotFoundError("Payment registration not found");
+    }
+    if (registration.payment_status === "paid") {
+      return this.clone(registration);
+    }
+    registration.payment_status = "paid";
+    registration.status = registration.status === "pending" ? "approved" : registration.status;
+    registration.razorpay_payment_id = paymentId;
+    registration.payment_verified_at = this.now();
     return this.clone(registration);
   }
 
@@ -803,6 +834,52 @@ class MockRepository {
     return this.clone(this.siteSettings);
   }
 
+  async listVolunteerAccounts() {
+    return this.tables.volunteer_accounts
+      .slice()
+      .sort((a, b) => a.volunteer_id.localeCompare(b.volunteer_id))
+      .map((account) => this.clone(account));
+  }
+
+  async getVolunteerAccount(volunteerId) {
+    const normalized = String(volunteerId || "").trim().toLowerCase();
+    return this.clone(
+      this.tables.volunteer_accounts.find((account) => account.volunteer_id === normalized) || null
+    );
+  }
+
+  async hasActiveVolunteerAccounts() {
+    return this.tables.volunteer_accounts.some((account) => account.active);
+  }
+
+  async createVolunteerAccount(payload) {
+    const volunteerId = String(payload.volunteer_id || "").trim().toLowerCase();
+    if (this.tables.volunteer_accounts.some((account) => account.volunteer_id === volunteerId)) {
+      throw new ConflictError("Volunteer ID is already in use");
+    }
+    const record = {
+      id: this.nextId("volunteer_accounts"),
+      volunteer_id: volunteerId,
+      display_name: payload.display_name,
+      password_hash: payload.password_hash,
+      active: true,
+      created_at: this.now().toISOString(),
+      updated_at: this.now().toISOString(),
+    };
+    this.tables.volunteer_accounts.push(record);
+    return this.clone(record);
+  }
+
+  async updateVolunteerAccount(id, patch) {
+    const account = this.tables.volunteer_accounts.find((item) => item.id === Number(id));
+    if (!account) return null;
+    if (patch.display_name !== undefined) account.display_name = patch.display_name;
+    if (patch.password_hash !== undefined) account.password_hash = patch.password_hash;
+    if (patch.active !== undefined) account.active = Boolean(patch.active);
+    account.updated_at = this.now().toISOString();
+    return this.clone(account);
+  }
+
   async createCommunityPost(payload) {
     const record = {
       id: this.nextId("community_posts"),
@@ -854,6 +931,12 @@ class MockRepository {
   async getCommunityPostById(id) {
     return this.clone(
       this.tables.community_posts.find((post) => post.id === Number(id)) || null
+    );
+  }
+
+  async getCommunityPostByImageKey(key) {
+    return this.clone(
+      this.tables.community_posts.find((post) => post.image_key === String(key)) || null
     );
   }
 

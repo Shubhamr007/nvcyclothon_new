@@ -1,7 +1,9 @@
 import { RegistrationForm } from "../features/cyclothon/components/RegistrationForm";
 import { EVENT, RIDE_OPTIONS } from "../features/cyclothon/constants";
+import { formatEventDate, useSiteSettings } from "../state/SiteSettingsContext";
 
 export function RegisterPage() {
+  const { settings } = useSiteSettings();
   const route = new URLSearchParams(window.location.search).get("route");
   const initialRoute = RIDE_OPTIONS.some((option) => option.distance === route)
     ? route
@@ -26,10 +28,10 @@ export function RegisterPage() {
             each have their own event kit.
           </p>
           <div className="mt-9 border-l-2 border-[#d9ff38] pl-4 text-sm">
-            <b>{EVENT.date}</b>
+            <b>{formatEventDate(settings.event_date) || EVENT.date}</b>
             <br />
             <span className="text-white/65">
-              {EVENT.location} · {EVENT.startTime}
+              {settings.event_location || EVENT.location} · {settings.event_start_time || EVENT.startTime}
             </span>
           </div>
         </aside>

@@ -59,6 +59,26 @@ export async function getAdminSettings(accessToken) {
   return adminRequest("/settings", accessToken);
 }
 
+export async function listVolunteers(accessToken) {
+  return adminRequest("/volunteers", accessToken);
+}
+
+export async function createVolunteer(accessToken, payload) {
+  return adminRequest("/volunteers", accessToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateVolunteer(accessToken, id, payload) {
+  return adminRequest(`/volunteers/${id}`, accessToken, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getCommunityPosts() {
   return request("/community/posts");
 }
@@ -92,6 +112,18 @@ export async function moderateCommunityPost(accessToken, id, payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+export async function getAdminCommunityMedia(accessToken, key) {
+  const response = await fetch(
+    `${API_BASE}/admin/community/media/${encodeURIComponent(key)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail || "Unable to load community image.");
+  }
+  return response.blob();
 }
 
 export function adminRequest(path, accessToken, options = {}) {

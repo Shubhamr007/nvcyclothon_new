@@ -9,6 +9,15 @@ function formatRupees(totalPaise) {
   return `Rs ${(value / 100).toFixed(2)}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function createEmailService(config, logger = console) {
   let transporter = null;
 
@@ -89,7 +98,7 @@ function createEmailService(config, logger = console) {
       const qrMarkup = qrCodeDataUrl
         ? `<p><img src="${qrCodeDataUrl}" alt="Race day check-in QR code" width="220" height="220" /></p>`
         : "";
-      const html = `<h1>You are on the list.</h1><p>Hi ${name},</p><p>Your NV Cyclothon registration is confirmed after successful payment.</p><ul><li><strong>Rider ID:</strong> #${riderId}</li><li><strong>Route:</strong> ${route}</li><li><strong>Amount paid:</strong> ${amount}</li><li><strong>Race day:</strong> 18 October 2026</li><li><strong>Reporting time:</strong> 5:30 AM</li><li><strong>Venue:</strong> Rewa, Madhya Pradesh</li></ul><p><strong>Race-day check-in code:</strong> ${checkinPayload || "Will be shared by event desk"}</p>${qrMarkup}<p>Please keep this email handy on race day.</p><p>NV Cyclothon, in association with Rewa Cycling Federation</p>`;
+      const html = `<h1>You are on the list.</h1><p>Hi ${escapeHtml(name)},</p><p>Your NV Cyclothon registration is confirmed after successful payment.</p><ul><li><strong>Rider ID:</strong> #${riderId}</li><li><strong>Route:</strong> ${escapeHtml(route)}</li><li><strong>Amount paid:</strong> ${escapeHtml(amount)}</li><li><strong>Race day:</strong> 18 October 2026</li><li><strong>Reporting time:</strong> 5:30 AM</li><li><strong>Venue:</strong> Rewa, Madhya Pradesh</li></ul><p><strong>Race-day check-in code:</strong> ${escapeHtml(checkinPayload || "Will be shared by event desk")}</p>${qrMarkup}<p>Please keep this email handy on race day.</p><p>NV Cyclothon, in association with Rewa Cycling Federation</p>`;
       await send({ recipient, subject, text, html });
     },
 
@@ -97,7 +106,7 @@ function createEmailService(config, logger = console) {
       const total = `Rs ${Number(totalPaise) / 100}`;
       const subject = `Payment receipt for order #${orderId}`;
       const text = `Hi ${name},\n\nWe received payment of ${total} for order #${orderId}. Keep this email as your receipt.`;
-      const html = `<h1>Payment received</h1><p>Hi ${name},</p><p>We received <strong>${total}</strong> for order <strong>#${orderId}</strong>.</p>`;
+      const html = `<h1>Payment received</h1><p>Hi ${escapeHtml(name)},</p><p>We received <strong>${escapeHtml(total)}</strong> for order <strong>#${escapeHtml(orderId)}</strong>.</p>`;
       await send({ recipient, subject, text, html });
     },
 
@@ -107,7 +116,7 @@ function createEmailService(config, logger = console) {
           recipient,
           subject,
           text: message,
-          html: `<p>${String(message).replace(/\n/g, "<br>")}</p>`,
+          html: `<p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>`,
         });
       }
     },

@@ -23,11 +23,6 @@ function createOrdersRouter({ config, repository, rateLimiter }) {
     }
   );
 
-  router.get("/", async (_req, res) => {
-    const orders = await repository.listOrders();
-    res.json(orders);
-  });
-
   return router;
 }
 

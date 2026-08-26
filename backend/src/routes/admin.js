@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const express = require("express");
 const multer = require("multer");
 const { parse: parseCsv } = require("csv-parse/sync");
@@ -22,6 +23,8 @@ const {
   eventUpdateEmailSchema,
   siteSettingsPatchSchema,
   communityModerationSchema,
+  volunteerAccountCreateSchema,
+  volunteerAccountUpdateSchema,
   normalizeOfferInput,
   normalizeChiefGuestInput,
   normalizeDelegationInput,
@@ -36,6 +39,17 @@ function parsePositiveInt(value, fieldName) {
     throw new ValidationError(`Invalid ${fieldName}`);
   }
   return parsed;
+}
+
+function toVolunteerAccountRead(account) {
+  return {
+    id: account.id,
+    volunteer_id: account.volunteer_id,
+    display_name: account.display_name,
+    active: account.active,
+    created_at: account.created_at,
+    updated_at: account.updated_at,
+  };
 }
 
 function runMulter(upload, req, res) {
@@ -251,6 +265,33 @@ function createAdminRouter({ config, repository, emailService }) {
     res.json(settings);
   });
 
+  router.get("/volunteers", async (_req, res) => {
+    const accounts = await repository.listVolunteerAccounts();
+    res.json(accounts.map(toVolunteerAccountRead));
+  });
+
+  router.post("/volunteers", async (req, res) => {
+    const payload = parseSchema(volunteerAccountCreateSchema, req.body || {});
+    const account = await repository.createVolunteerAccount({
+      volunteer_id: payload.volunteer_id,
+      display_name: payload.display_name,
+      password_hash: await bcrypt.hash(payload.password, 12),
+    });
+    res.status(201).json(toVolunteerAccountRead(account));
+  });
+
+  router.patch("/volunteers/:volunteerId", async (req, res) => {
+    const id = parsePositiveInt(req.params.volunteerId, "volunteer id");
+    const payload = parseSchema(volunteerAccountUpdateSchema, req.body || {});
+    const account = await repository.updateVolunteerAccount(id, {
+      display_name: payload.display_name,
+      active: payload.active,
+      password_hash: payload.password ? await bcrypt.hash(payload.password, 12) : undefined,
+    });
+    if (!account) throw new NotFoundError("Volunteer account not found");
+    res.json(toVolunteerAccountRead(account));
+  });
+
   router.get("/community/posts", async (req, res) => {
     const status = String(req.query.status || "pending").toLowerCase();
     if (!["pending", "approved"].includes(status)) {
@@ -281,13 +322,17 @@ function createAdminRouter({ config, repository, emailService }) {
 
   router.get("/community/media/:key", async (req, res, next) => {
     try {
+      const post = await repository.getCommunityPostByImageKey(req.params.key);
+      if (!post) {
+        throw new NotFoundError("Media not found");
+      }
       const { resolveCommunityImagePath } = require("../services/communityMedia");
       const target = resolveCommunityImagePath(config, req.params.key);
       if (!target) {
         throw new NotFoundError("Media not found");
       }
       res.set("Cache-Control", "private, no-store");
-      res.type("image/webp").sendFile(target);
+      res.type(post.image_content_type || "image/webp").sendFile(target);
     } catch (error) {
       next(error);
     }
@@ -320,6 +365,9 @@ function createAdminRouter({ config, repository, emailService }) {
 
   router.post("/registrations/bulk-status", async (req, res) => {
     const payload = parseSchema(bulkStatusUpdateSchema, req.body);
+    if (payload.status === "checked_in") {
+      throw new ValidationError("Use the volunteer check-in workspace for checked-in status");
+    }
     const result = await repository.bulkUpdateRegistrationStatus(
       payload.registration_ids,
       payload.status
@@ -519,6 +567,9 @@ function createAdminRouter({ config, repository, emailService }) {
   router.patch("/registrations/:registrationId", async (req, res) => {
     const registrationId = parsePositiveInt(req.params.registrationId, "registration id");
     const payload = parseSchema(statusUpdateSchema, req.body);
+    if (payload.status === "checked_in") {
+      throw new ValidationError("Use the volunteer check-in workspace for checked-in status");
+    }
     const registration = await repository.updateRegistrationStatus(
       registrationId,
       payload.status
