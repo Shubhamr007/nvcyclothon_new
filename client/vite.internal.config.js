@@ -5,8 +5,20 @@ import { fileURLToPath } from 'node:url';
 const resolveFromRoot = (relativePath) =>
   fileURLToPath(new URL(relativePath, import.meta.url));
 
+const internalEntryPlugin = {
+  name: 'internal-entry',
+  configureServer(server) {
+    server.middlewares.use((request, _response, next) => {
+      if (request.url === '/' || request.url === '/index.html') {
+        request.url = '/internal.html';
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), internalEntryPlugin],
   resolve: {
     alias: {
       react: resolveFromRoot('./node_modules/react'),
