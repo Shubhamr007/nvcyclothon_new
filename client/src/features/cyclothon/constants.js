@@ -1,4 +1,9 @@
-export const EVENT = { name: 'NV Cyclothon', date: '18 October 2026', location: 'Rewa, Madhya Pradesh', startTime: '5:30 AM', association: 'Rewa District Cycling Association' };
+export const EVENT = { name: 'NV Cyclothon', date: '18 October 2026', location: 'Rewa, Madhya Pradesh', startTime: '5:30 AM', association: 'Rewa District Cycling Association', edition: 3, editionLabel: '3rd Edition' };
+export const EDITIONS = [
+  { number: 'I', year: '2024', tagline: 'The first pedal', caption: 'Vindhya\u2019s cyclists find their tribe and set the pace for what a community ride can feel like.' },
+  { number: 'II', year: '2025', tagline: 'The movement', caption: 'A bigger start line, stronger routes, and a growing community that shows up for every rider.' },
+  { number: 'III', year: '2026', tagline: 'The next chapter', caption: 'Bigger routes, more categories, and a race-day experience built around every kind of rider. You\u2019re in it.' },
+];
 export const RIDE_OPTIONS = [
   { distance: '60 Km Road Challenge', length: '60 KM', title: 'Road Challenge', description: 'A 60 km road test for determined riders.', fee: 'Early bird ₹899', pricing: '₹899 early bird · ₹1,099 regular · ₹1,299 last week', capacity: 100, jersey: true, kit: ['Jersey', 'Medal', 'Bib number', 'E-certificate', 'Hydration', 'Medical support', 'Photography'], color: 'lime' },
   { distance: '30 Km MTB Challenge', length: '30 KM', title: 'MTB Challenge', description: 'A 30 km mountain-bike challenge built for adventure.', fee: 'Early bird ₹799', pricing: '₹799 early bird · ₹999 regular · ₹1,199 last week', capacity: 150, jersey: true, kit: ['Jersey', 'Medal', 'Bib number', 'E-certificate', 'Hydration', 'Medical support', 'Photography'], color: 'orange' },

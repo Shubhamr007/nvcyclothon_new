@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import CountUp from "react-countup";
+import CountUpModule from "react-countup";
 import { useInView } from "react-intersection-observer";
+
+const CountUp = CountUpModule.default || CountUpModule;
 import { FaBicycle, FaHeartPulse, FaMedal, FaMusic, FaPersonBiking, FaRegHeart, FaWater } from "react-icons/fa6";
 import { MdMedicalServices, MdPhotoCamera } from "react-icons/md";
 

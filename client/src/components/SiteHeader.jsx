@@ -4,7 +4,13 @@ import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
 
 export function SiteHeader({ theme, onToggleTheme }) {
   return (
-    <header className="site-header fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[#071313]/90 backdrop-blur">
+    <header className="site-header site-header--glass fixed inset-x-0 top-0 z-40 border-b border-white/10 text-white">
+      <a
+        href="#main-content"
+        className="skip-link absolute left-3 top-2 rounded bg-[#d9ff38] px-3 py-2 text-xs font-black text-[#071313]"
+      >
+        Skip to main content
+      </a>
       <div className="mx-auto flex h-20 w-[min(1240px,calc(100%-40px))] items-center justify-between text-white">
         <a
           href="/"

@@ -1,5 +1,7 @@
 import associationLogo from "../../../../assets/Rewa_District_Cycyling_Association.jpeg";
 import rewaMap from "../../../../assets/rewa_map.png";
+import { EDITIONS, EVENT } from "../constants";
+import { Reveal } from "../../../components/Reveal";
 
 const gallery = [
   [
@@ -15,6 +17,75 @@ const gallery = [
     "Cyclist with a bicycle at sunrise",
   ],
 ];
+export function Editions() {
+  return (
+    <section
+      id="editions"
+      aria-labelledby="editions-heading"
+      className="bg-[#071313] px-5 py-24 text-white"
+    >
+      <div className="mx-auto max-w-[1240px]">
+        <Reveal>
+          <p className="text-xs font-black tracking-[.28em] text-[#d9ff38] uppercase">
+            {EVENT.editionLabel} · A tradition on two wheels
+          </p>
+          <h2
+            id="editions-heading"
+            className="mt-4 max-w-3xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl"
+          >
+            Three years,<br />
+            <span className="text-[#ff5f3d]">one movement.</span>
+          </h2>
+          <p className="mt-6 max-w-2xl text-sm leading-6 text-white/70">
+            NV Cyclothon is not a one-off event. Every edition has grown the
+            community, sharpened the routes, and put more riders on the road.
+            2026 is our third edition — and the biggest yet.
+          </p>
+        </Reveal>
+        <ol className="mt-14 grid gap-5 md:grid-cols-3">
+          {EDITIONS.map((edition, index) => {
+            const isCurrent = index === EDITIONS.length - 1;
+            return (
+              <Reveal key={edition.number} delay={index * 0.1} as="li">
+                <article
+                  className={`relative flex h-full flex-col rounded-3xl border p-7 transition ${
+                    isCurrent
+                      ? "border-[#d9ff38] bg-[#d9ff38] text-[#071313] shadow-[8px_8px_0_#ff5f3d]"
+                      : "border-white/15 bg-white/[.03] text-white"
+                  }`}
+                >
+                  {isCurrent && (
+                    <span className="absolute -top-3 right-6 rounded-full bg-[#ff5f3d] px-3 py-1 text-[10px] font-black tracking-[.18em] text-white uppercase">
+                      You're in it
+                    </span>
+                  )}
+                  <p
+                    className={`text-[10px] font-black tracking-[.28em] uppercase ${
+                      isCurrent ? "text-[#071313]/70" : "text-[#d9ff38]"
+                    }`}
+                  >
+                    Edition {edition.number} · {edition.year}
+                  </p>
+                  <h3 className="mt-4 text-3xl font-black leading-[.95] tracking-[-.05em] uppercase">
+                    {edition.tagline}
+                  </h3>
+                  <p
+                    className={`mt-4 text-sm leading-6 ${
+                      isCurrent ? "text-[#071313]/80" : "text-white/70"
+                    }`}
+                  >
+                    {edition.caption}
+                  </p>
+                </article>
+              </Reveal>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
 export function Gallery() {
   return (
     <section
