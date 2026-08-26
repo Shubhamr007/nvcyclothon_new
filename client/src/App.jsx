@@ -45,6 +45,8 @@ function Seo() {
 }
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem("nv-theme") || "dark");
+  const { pathname } = useLocation();
+  const isCheckinRoute = pathname === "/checkin";
   useEffect(() => {
     document.body.dataset.theme = theme;
     localStorage.setItem("nv-theme", theme);
@@ -52,7 +54,7 @@ export default function App() {
   return (
     <SiteSettingsProvider>
       <Seo />
-      <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />
+      {!isCheckinRoute && <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />}
       <main id="main-content">
         <Suspense fallback={<PageFallback />}><Routes>
             <Route path="/" element={<HomePage />} />
@@ -61,7 +63,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes></Suspense>
       </main>
-      <SiteFooter />
+      {!isCheckinRoute && <SiteFooter />}
     </SiteSettingsProvider>
   );
 }

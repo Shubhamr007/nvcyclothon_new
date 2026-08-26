@@ -9,6 +9,7 @@ const {
   MAX_IMAGE_BYTES,
   processAndStoreCommunityImage,
   resolveCommunityImagePath,
+  deleteCommunityImage,
 } = require("../services/communityMedia");
 
 function toPublicPost(record) {
@@ -81,9 +82,21 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
           throw new ApiError(403, "Community submissions are currently closed.");
         }
 
+        const requesterIp = requestKey(req);
+        const submissionsToday = await repository.countCommunityPostsForIpSince(
+          requesterIp,
+          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        );
+        if (submissionsToday >= 3) {
+          throw new ApiError(
+            429,
+            "You have reached the daily community post limit. Try again tomorrow.",
+            { "Retry-After": "86400" }
+          );
+        }
         rateLimiter.check({
           scope: "community-post",
-          key: requestKey(req),
+          key: requesterIp,
           maximum: 3,
           seconds: 24 * 60 * 60,
           message: "You have reached the daily community post limit. Try again tomorrow.",
@@ -102,15 +115,23 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
 
         const imageDetails = await processAndStoreCommunityImage(config, req.file);
 
-        const record = await repository.createCommunityPost({
-          name: payload.name,
-          message: payload.message,
-          image_key: imageDetails?.image_key || null,
-          image_content_type: imageDetails?.image_content_type || null,
-          image_size_bytes: imageDetails?.image_size_bytes || null,
-          submitted_ip: requestKey(req),
-          submitted_user_agent: String(req.headers["user-agent"] || "").slice(0, 240),
-        });
+        let record;
+        try {
+          record = await repository.createCommunityPost({
+            name: payload.name,
+            message: payload.message,
+            image_key: imageDetails?.image_key || null,
+            image_content_type: imageDetails?.image_content_type || null,
+            image_size_bytes: imageDetails?.image_size_bytes || null,
+            submitted_ip: requesterIp,
+            submitted_user_agent: String(req.headers["user-agent"] || "").slice(0, 240),
+          });
+        } catch (error) {
+          if (imageDetails?.image_key) {
+            deleteCommunityImage(config, imageDetails.image_key);
+          }
+          throw error;
+        }
 
         notifyModerators({ config, emailService, logger, record }).catch((error) => {
           (logger || console).error?.("community notify failed", error);
@@ -136,8 +157,7 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
 async function findPostByImageKey(repository, key) {
   const safeKey = String(key || "");
   if (!safeKey) return null;
-  const approved = await repository.listApprovedCommunityPosts(200);
-  return approved.find((post) => post.image_key === safeKey) || null;
+  return repository.getCommunityPostByImageKey(safeKey);
 }
 
 let lastNotificationTs = 0;

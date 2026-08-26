@@ -1,4 +1,5 @@
 const express = require("express");
+const bcrypt = require("bcryptjs");
 const { ValidationError, UnauthorizedError } = require("../errors");
 const {
   parseSchema,
@@ -68,7 +69,7 @@ function createCheckinRouter({ config, repository, rateLimiter }) {
     res.json({ enabled: Boolean(config.volunteerCheckinEnabled) });
   });
 
-  router.post("/session", (req, res) => {
+  router.post("/session", async (req, res) => {
     if (!config.volunteerCheckinEnabled) {
       throw new UnauthorizedError("Volunteer check-in is disabled");
     }
@@ -83,6 +84,23 @@ function createCheckinRouter({ config, repository, rateLimiter }) {
     });
 
     const payload = parseSchema(volunteerSessionSchema, req.body);
+    const account = await repository.getVolunteerAccount(payload.volunteer_name);
+    const managedAccountsExist = await repository.hasActiveVolunteerAccounts();
+
+    if (account || managedAccountsExist) {
+      if (!account || !account.active || !(await bcrypt.compare(payload.volunteer_pin, account.password_hash))) {
+        throw new UnauthorizedError("Invalid volunteer credentials");
+      }
+      const volunteerName = account.display_name;
+      res.json({
+        access_token: issueVolunteerToken(config, volunteerName),
+        token_type: "bearer",
+        expires_in: config.volunteerSessionTtlSeconds,
+        volunteer_name: volunteerName,
+      });
+      return;
+    }
+
     const configuredCredentials = config.volunteerCheckinCredentials || {};
     const configuredNames = Object.keys(configuredCredentials);
 
@@ -113,6 +131,16 @@ function createCheckinRouter({ config, repository, rateLimiter }) {
 
   router.get("/participants/search", async (req, res) => {
     const query = String(req.query.q || "").trim();
+    rateLimiter.check({
+      scope: "volunteer-search",
+      key: `${req.volunteerSession?.volunteer_name || "volunteer"}:${req.ip || "unknown"}`,
+      maximum: 90,
+      seconds: 60,
+      message: "Too many participant searches. Please pause briefly and try again.",
+    });
+    if (query.length > 100) {
+      throw new ValidationError("Search query must be 100 characters or fewer");
+    }
     const numericOnly = /^\d+$/.test(query);
     if (query.length < 2 && !numericOnly) {
       throw new ValidationError("Enter at least 2 characters to search");

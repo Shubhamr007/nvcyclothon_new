@@ -7,6 +7,7 @@ import { request } from "../../../api/http";
 import { openRazorpayCheckout } from "../../../api/razorpay";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { EVENT, RIDE_OPTIONS } from "../constants";
+import { useSiteSettings } from "../../../state/SiteSettingsContext";
 
 const initialValues = (route) => ({
   full_name: "",
@@ -25,6 +26,7 @@ const initialValues = (route) => ({
 export function RegistrationForm({ initialRoute }) {
   const { register, handleSubmit, watch, formState: { errors } } = useForm({ defaultValues: initialValues(initialRoute) });
   const reduceMotion = useReducedMotion();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const [status, setStatus] = useState({ state: "idle", message: "" });
   const selectedRoute = watch("ride_category");
   const selectedRide = RIDE_OPTIONS.find((route) => route.distance === selectedRoute) || RIDE_OPTIONS[0];
@@ -56,6 +58,19 @@ export function RegistrationForm({ initialRoute }) {
     }
   };
   if (status.state === "success") return <>{!reduceMotion && <Confetti aria-hidden="true" recycle={false} numberOfPieces={220} colors={["#d9ff38", "#ff5f3d", "#071313"]} />}<Success message={status.message} /></>;
+  if (settingsLoading || !settings.registration_open) {
+    return (
+      <section className="rounded-3xl bg-[#071313] p-8 text-white shadow-[10px_10px_0_#ff5f3d]" aria-live="polite">
+        <p className="text-xs font-black tracking-[.16em] text-[#d9ff38] uppercase">Registration</p>
+        <h2 className="mt-2 text-3xl font-black tracking-tight">{settingsLoading ? "Checking availability…" : "Registration is closed."}</h2>
+        <p className="mt-3 text-sm leading-6 text-white/70">
+          {settingsLoading
+            ? "Please wait while we confirm event availability."
+            : "Thank you for your interest in NV Cyclothon. Please follow our official channels for the next opening."}
+        </p>
+      </section>
+    );
+  }
   return (
     <form noValidate onSubmit={handleSubmit(submit)}>
       <div className="flex items-end justify-between">

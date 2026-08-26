@@ -18,9 +18,17 @@ export function BicycleHero() {
   const heading = useRef(null);
   const reduceMotion = useReducedMotion();
   const [slideIndex, setSlideIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const { settings } = useSiteSettings();
   const eventDateLabel = formatEventDate(settings.event_date) || EVENT.date;
   const editionLabel = settings.edition_label || EVENT.editionLabel;
+  const heroSlides = settings.hero_images?.length
+    ? settings.hero_images.map((src, index) => ({ src, alt: `NV Cyclothon event image ${index + 1}` }))
+    : HERO_SLIDES;
+
+  useEffect(() => {
+    setSlideIndex((current) => (current < heroSlides.length ? current : 0));
+  }, [heroSlides.length]);
 
   useLayoutEffect(() => {
     if (reduceMotion) return undefined;
@@ -33,13 +41,13 @@ export function BicycleHero() {
   }, [reduceMotion]);
 
   useEffect(() => {
-    if (reduceMotion || HERO_SLIDES.length < 2) return undefined;
+    if (reduceMotion || isPaused || heroSlides.length < 2) return undefined;
     const timer = setInterval(
-      () => setSlideIndex((i) => (i + 1) % HERO_SLIDES.length),
+      () => setSlideIndex((i) => (i + 1) % heroSlides.length),
       SLIDE_INTERVAL_MS,
     );
     return () => clearInterval(timer);
-  }, [reduceMotion]);
+  }, [reduceMotion, isPaused, heroSlides.length]);
 
   return (
     <section className="hero-section relative min-h-screen overflow-hidden bg-[#071313] text-white">
@@ -49,7 +57,7 @@ export function BicycleHero() {
         aria-roledescription="carousel"
         aria-label="NV Cyclothon hero images"
       >
-        {HERO_SLIDES.map((slide, i) => (
+        {heroSlides.map((slide, i) => (
           <img
             key={slide.src}
             src={slide.src}
@@ -110,16 +118,25 @@ export function BicycleHero() {
         <BicycleArt />
       </div>
       <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3">
-        {HERO_SLIDES.map((slide, i) => (
+        {heroSlides.map((slide, i) => (
           <button
             key={slide.src}
             type="button"
             onClick={() => setSlideIndex(i)}
-            aria-label={`Show slide ${i + 1} of ${HERO_SLIDES.length}`}
+            aria-label={`Show slide ${i + 1} of ${heroSlides.length}`}
             aria-current={i === slideIndex}
             className={`h-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-[#d9ff38] ${i === slideIndex ? "w-8 bg-[#d9ff38]" : "w-2 bg-white/40 hover:bg-white/70"}`}
           />
         ))}
+        {!reduceMotion && (
+          <button
+            type="button"
+            onClick={() => setIsPaused((current) => !current)}
+            className="ml-2 rounded-full border border-white/40 px-3 py-1 text-[10px] font-black tracking-[.12em] text-white uppercase focus:outline-none focus:ring-2 focus:ring-[#d9ff38]"
+          >
+            {isPaused ? "Play" : "Pause"}
+          </button>
+        )}
       </div>
       <a href="#routes" className="absolute bottom-16 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[10px] tracking-[.25em] text-white/70 uppercase transition hover:text-[#d9ff38] focus-visible:text-[#d9ff38]">
         Explore routes ↓

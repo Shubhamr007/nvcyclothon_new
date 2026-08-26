@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkinRequest, createCheckinSession, getCheckinStatus } from "../api/http";
 import { LoadingIndicator } from "../components/LoadingIndicator";
+import { useDebouncedValue } from "../components/useDebouncedValue";
 
 const SESSION_STORAGE_KEY = "nv-checkin-session";
 
@@ -34,7 +35,7 @@ function statusPillClasses(status) {
 
 export function CheckinPage() {
   const [volunteerPin, setVolunteerPin] = useState("");
-  const [volunteerName, setVolunteerName] = useState("Desk 1");
+  const [volunteerName, setVolunteerName] = useState("");
   const [sessionToken, setSessionToken] = useState(() => {
     try {
       const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -63,7 +64,9 @@ export function CheckinPage() {
   const [busy, setBusy] = useState(false);
   const [scanValue, setScanValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebouncedValue(searchQuery.trim(), 350);
   const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const [cameraRunning, setCameraRunning] = useState(false);
   const [availability, setAvailability] = useState({ state: "loading", enabled: false });
@@ -72,7 +75,9 @@ export function CheckinPage() {
   const streamRef = useRef(null);
   const frameRef = useRef(null);
   const detectorRef = useRef(null);
+  const cameraRunningRef = useRef(false);
   const submittingScanRef = useRef(false);
+  const searchAbortRef = useRef(null);
 
   const barcodeDetectionSupported = useMemo(
     () => typeof window !== "undefined" && "BarcodeDetector" in window,
@@ -145,6 +150,7 @@ export function CheckinPage() {
   }, [barcodeDetectionSupported]);
 
   function stopCamera() {
+    cameraRunningRef.current = false;
     if (frameRef.current) {
       window.cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
@@ -235,7 +241,7 @@ export function CheckinPage() {
   }
 
   async function detectQrFrame() {
-    if (!cameraRunning || !videoRef.current || !detectorRef.current) {
+    if (!cameraRunningRef.current || !videoRef.current || !detectorRef.current) {
       return;
     }
 
@@ -274,6 +280,7 @@ export function CheckinPage() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+      cameraRunningRef.current = true;
       setCameraRunning(true);
       frameRef.current = window.requestAnimationFrame(() => {
         void detectQrFrame();
@@ -283,33 +290,60 @@ export function CheckinPage() {
     }
   }
 
-  async function searchParticipants(event) {
-    event.preventDefault();
-    if (!searchQuery.trim()) {
+  async function searchParticipants(event, requestedQuery) {
+    event?.preventDefault();
+    const query = String(
+      requestedQuery ?? event?.currentTarget?.elements?.["participant-search"]?.value ?? searchQuery
+    ).trim();
+    if (!query) {
       setMessage("Enter rider id, phone, email, name, or city.");
       return;
     }
+    const numericOnly = /^\d+$/.test(query);
+    if (query.length < 2 && !numericOnly) {
+      setSearchResults([]);
+      return;
+    }
 
-    setBusy(true);
+    searchAbortRef.current?.abort();
+    const controller = new AbortController();
+    searchAbortRef.current = controller;
+    setSearching(true);
     setMessage("");
     try {
       const data = await checkinRequest(
-        `/participants/search?q=${encodeURIComponent(searchQuery.trim())}`,
-        sessionToken
+        `/participants/search?q=${encodeURIComponent(query)}`,
+        sessionToken,
+        { signal: controller.signal }
       );
+      if (controller.signal.aborted) return;
       setSearchResults(data.items || []);
       if (!data.items?.length) {
         setMessage("No participants matched this search.");
       }
     } catch (error) {
+      if (error.name === "AbortError" || controller.signal.aborted) return;
       setMessage(error.message);
       if (error.message.toLowerCase().includes("session")) {
         clearSession();
       }
     } finally {
-      setBusy(false);
+      if (!controller.signal.aborted) setSearching(false);
     }
   }
+
+  useEffect(() => {
+    if (!sessionToken) return undefined;
+    const numericOnly = /^\d+$/.test(debouncedSearchQuery);
+    if (!debouncedSearchQuery || (debouncedSearchQuery.length < 2 && !numericOnly)) {
+      searchAbortRef.current?.abort();
+      setSearchResults([]);
+      setSearching(false);
+      return undefined;
+    }
+    void searchParticipants(undefined, debouncedSearchQuery);
+    return () => searchAbortRef.current?.abort();
+  }, [debouncedSearchQuery, sessionToken]);
 
   async function checkInManually(registrationId) {
     setBusy(true);
@@ -354,7 +388,7 @@ export function CheckinPage() {
 
   if (!availability.enabled) {
     return (
-      <main className="min-h-screen bg-[#071313] px-5 pb-16 pt-28 text-white">
+      <main className="min-h-screen bg-[#071313] px-5 pb-16 pt-10 text-white">
         <div className="mx-auto w-full max-w-xl rounded-3xl bg-[#f4f1e9] p-8 text-[#071313] shadow-2xl">
           <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
             Volunteer check-in
@@ -380,34 +414,34 @@ export function CheckinPage() {
 
   if (!sessionToken) {
     return (
-      <main className="min-h-screen bg-[#071313] px-5 pb-16 pt-28 text-white">
+      <main className="min-h-screen bg-[#071313] px-5 pb-16 pt-10 text-white">
         <div className="mx-auto w-full max-w-xl rounded-3xl bg-[#f4f1e9] p-8 text-[#071313] shadow-2xl">
           <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
             Volunteer check-in
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-tight">Race-day access</h1>
           <p className="mt-3 text-sm text-black/65">
-            Sign in with your volunteer PIN to scan QR codes and check in riders.
+            Sign in with the volunteer ID and password issued by the event administrator.
           </p>
           <form className="mt-6 space-y-3" onSubmit={login}>
             <label htmlFor="volunteer-name" className="block text-xs font-bold uppercase tracking-[.1em]">
-              Volunteer name
+              Volunteer ID
             </label>
             <input
               id="volunteer-name"
               className="w-full rounded-xl border border-black/15 bg-white p-3"
-              placeholder="Volunteer name"
+              placeholder="desk-01"
               value={volunteerName}
               onChange={(event) => setVolunteerName(event.target.value)}
               autoComplete="off"
             />
             <label htmlFor="volunteer-pin" className="block text-xs font-bold uppercase tracking-[.1em]">
-              Volunteer PIN
+              Password
             </label>
             <input
               id="volunteer-pin"
               className="w-full rounded-xl border border-black/15 bg-white p-3"
-              placeholder="Volunteer PIN"
+              placeholder="Volunteer password"
               value={volunteerPin}
               onChange={(event) => setVolunteerPin(event.target.value)}
               autoComplete="off"
@@ -436,21 +470,21 @@ export function CheckinPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f1e9] px-4 pb-16 pt-28 text-[#071313] sm:px-6">
-      <div className="mx-auto w-full max-w-5xl">
-        <section className="rounded-3xl bg-[#071313] px-5 py-6 text-white shadow-[0_16px_40px_rgba(7,19,19,.24)] sm:px-7">
+      <main className="min-h-screen bg-[#f4f1e9] px-3 pb-10 pt-3 text-[#071313] sm:px-6 sm:pt-6">
+      <div className="mx-auto w-full max-w-[1440px]">
+        <section className="border-b-2 border-[#071313] bg-transparent px-1 py-4 sm:px-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black tracking-[.16em] text-[#d9ff38] uppercase">
-                Volunteer check-in terminal
+              <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
+                Race-day check-in
               </p>
-              <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
-                Welcome, {activeVolunteer || "Volunteer"}
+              <h1 className="mt-1 text-xl font-black tracking-tight sm:text-2xl">
+                {activeVolunteer || "Volunteer"} · ready to scan
               </h1>
             </div>
             <button
               onClick={clearSession}
-              className="rounded-full border border-white/30 px-4 py-2 text-xs font-black tracking-[.08em] uppercase hover:bg-white/10"
+              className="rounded-full border border-[#071313]/25 px-4 py-2 text-xs font-black tracking-[.08em] uppercase hover:bg-[#071313] hover:text-white"
             >
               Sign out
             </button>
@@ -542,58 +576,64 @@ export function CheckinPage() {
               />
               <button
                 type="submit"
-                disabled={busy}
+                disabled={searching}
                 className="rounded-xl bg-[#071313] px-4 py-2 text-sm font-black text-white disabled:opacity-60"
               >
-                Search
+                {searching ? "Searching…" : "Search"}
               </button>
             </form>
 
-            <div className="mt-4 max-h-[360px] overflow-auto rounded-2xl border border-black/10">
-              {busy && !searchResults.length ? (
+            <div className="mt-4 max-h-[440px] overflow-auto rounded-2xl border border-black/10" role="region" aria-label="Participant search results" tabIndex="0">
+              {searching && !searchResults.length ? (
                 <div className="p-4">
                   <LoadingIndicator label="Searching participants..." className="text-sm" />
                 </div>
               ) : searchResults.length ? (
-                <ul className="divide-y divide-black/8">
-                  {searchResults.map((participant) => (
-                    <li key={participant.id} className="p-3">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-black">
-                            #{participant.id} · {participant.full_name}
-                          </p>
-                          <p className="text-xs text-black/60">
-                            {participant.phone} · {participant.email}
-                          </p>
-                          <p className="mt-1 text-xs text-black/60">
-                            {participant.ride_category} · {participant.city}
-                          </p>
-                          <p className="mt-1 text-xs text-black/60">
-                            Checked in: {formatDateTime(participant.checked_in_at)}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span
-                            className={`rounded-full px-2 py-1 text-[11px] font-black uppercase ${statusPillClasses(
-                              participant.status
-                            )}`}
-                          >
+                <table className="w-full min-w-[820px] text-left text-xs">
+                  <thead className="sticky top-0 bg-[#071313] text-white">
+                    <tr>
+                      <th scope="col" className="p-3 font-black uppercase">Rider</th>
+                      <th scope="col" className="p-3 font-black uppercase">Route</th>
+                      <th scope="col" className="p-3 font-black uppercase">Status</th>
+                      <th scope="col" className="p-3 font-black uppercase">Check-in detail</th>
+                      <th scope="col" className="p-3 font-black uppercase"><span className="sr-only">Action</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/8 bg-white">
+                    {searchResults.map((participant) => (
+                      <tr key={participant.id}>
+                        <td className="p-3 align-top">
+                          <p className="font-black">#{participant.id} · {participant.full_name}</p>
+                          <p className="mt-1 text-black/60">{participant.phone}</p>
+                          <p className="text-black/60">{participant.email}</p>
+                        </td>
+                        <td className="p-3 align-top">
+                          <p className="font-bold">{participant.ride_category}</p>
+                          <p className="mt-1 text-black/60">{participant.city}</p>
+                        </td>
+                        <td className="p-3 align-top">
+                          <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase ${statusPillClasses(participant.status)}`}>
                             {formatStatus(participant.status)}
                           </span>
+                        </td>
+                        <td className="p-3 align-top text-black/65">
+                          <p>{formatDateTime(participant.checked_in_at)}</p>
+                          {participant.checked_in_by && <p className="mt-1">By {participant.checked_in_by} · {participant.checkin_method || "manual"}</p>}
+                        </td>
+                        <td className="p-3 align-top text-right">
                           <button
                             type="button"
                             onClick={() => void checkInManually(participant.id)}
-                            disabled={busy || participant.status === "cancelled"}
-                            className="rounded-lg bg-[#ff5f3d] px-3 py-1.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={busy || participant.status === "cancelled" || participant.status === "checked_in"}
+                            className="rounded-lg bg-[#ff5f3d] px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Check in
+                            {participant.status === "checked_in" ? "Done" : "Check in"}
                           </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <p className="p-4 text-sm text-black/55">
                   Search results will appear here.

@@ -184,6 +184,14 @@ const siteSettingsPatchSchema = z
     event_location: z.string().trim().min(2).max(160).optional(),
     edition_label: z.string().trim().min(2).max(60).optional(),
     registration_open: z.boolean().optional(),
+    hero_images: z.array(z.string().url().startsWith("https://")).max(5).optional(),
+    feature_section: z.object({
+      enabled: z.boolean().optional(),
+      eyebrow: z.string().trim().max(80).optional(),
+      title: z.string().trim().max(160).optional(),
+      body: z.string().trim().max(1000).optional(),
+      image_url: z.union([z.literal(""), z.string().url().startsWith("https://")]).optional(),
+    }).optional(),
     sections: siteSectionsPatchSchema.optional(),
   })
   .partial()
@@ -205,6 +213,22 @@ const communityModerationSchema = z.object({
   status: z.enum(["approved", "rejected"]),
   reason: z.string().trim().max(500).optional(),
 });
+
+const volunteerAccountCreateSchema = z.object({
+  volunteer_id: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
+  display_name: z.string().trim().min(2).max(120),
+  password: z.string().min(8).max(128),
+});
+
+const volunteerAccountUpdateSchema = z
+  .object({
+    display_name: z.string().trim().min(2).max(120).optional(),
+    password: z.string().min(8).max(128).optional(),
+    active: z.boolean().optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Provide at least one volunteer change",
+  });
 
 function normalizeProductInput(payload) {
   return {
@@ -305,6 +329,8 @@ module.exports = {
   siteSettingsPatchSchema,
   communityPostSchema,
   communityModerationSchema,
+  volunteerAccountCreateSchema,
+  volunteerAccountUpdateSchema,
   normalizeProductInput,
   normalizeProductUpdateInput,
   normalizeOrderInput,

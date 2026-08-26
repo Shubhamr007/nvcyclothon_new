@@ -109,7 +109,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
     res.setHeader("Cross-Origin-Resource-Policy", "same-site");
     res.setHeader(
@@ -129,7 +129,9 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     next();
   });
 
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "1mb", verify: (req, _res, buffer) => {
+    req.rawBody = Buffer.from(buffer);
+  } }));
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
   app.post("/api/admin/session", (req, res, next) => {
@@ -213,8 +215,11 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     config,
     repository,
   });
-  app.use("/api/uploads", uploadsModule.router);
-  app.post("/upload", uploadsModule.handler);
+  app.use(
+    "/api/uploads",
+    config.adminAuthEnabled ? requireAdmin(config) : localBypassGuard(config),
+    uploadsModule.router
+  );
 
   app.use(
     "/api/admin",

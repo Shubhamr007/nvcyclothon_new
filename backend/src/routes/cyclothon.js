@@ -27,6 +27,34 @@ function createCyclothonRouter({
 }) {
   const router = express.Router();
 
+  router.post("/webhook/razorpay", async (req, res) => {
+    if (!config.razorpayEnabled || !config.razorpayWebhookSecret) {
+      res.status(404).json({ detail: "Not found" });
+      return;
+    }
+    const signature = String(req.header("x-razorpay-signature") || "");
+    const expected = crypto
+      .createHmac("sha256", config.razorpayWebhookSecret)
+      .update(req.rawBody || Buffer.from(JSON.stringify(req.body || {})))
+      .digest("hex");
+    if (
+      !signature ||
+      signature.length !== expected.length ||
+      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+    ) {
+      res.status(401).json({ detail: "Invalid webhook signature" });
+      return;
+    }
+    const payment = req.body?.payload?.payment?.entity;
+    if (req.body?.event === "payment.captured" && payment?.order_id && payment?.id) {
+      await repository.markCyclothonPaymentFromWebhook({
+        orderId: payment.order_id,
+        paymentId: payment.id,
+      });
+    }
+    res.status(204).end();
+  });
+
   router.post(
     "/registrations",
     rateLimiter.middleware(
@@ -36,6 +64,12 @@ function createCyclothonRouter({
       "Too many registration attempts. Try again in an hour."
     ),
     async (req, res) => {
+      const settings = await repository.getSiteSettings();
+      if (!settings.registration_open) {
+        res.status(403).json({ detail: "Registration is currently closed" });
+        return;
+      }
+
       const parsed = parseSchema(registrationCreateSchema, req.body);
       const payload = normalizeRegistrationInput(parsed);
       if (!payload.waiver_accepted || !payload.privacy_accepted) {

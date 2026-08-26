@@ -150,6 +150,13 @@ class PostgresRepository {
         scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_email_lower_idx
+        ON cyclothon_registrations (lower(email));
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_phone_idx
+        ON cyclothon_registrations (phone);
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_status_created_idx
+        ON cyclothon_registrations (status, created_at DESC);
+
       CREATE TABLE IF NOT EXISTS site_settings (
         id INTEGER PRIMARY KEY DEFAULT 1,
         data JSONB NOT NULL,
@@ -176,6 +183,16 @@ class PostgresRepository {
         ON community_posts (status, created_at DESC);
       CREATE INDEX IF NOT EXISTS community_posts_ip_created_idx
         ON community_posts (submitted_ip, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS volunteer_accounts (
+        id SERIAL PRIMARY KEY,
+        volunteer_id VARCHAR(80) UNIQUE NOT NULL,
+        display_name VARCHAR(120) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `;
 
     await this.pool.query(schemaSql);
@@ -719,6 +736,23 @@ class PostgresRepository {
         throw error;
       }
     });
+  }
+
+  async markCyclothonPaymentFromWebhook({ orderId, paymentId }) {
+    const result = await this.pool.query(
+      `UPDATE cyclothon_registrations
+       SET payment_status = 'paid',
+           status = CASE WHEN status = 'pending' THEN 'approved' ELSE status END,
+           razorpay_payment_id = COALESCE(razorpay_payment_id, $2),
+           payment_verified_at = COALESCE(payment_verified_at, NOW())
+       WHERE razorpay_order_id = $1
+       RETURNING *`,
+      [orderId, paymentId]
+    );
+    if (result.rows.length === 0) {
+      throw new NotFoundError("Payment registration not found");
+    }
+    return result.rows[0];
   }
 
   async listRegistrations() {
@@ -1310,6 +1344,62 @@ class PostgresRepository {
     return next;
   }
 
+  async listVolunteerAccounts() {
+    const result = await this.pool.query(
+      `SELECT id, volunteer_id, display_name, active, created_at, updated_at
+       FROM volunteer_accounts
+       ORDER BY volunteer_id ASC`
+    );
+    return result.rows;
+  }
+
+  async getVolunteerAccount(volunteerId) {
+    const result = await this.pool.query(
+      `SELECT id, volunteer_id, display_name, password_hash, active, created_at, updated_at
+       FROM volunteer_accounts
+       WHERE volunteer_id = lower($1)
+       LIMIT 1`,
+      [String(volunteerId || "").trim()]
+    );
+    return result.rows[0] || null;
+  }
+
+  async hasActiveVolunteerAccounts() {
+    const result = await this.pool.query(
+      "SELECT EXISTS(SELECT 1 FROM volunteer_accounts WHERE active = TRUE) AS exists"
+    );
+    return Boolean(result.rows[0]?.exists);
+  }
+
+  async createVolunteerAccount(payload) {
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO volunteer_accounts (volunteer_id, display_name, password_hash)
+         VALUES (lower($1), $2, $3)
+         RETURNING id, volunteer_id, display_name, active, created_at, updated_at`,
+        [payload.volunteer_id, payload.display_name, payload.password_hash]
+      );
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === "23505") throw new ConflictError("Volunteer ID is already in use");
+      throw error;
+    }
+  }
+
+  async updateVolunteerAccount(id, patch) {
+    const result = await this.pool.query(
+      `UPDATE volunteer_accounts
+       SET display_name = COALESCE($2, display_name),
+           password_hash = COALESCE($3, password_hash),
+           active = COALESCE($4, active),
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, volunteer_id, display_name, active, created_at, updated_at`,
+      [id, patch.display_name ?? null, patch.password_hash ?? null, patch.active ?? null]
+    );
+    return result.rows[0] || null;
+  }
+
   async createCommunityPost(payload) {
     const result = await this.pool.query(
       `INSERT INTO community_posts
@@ -1373,6 +1463,14 @@ class PostgresRepository {
     const result = await this.pool.query(
       "SELECT * FROM community_posts WHERE id = $1",
       [id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async getCommunityPostByImageKey(key) {
+    const result = await this.pool.query(
+      "SELECT * FROM community_posts WHERE image_key = $1",
+      [key]
     );
     return result.rows[0] || null;
   }

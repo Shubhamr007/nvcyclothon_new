@@ -18,7 +18,9 @@ const DEFAULT_SETTINGS = {
   event_start_time: "5:30 AM",
   event_location: "Rewa, Madhya Pradesh",
   edition_label: "3rd Edition",
-  registration_open: true,
+  registration_open: false,
+  hero_images: [],
+  feature_section: { enabled: false, eyebrow: "", title: "", body: "", image_url: "" },
   sections: DEFAULT_SECTIONS,
   updated_at: null,
 };
@@ -79,6 +81,8 @@ function mergeWithDefaults(raw) {
       typeof raw?.registration_open === "boolean"
         ? raw.registration_open
         : DEFAULT_SETTINGS.registration_open,
+      hero_images: Array.isArray(raw?.hero_images) ? raw.hero_images : [],
+      feature_section: { ...DEFAULT_SETTINGS.feature_section, ...(raw?.feature_section || {}) },
     sections,
     updated_at: raw?.updated_at || null,
   };

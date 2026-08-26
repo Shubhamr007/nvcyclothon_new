@@ -94,13 +94,20 @@ function createUploadHandler({ config, repository }) {
       }
 
       const storageKey = `${crypto.randomUUID().replaceAll("-", "")}_${filename}`;
-      fs.writeFileSync(path.join(config.uploadDir, storageKey), file.buffer);
-      const record = await repository.createUploadRecord({
-        original_name: filename,
-        storage_key: storageKey,
-        content_type: file.mimetype,
-        size_bytes: file.size,
-      });
+      const storagePath = path.join(config.uploadDir, storageKey);
+      fs.writeFileSync(storagePath, file.buffer, { flag: "wx" });
+      let record;
+      try {
+        record = await repository.createUploadRecord({
+          original_name: filename,
+          storage_key: storageKey,
+          content_type: file.mimetype,
+          size_bytes: file.size,
+        });
+      } catch (error) {
+        fs.unlinkSync(storagePath);
+        throw error;
+      }
 
       created.push({
         id: record.id,
