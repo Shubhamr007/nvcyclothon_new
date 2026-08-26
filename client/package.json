@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:internal": "vite --config vite.internal.config.js",
+    "build:internal": "vite build --config vite.internal.config.js",
+    "preview:internal": "vite preview --config vite.internal.config.js --port 4174"
   },
   "dependencies": {
     "@react-spring/web": "^10.1.2",
@@ -26,16 +29,16 @@
     "react-icons": "^5.7.0",
     "react-intersection-observer": "^10.1.0",
     "react-parallax-tilt": "^1.7.335",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.18.2",
     "react-toastify": "^11.1.0",
     "swiper": "^14.0.6"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react-swc": "^4.3.3",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.26",
     "sharp": "^0.35.3",
     "tailwindcss": "^3.4.16",
-    "vite": "^5.4.11"
+    "vite": "^8.2.1"
   }
 }

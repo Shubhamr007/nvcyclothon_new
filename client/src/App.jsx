@@ -3,10 +3,11 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { LoadingIndicator } from "./components/LoadingIndicator";
+import { SiteSettingsProvider } from "./state/SiteSettingsContext";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
-const AdminPage = lazy(() => import("./pages/AdminPage").then((module) => ({ default: module.AdminPage })));
+const CheckinPage = lazy(() => import("./pages/CheckinPage").then((module) => ({ default: module.CheckinPage })));
 const PageFallback = () => <main className="grid min-h-screen place-items-center bg-[#071313] text-white"><LoadingIndicator label="Loading page…" /></main>;
 
 const metadata = {
@@ -18,7 +19,10 @@ const metadata = {
     "Register | NV Cyclothon 2026",
     "Reserve a place in the NV Cyclothon bicycle event.",
   ],
-  "/admin": ["Admin | NV Cyclothon 2026", "Secure event administration dashboard."],
+  "/checkin": [
+    "Volunteer Check-in | NV Cyclothon 2026",
+    "Race-day volunteer workspace for scanning QR codes and checking in riders.",
+  ],
 };
 function Seo() {
   const { pathname } = useLocation();
@@ -28,27 +32,36 @@ function Seo() {
     document
       .querySelector('meta[name="description"]')
       ?.setAttribute("content", description);
+    const shouldNoIndex = pathname.startsWith("/checkin");
+    let robotsTag = document.querySelector('meta[name="robots"]');
+    if (!robotsTag) {
+      robotsTag = document.createElement("meta");
+      robotsTag.setAttribute("name", "robots");
+      document.head.appendChild(robotsTag);
+    }
+    robotsTag.setAttribute("content", shouldNoIndex ? "noindex, nofollow" : "index, follow");
   }, [pathname]);
   return null;
 }
 export default function App() {
-  const { pathname } = useLocation();
   const [theme, setTheme] = useState(() => localStorage.getItem("nv-theme") || "dark");
   useEffect(() => {
     document.body.dataset.theme = theme;
     localStorage.setItem("nv-theme", theme);
   }, [theme]);
-  if (pathname === "/admin") return <><Seo /><Suspense fallback={<PageFallback />}><AdminPage /></Suspense></>;
   return (
-    <>
+    <SiteSettingsProvider>
       <Seo />
       <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />
-      <Suspense fallback={<PageFallback />}><Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes></Suspense>
+      <main id="main-content">
+        <Suspense fallback={<PageFallback />}><Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/checkin" element={<CheckinPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes></Suspense>
+      </main>
       <SiteFooter />
-    </>
+    </SiteSettingsProvider>
   );
 }

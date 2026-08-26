@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 
 export function InteractiveCursor() {
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (prefersReducedMotion) {
+    return null;
+  }
+
   const [cursor, setCursor] = useState({
     x: -100,
     y: -100,

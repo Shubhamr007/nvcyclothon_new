@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: nv-cyclothon-postgres
+    container_name: nv-cyclothon-node-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: nv_cyclothon
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - nv_cyclothon_postgres:/var/lib/postgresql/data
+      - nv_cyclothon_node_postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nv_cyclothon -d nv_cyclothon"]
       interval: 5s
@@ -18,4 +18,4 @@ services:
       retries: 10
 
 volumes:
-  nv_cyclothon_postgres:
+  nv_cyclothon_node_postgres:

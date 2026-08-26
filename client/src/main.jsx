@@ -10,7 +10,7 @@ import { InteractiveCursor } from "./components/InteractiveCursor";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <SmoothScroll><App /></SmoothScroll>
       <InteractiveCursor />
       <ToastContainer position="bottom-right" theme="dark" closeOnClick pauseOnHover />

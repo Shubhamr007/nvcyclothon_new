@@ -16,7 +16,31 @@ window.addEventListener('scroll', () => {
 
 function prettySize(bytes) { return bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 function renderFiles() {
-  fileList.innerHTML = selectedFiles.map((file, index) => `<div class="file-row"><span class="file-type">${(file.name.split('.').pop() || 'FILE').slice(0,4).toUpperCase()}</span><span class="file-name">${file.name}</span><span>${prettySize(file.size)}</span><button class="remove-file" data-index="${index}" aria-label="Remove ${file.name}">×</button></div>`).join('');
+  fileList.replaceChildren();
+  selectedFiles.forEach((file, index) => {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+
+    const type = document.createElement('span');
+    type.className = 'file-type';
+    type.textContent = (file.name.split('.').pop() || 'FILE').slice(0, 4).toUpperCase();
+
+    const name = document.createElement('span');
+    name.className = 'file-name';
+    name.textContent = file.name;
+
+    const size = document.createElement('span');
+    size.textContent = prettySize(file.size);
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'remove-file';
+    removeButton.dataset.index = String(index);
+    removeButton.setAttribute('aria-label', `Remove ${file.name}`);
+    removeButton.textContent = '×';
+
+    row.append(type, name, size, removeButton);
+    fileList.append(row);
+  });
   sendButton.disabled = !selectedFiles.length;
   fileList.querySelectorAll('.remove-file').forEach(button => button.addEventListener('click', () => { selectedFiles.splice(button.dataset.index, 1); renderFiles(); }));
 }
@@ -45,7 +69,7 @@ sendButton.addEventListener('click', async () => {
     status.textContent = `Thank you — ${result.count} file${result.count === 1 ? '' : 's'} received. Our wholesale team will be in touch.`;
     selectedFiles = [];
   } catch (error) {
-    status.textContent = 'Could not reach the upload service. Start server.py and try again.';
+    status.textContent = 'Could not reach the upload service. Start the Node backend and try again.';
   } finally {
     renderFiles();
     sendButton.innerHTML = 'Send request <span>→</span>';
