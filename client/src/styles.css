@@ -169,6 +169,7 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
     inset 0 0 0 7px #071313,
     0 0 0 4px rgba(217, 255, 56, 0.22),
     0 0 30px rgba(217, 255, 56, 0.22);
+  animation: wheel 3.6s linear infinite;
 }
 .bike-wheel::before,
 .bike-wheel::after {
@@ -274,6 +275,16 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
   top: 156px;
   transform: rotate(40deg);
 }
+.route-navigator__map { opacity: .22; filter: grayscale(1) contrast(1.12) brightness(.55); }
+.route-navigator__veil { background: radial-gradient(circle at 72% 46%, rgba(217, 255, 56, .15), transparent 30%), linear-gradient(90deg, #071313 0%, rgba(7,19,19,.83) 45%, rgba(7,19,19,.94) 100%); }
+.route-navigator__panel { transform-style: preserve-3d; }
+.route-navigator__grid { background-image: linear-gradient(rgba(217,255,56,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(217,255,56,.08) 1px, transparent 1px); background-size: 10% 10%; mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent); }
+.route-navigator__stop { display: flex; align-items: center; gap: .55rem; transform: translate(-4px, -4px); }
+.route-navigator__pin { width: .62rem; height: .62rem; border: 2px solid #071313; border-radius: 50%; background: #d9ff38; box-shadow: 0 0 0 5px rgba(217,255,56,.15), 0 0 24px rgba(217,255,56,.8); }
+.route-navigator__label { display: grid; min-width: 4.7rem; padding: .36rem .52rem; border: 1px solid rgba(255,255,255,.2); border-radius: .55rem; background: rgba(7,19,19,.72); color: white; font-size: .6rem; line-height: 1.1; box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(10px); }
+.route-navigator__label small { margin-top: .18rem; color: #d9ff38; font-size: .5rem; font-weight: 800; letter-spacing: .08em; }
+.route-card { transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease; }
+.route-card:hover { box-shadow: 0 20px 45px rgba(0,0,0,.28); }
 @media (max-width: 800px) {
   .custom-cursor { display: none; }
   .bicycle-art {

@@ -3,7 +3,7 @@ import detailedHeroImage from "../../../../assets/detailed_hero_image.png";
 import nvCyclothonHero from "../../../assets/nv-cyclothon-hero.webp";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { HeroParticles } from "../../../components/HeroParticles";
 import { Typewriter } from "../../../components/Typewriter";
 import { formatEventDate, useSiteSettings } from "../../../state/SiteSettingsContext";
@@ -146,8 +146,15 @@ export function BicycleHero() {
 }
 
 function BicycleArt() {
+  const reduceMotion = useReducedMotion();
   return (
-    <div aria-hidden="true" className="bicycle-art">
+    <motion.div
+      aria-hidden="true"
+      className="bicycle-art"
+      initial={reduceMotion ? false : { opacity: 0, x: 80, rotate: -4 }}
+      animate={reduceMotion ? undefined : { opacity: 1, x: 0, rotate: 0 }}
+      transition={{ delay: 0.25, duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="bike-wheel wheel-back" />
       <div className="bike-wheel wheel-front" />
       <div className="bike-frame">
@@ -164,6 +171,6 @@ function BicycleArt() {
         <i className="rider-arm" />
         <i className="rider-leg" />
       </div>
-    </div>
+    </motion.div>
   );
 }

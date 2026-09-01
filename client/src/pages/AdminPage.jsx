@@ -1382,7 +1382,7 @@ function VolunteerManagementPanel({ accessToken, onFeedback }) {
         <h3 className="mt-2 text-2xl font-black">Create account</h3>
         <p className="mt-2 text-sm leading-6 text-white/70">Volunteer IDs and passwords are stored securely. Once the first account exists, legacy shared PINs no longer grant access.</p>
         <label className="mt-5 block text-xs font-bold uppercase tracking-[.1em]">Volunteer ID
-          <input required minLength="3" maxLength="80" pattern="[A-Za-z0-9._-]+" value={form.volunteer_id} onChange={(event) => setForm({ ...form, volunteer_id: event.target.value })} placeholder="desk-01" className="mt-2 w-full rounded-xl bg-white/10 p-3 text-sm normal-case outline-none ring-1 ring-white/20 focus:ring-2 focus:ring-[#d9ff38]" />
+          <input required minLength="3" maxLength="80" pattern="[-A-Za-z0-9._]+" value={form.volunteer_id} onChange={(event) => setForm({ ...form, volunteer_id: event.target.value })} placeholder="desk-01" className="mt-2 w-full rounded-xl bg-white/10 p-3 text-sm normal-case outline-none ring-1 ring-white/20 focus:ring-2 focus:ring-[#d9ff38]" />
         </label>
         <label className="mt-4 block text-xs font-bold uppercase tracking-[.1em]">Display name
           <input required minLength="2" maxLength="120" value={form.display_name} onChange={(event) => setForm({ ...form, display_name: event.target.value })} placeholder="Registration Desk 1" className="mt-2 w-full rounded-xl bg-white/10 p-3 text-sm normal-case outline-none ring-1 ring-white/20 focus:ring-2 focus:ring-[#d9ff38]" />

@@ -9,6 +9,7 @@ import {
 import { SocialProofAndExperience } from "../features/cyclothon/components/EventExperience";
 import { EventUpdates } from "../features/cyclothon/components/EventUpdates";
 import { CommunityWall } from "../features/cyclothon/components/CommunityWall";
+import { RouteNavigator } from "../features/cyclothon/components/RouteNavigator";
 import { Reveal } from "../components/Reveal";
 import { useSiteSettings } from "../state/SiteSettingsContext";
 
@@ -72,6 +73,7 @@ export function HomePage() {
       </section>
       )}
       {sections.routes !== false && <RideCards />}
+      {sections.routes !== false && <RouteNavigator />}
       {sections.updates !== false && <EventUpdates />}
       {sections.gallery !== false && <Gallery />}
       {sections.why_sport !== false && <WhySport />}
