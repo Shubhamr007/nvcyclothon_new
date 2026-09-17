@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { adminDownload, adminRequest, createAdminSession, getAdminSettings, updateSiteSettings, listAdminCommunityPosts, moderateCommunityPost, getAdminCommunityMedia, createVolunteer, listVolunteers, updateVolunteer } from "../api/http";
+import { FaArrowRight, FaCalendarDay, FaCheck, FaPeopleGroup, FaTags, FaUsers } from "react-icons/fa6";
+import { adminDownload, adminRequest, createAdminSession, getAdminSettings, updateSiteSettings, listAdminCommunityPosts, moderateCommunityPost, getAdminCommunityMedia, createVolunteer, listVolunteers, updateVolunteer, uploadAdminProfileImage } from "../api/http";
 import { LoadingIndicator } from "../components/LoadingIndicator";
 import { useDebouncedValue } from "../components/useDebouncedValue";
 import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
@@ -15,6 +16,14 @@ const emptyGuest = {
   featured: true,
   display_order: 0,
 };
+const emptyMember = {
+  name: "",
+  role: "",
+  message: "",
+  image_url: "",
+  display_order: 0,
+  visible: true,
+};
 const emptyDelegation = {
   organization: "",
   contact_name: "",
@@ -24,9 +33,6 @@ const emptyDelegation = {
   status: "invited",
   notes: "",
 };
-
-const adminAuthDisabled =
-  import.meta.env.VITE_ADMIN_AUTH_DISABLED === "true" || import.meta.env.DEV;
 
 const emptyAnalytics = {
   total_registrations: 0,
@@ -46,6 +52,7 @@ const tabs = [
   ["riders", "Participants"],
   ["offers", "Offers"],
   ["guests", "Chief guests"],
+  ["members", "Organizing members"],
   ["delegations", "Delegations"],
   ["volunteers", "Volunteers"],
   ["community", "Community wall"],
@@ -69,7 +76,7 @@ function formatStatus(status) {
 export function AdminPage() {
   const prefersReducedMotion = useReducedMotion();
   const [accessToken, setAccessToken] = useState(() =>
-    adminAuthDisabled ? "admin-auth-disabled" : ""
+    ""
   );
   const [tab, setTab] = useState("overview");
   const [data, setData] = useState({});
@@ -85,23 +92,21 @@ export function AdminPage() {
     setMessage("");
 
     try {
-      const [analytics, registrations, offers, guests, delegations] =
+      const [analytics, registrations, offers, guests, delegations, members] =
         await Promise.all([
           adminRequest("/analytics", accessToken),
           adminRequest("/registrations", accessToken),
           adminRequest("/offers", accessToken),
           adminRequest("/chief-guests", accessToken),
           adminRequest("/delegations", accessToken),
+          adminRequest("/organizing-members", accessToken),
         ]);
 
-      setData({ analytics, registrations, offers, guests, delegations });
+      setData({ analytics, registrations, offers, guests, delegations, members });
     } catch (error) {
       setMessage(error.message);
-      if (!adminAuthDisabled && error.message.includes("expired")) {
+      if (error.message.includes("expired")) {
         setAccessToken("");
-      }
-      if (adminAuthDisabled) {
-        setData(buildFallbackAdminData());
       }
     } finally {
       setLoading(false);
@@ -143,11 +148,6 @@ export function AdminPage() {
   };
 
   const login = async (adminKey) => {
-    if (adminAuthDisabled) {
-      setAccessToken("admin-auth-disabled");
-      return;
-    }
-
     setLoading(true);
     setMessage("");
     try {
@@ -160,7 +160,7 @@ export function AdminPage() {
     }
   };
 
-  if (!adminAuthDisabled && !accessToken) {
+  if (!accessToken) {
     return <Login onLogin={login} message={message} loading={loading} />;
   }
 
@@ -218,19 +218,13 @@ export function AdminPage() {
             </div>
             <button
               onClick={() => {
-                if (adminAuthDisabled) {
-                  setMessage(
-                    "Admin authentication is disabled for development preview."
-                  );
-                  return;
-                }
                 setAccessToken("");
                 setData({});
                 setMessage("");
               }}
               className="rounded-full border border-white/35 px-4 py-2 text-xs font-black tracking-wide uppercase transition hover:bg-white/10"
             >
-              {adminAuthDisabled ? "Auth disabled" : "Sign out"}
+              Sign out
             </button>
           </div>
           <p className="relative mt-4 max-w-3xl text-sm text-white/75">
@@ -238,11 +232,6 @@ export function AdminPage() {
             one place using the same visual identity as the public NV Cyclothon
             experience.
           </p>
-          {adminAuthDisabled && (
-            <p className="relative mt-3 inline-flex rounded-full bg-[#d9ff38] px-4 py-2 text-xs font-black uppercase tracking-[.14em] text-[#071313]">
-              Development mode: authentication bypass enabled
-            </p>
-          )}
         </section>
 
         <nav className="mt-7 flex flex-wrap gap-2">
@@ -285,6 +274,7 @@ export function AdminPage() {
               <Overview
                 analytics={data.analytics}
                 registrations={data.registrations}
+                onNavigate={setTab}
               />
             )}
             {tab === "riders" && (
@@ -324,6 +314,7 @@ export function AdminPage() {
                 title="Add chief guest"
                 fields={emptyGuest}
                 items={data.guests}
+                adminKey={accessToken}
                 onSave={(value, reset, id) =>
                   save(
                     id ? `/chief-guests/${id}` : "/chief-guests",
@@ -343,11 +334,25 @@ export function AdminPage() {
                 )}
               />
             )}
+            {tab === "members" && (
+              <Manage
+                title="Add organizing member"
+                fields={emptyMember}
+                items={data.members || []}
+                adminKey={accessToken}
+                onSave={(value, reset, id) =>
+                  save(id ? `/organizing-members/${id}` : "/organizing-members", value, reset, id ? "PUT" : "POST")
+                }
+                onRemove={(id) => remove(`/organizing-members/${id}`)}
+                render={(item) => <><b>{item.name}</b><span>{item.role} · {item.visible ? "Visible" : "Hidden"}</span></>}
+              />
+            )}
             {tab === "delegations" && (
               <Manage
                 title="Add delegation"
                 fields={emptyDelegation}
                 items={data.delegations}
+                adminKey={accessToken}
                 onSave={(value, reset, id) =>
                   save(
                     id ? `/delegations/${id}` : "/delegations",
@@ -401,10 +406,10 @@ function Login({ onLogin, message, loading }) {
         </p>
         <h1 className="mt-2 text-4xl font-black tracking-tight">Admin access</h1>
         <p className="mt-3 text-sm text-black/65">
-          Enter the event admin key. It is held only for this browser session.
+          Enter the admin password. It is held only for this browser session.
         </p>
         <label htmlFor="admin-key" className="mt-6 block text-xs font-black uppercase tracking-[.12em]">
-          Admin key
+          Admin password
         </label>
         <input
           id="admin-key"
@@ -417,7 +422,7 @@ function Login({ onLogin, message, loading }) {
             }
           }}
           className="mt-2 w-full rounded-xl border border-black/15 bg-white p-3"
-          placeholder="Admin key"
+          placeholder="Admin password"
           autoComplete="off"
         />
         <button
@@ -442,46 +447,105 @@ function Login({ onLogin, message, loading }) {
   );
 }
 
-function Overview({ analytics, registrations }) {
+function Overview({ analytics, registrations, onNavigate }) {
   const cards = [
-    ["Riders", analytics.total_registrations, "bg-white"],
-    ["Approved", analytics.approved_registrations, "bg-[#d9ff38]"],
-    ["Checked in", analytics.checked_in_registrations, "bg-[#ffdfc9]"],
-    ["Today", analytics.registrations_today, "bg-white"],
-    ["Delegates", analytics.delegation_members, "bg-white"],
-    ["Live offers", analytics.active_offers, "bg-white"],
+    { label: "Riders", value: analytics.total_registrations, detail: "All registrations", icon: FaUsers, tone: "bg-white", tab: "riders" },
+    { label: "Approved", value: analytics.approved_registrations, detail: "Ready for event prep", icon: FaCheck, tone: "bg-[#d9ff38]", tab: "riders" },
+    { label: "Checked in", value: analytics.checked_in_registrations, detail: "On-site progress", icon: FaUsers, tone: "bg-[#ffdfc9]", tab: "riders" },
+    { label: "Today", value: analytics.registrations_today, detail: "New registrations", icon: FaCalendarDay, tone: "bg-white", tab: "riders" },
+    { label: "Delegates", value: analytics.delegation_members, detail: `${analytics.delegation_count} groups`, icon: FaPeopleGroup, tone: "bg-white", tab: "delegations" },
+    { label: "Live offers", value: analytics.active_offers, detail: "Active promotions", icon: FaTags, tone: "bg-white", tab: "offers" },
   ];
+  const routeEntries = Object.entries(analytics.registrations_by_route);
+  const routeTotal = routeEntries.reduce((total, [, count]) => total + Number(count), 0);
+  const pendingApprovals = Math.max(
+    0,
+    Number(analytics.total_registrations || 0) - Number(analytics.approved_registrations || 0)
+  );
 
   return (
     <section>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map(([label, value, bg]) => (
-          <article
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      >
+        {cards.map(({ label, value, detail, icon: Icon, tone, tab }, index) => (
+          <motion.button
             key={label}
-            className={`rounded-2xl border border-[#071313]/8 p-5 shadow-sm ${bg}`}
+            type="button"
+            onClick={() => onNavigate(tab)}
+            variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }}
+            whileHover={{ y: -5, rotate: index % 2 ? 0.35 : -0.35 }}
+            whileTap={{ scale: 0.985 }}
+            transition={{ duration: 0.22 }}
+            className={`group relative overflow-hidden rounded-2xl border border-[#071313]/10 p-5 text-left shadow-sm transition-shadow hover:shadow-[0_18px_35px_rgba(7,19,19,.13)] ${tone}`}
           >
-            <p className="text-xs font-black tracking-[.14em] text-black/55 uppercase">
-              {label}
-            </p>
-            <p className="mt-2 text-4xl font-black">{value}</p>
-          </article>
+            <span className="absolute -right-5 -top-7 h-24 w-24 rounded-full border-[12px] border-[#071313]/[.06] transition-transform duration-500 group-hover:scale-125" />
+            <span className="relative flex items-start justify-between">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#071313] text-[#d9ff38]"><Icon aria-hidden="true" /></span>
+              <FaArrowRight aria-hidden="true" className="text-sm opacity-35 transition-transform group-hover:translate-x-1 group-hover:opacity-100" />
+            </span>
+            <span className="relative mt-7 block text-xs font-black tracking-[.14em] text-black/55 uppercase">{label}</span>
+            <span className="relative mt-1 block text-4xl font-black tracking-tight">{value}</span>
+            <span className="relative mt-1 block text-xs font-semibold text-black/55">{detail}</span>
+          </motion.button>
         ))}
+      </motion.div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
+        <div className="relative overflow-hidden rounded-2xl bg-[#071313] p-6 text-white shadow-[0_16px_36px_rgba(7,19,19,.18)]">
+          <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full border-[22px] border-[#d9ff38]/10" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-black tracking-[.18em] text-[#d9ff38] uppercase">Operations pulse</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight">The ride is taking shape.</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">Keep an eye on approvals, check-ins, and route demand from one live view.</p>
+            </div>
+            <div className="text-left sm:text-right">
+              <p className="text-4xl font-black text-[#d9ff38]">{analytics.checked_in_registrations}</p>
+              <p className="text-xs font-bold text-white/55">riders checked in</p>
+            </div>
+          </div>
+          <div className="relative mt-6 h-2 overflow-hidden rounded-full bg-white/10">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${analytics.total_registrations ? Math.min(100, (analytics.checked_in_registrations / analytics.total_registrations) * 100) : 0}%` }}
+              transition={{ duration: 1, delay: 0.25, ease: "easeOut" }}
+              className="h-full rounded-full bg-[#d9ff38]"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate("riders")}
+          className="group rounded-2xl border border-[#ff5f3d]/25 bg-[#fff1eb] p-6 text-left transition hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(255,95,61,.13)]"
+        >
+          <p className="text-[11px] font-black tracking-[.18em] text-[#a53b22] uppercase">Next best action</p>
+          <h2 className="mt-3 text-xl font-black">{pendingApprovals ? `Review ${pendingApprovals} pending approval${pendingApprovals === 1 ? "" : "s"}` : "Review participant list"}</h2>
+          <p className="mt-2 text-sm leading-6 text-black/60">Open the participant workspace to update statuses and release documents.</p>
+          <span className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#a53b22]">Open participants <FaArrowRight className="transition-transform group-hover:translate-x-1" /></span>
+        </button>
       </div>
 
       <div className="mt-7 grid gap-5 lg:grid-cols-2">
         <article className="rounded-2xl border border-[#071313]/8 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-black">Route mix</h2>
-          {Object.entries(analytics.registrations_by_route).length === 0 && (
+          <div className="flex items-end justify-between gap-4">
+            <div><p className="text-[11px] font-black tracking-[.18em] text-black/45 uppercase">Demand</p><h2 className="mt-1 text-xl font-black">Route mix</h2></div>
+            <span className="text-xs font-bold text-black/45">{routeTotal} riders</span>
+          </div>
+          {routeEntries.length === 0 && (
             <p className="mt-3 text-sm text-black/55">No route data yet.</p>
           )}
-          {Object.entries(analytics.registrations_by_route).map(([route, count]) => (
-            <p
+          {routeEntries.map(([route, count], index) => (
+            <div
               key={route}
-              className="mt-3 flex items-center justify-between border-b border-black/10 pb-2 text-sm"
+              className="mt-5 text-sm"
             >
-              <span>{route}</span>
-              <b>{count} riders</b>
-            </p>
+              <div className="flex items-center justify-between gap-4"><span className="font-semibold">{route}</span><b>{count}</b></div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#071313]/[.08]"><motion.div initial={{ width: 0 }} animate={{ width: `${routeTotal ? (Number(count) / routeTotal) * 100 : 0}%` }} transition={{ duration: .7, delay: index * .08 }} className="h-full rounded-full bg-[#ff5f3d]" /></div>
+            </div>
           ))}
         </article>
 
@@ -511,11 +575,21 @@ function Riders({ riders, adminKey, refresh }) {
   const [busy, setBusy] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [certificateFilter, setCertificateFilter] = useState("all");
   const debouncedSearchText = useDebouncedValue(searchText.trim().toLowerCase(), 250);
 
-  const visibleRiders = !debouncedSearchText
+  const certificateCounts = riders.reduce((counts, rider) => {
+    const status = rider.certificate_delivery_status || "not_sent";
+    counts[status] = (counts[status] || 0) + 1;
+    counts.all += 1;
+    return counts;
+  }, { all: 0, sent: 0, failed: 0, disabled: 0, not_sent: 0 });
+  const certificateVisibleRiders = certificateFilter === "all"
     ? riders
-    : riders.filter((rider) => [
+    : riders.filter((rider) => (rider.certificate_delivery_status || "not_sent") === certificateFilter);
+  const visibleRiders = !debouncedSearchText
+    ? certificateVisibleRiders
+    : certificateVisibleRiders.filter((rider) => [
       rider.id,
       rider.full_name,
       rider.email,
@@ -529,6 +603,9 @@ function Riders({ riders, adminKey, refresh }) {
   const selectedSet = new Set(selectedIds);
   const checkedInSelected = riders.filter(
     (rider) => selectedSet.has(rider.id) && rider.status === "checked_in"
+  );
+  const riderPassSelected = riders.filter(
+    (rider) => selectedSet.has(rider.id) && rider.payment_status === "paid" && rider.status !== "cancelled"
   );
   const allSelected = visibleRiders.length > 0 && visibleRiders.every((rider) => selectedIds.includes(rider.id));
 
@@ -639,24 +716,71 @@ function Riders({ riders, adminKey, refresh }) {
         adminKey,
         {
           method: "POST",
+          timeoutMs: 120000,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(checkedInSelected.map((rider) => rider.id)),
         }
       );
 
       const skipped = result.skipped + result.missing_ids.length;
+      const failed = result.failed_ids?.length || 0;
       setActionMessage(
-        `${result.queued} personalized certificate${
-          result.queued === 1 ? "" : "s"
-        } generated and queued. ${skipped} participant${
-          skipped === 1 ? " was" : "s were"
-        } skipped.`
+        `${result.queued} personalized certificate${result.queued === 1 ? "" : "s"} generated. ` +
+        `${result.sent_ids?.length || 0} email${result.sent_ids?.length === 1 ? "" : "s"} sent, ${failed} failed, ` +
+        `${skipped} participant${skipped === 1 ? " was" : "s were"} skipped.`
       );
       setSelectedIds([]);
+      await refresh();
     } catch (error) {
       setActionMessage(error.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const generateRiderPasses = async () => {
+    if (!riderPassSelected.length) return;
+    setBusy(true);
+    setActionMessage("");
+    try {
+      const result = await adminRequest("/registrations/rider-passes/generate", adminKey, {
+        method: "POST",
+        timeoutMs: 120000,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(riderPassSelected.map((rider) => rider.id)),
+      });
+      const skipped = result.skipped + result.missing_ids.length;
+      const failed = result.failed_ids?.length || 0;
+      setActionMessage(
+        `${result.queued} rider pass${result.queued === 1 ? "" : "es"} generated. ` +
+        `${result.sent_ids?.length || 0} email${result.sent_ids?.length === 1 ? "" : "s"} sent, ${failed} failed, ` +
+        `${skipped} participant${skipped === 1 ? " was" : "s were"} skipped.`
+      );
+      setSelectedIds([]);
+      await refresh();
+    } catch (error) {
+      setActionMessage(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const previewRiderPass = async () => {
+    if (riderPassSelected.length !== 1) return;
+    const previewWindow = window.open("", "_blank");
+    if (!previewWindow) {
+      setActionMessage("Allow pop-ups to preview the rider pass.");
+      return;
+    }
+    previewWindow.document.title = "Loading rider pass preview...";
+    try {
+      const riderPass = await adminDownload(`/registrations/${riderPassSelected[0].id}/rider-pass-preview`, adminKey);
+      const url = URL.createObjectURL(riderPass);
+      previewWindow.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      previewWindow.close();
+      setActionMessage(error.message);
     }
   };
 
@@ -692,7 +816,7 @@ function Riders({ riders, adminKey, refresh }) {
         <h2 className="text-2xl font-black tracking-tight">Participant actions</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-black/65">
           Review participant, payment, QR, and check-in information in one place.
-          Approve selected riders, then generate and send certificates after check-in.
+          Confirm registration first, release rider passes to paid active riders, then generate certificates after check-in.
         </p>
 
         <label className="mt-5 block max-w-xl text-xs font-black tracking-[.12em] text-black/60 uppercase">
@@ -705,7 +829,7 @@ function Riders({ riders, adminKey, refresh }) {
           />
         </label>
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
           <div className="rounded-xl border border-[#071313]/12 bg-white p-3">
             <p className="text-[11px] font-black tracking-[.16em] text-black/55 uppercase">
               Status updates
@@ -718,6 +842,31 @@ function Riders({ riders, adminKey, refresh }) {
                 className="rounded-lg border border-black/20 px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Approve ({selectedIds.length})
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-[#071313]/12 bg-white p-3">
+            <p className="text-[11px] font-black tracking-[.16em] text-black/55 uppercase">
+              Rider passes
+            </p>
+            <p className="mt-2 text-xs leading-5 text-black/60">Available for paid, non-cancelled participants. It is sent separately from registration confirmation.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={previewRiderPass}
+                disabled={busy || riderPassSelected.length !== 1}
+                className="rounded-lg border border-[#071313] px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Preview one
+              </button>
+              <button
+                type="button"
+                onClick={generateRiderPasses}
+                disabled={busy || !riderPassSelected.length}
+                className="rounded-lg bg-[#071313] px-3 py-2 text-xs font-bold text-[#d9ff38] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Generate & send ({riderPassSelected.length})
               </button>
             </div>
           </div>
@@ -775,6 +924,26 @@ function Riders({ riders, adminKey, refresh }) {
             {actionMessage}
           </p>
         )}
+        <div className="mt-5 rounded-2xl border border-[#071313]/10 bg-white p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-black tracking-[.16em] text-black/50 uppercase">Certificate delivery</p>
+              <p className="mt-1 text-sm text-black/60">Review recipients and delivery times without opening the database.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {["all", "sent", "failed", "not_sent"].map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setCertificateFilter(status)}
+                  className={`rounded-lg px-3 py-2 text-xs font-black uppercase transition ${certificateFilter === status ? "bg-[#071313] text-[#d9ff38]" : "border border-black/15 bg-white text-black/65 hover:border-[#ff5f3d]/50"}`}
+                >
+                  {status === "not_sent" ? "Not sent" : status} ({certificateCounts[status] || 0})
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </article>
 
       <div className="overflow-x-auto rounded-b-3xl">
@@ -798,6 +967,7 @@ function Riders({ riders, adminKey, refresh }) {
                 "T-shirt",
                 "QR",
                 "Check-in",
+                "Delivery",
                 "Status",
               ].map((item) => (
                 <th
@@ -812,7 +982,7 @@ function Riders({ riders, adminKey, refresh }) {
           <tbody>
             {visibleRiders.length === 0 && (
               <tr>
-                <td colSpan={10} className="p-6 text-center text-sm text-black/55">
+                <td colSpan={11} className="p-6 text-center text-sm text-black/55">
                   {riders.length ? "No participants match this search." : "No participants available yet."}
                 </td>
               </tr>
@@ -849,6 +1019,19 @@ function Riders({ riders, adminKey, refresh }) {
                   <p>{rider.checked_in_at ? new Date(rider.checked_in_at).toLocaleString() : "Not checked in"}</p>
                   {rider.checked_in_by && <p className="mt-1">By {rider.checked_in_by} · {rider.checkin_method || "manual"}</p>}
                 </td>
+                <td className="p-4 text-xs text-black/70">
+                  <p>Registration: {rider.registration_email_status || "not sent"}</p>
+                  <p className="mt-1">Pass: {rider.rider_pass_status || "not sent"}</p>
+                  <p className="mt-1">Certificate: {rider.certificate_delivery_status || rider.certificate_status || "not sent"}</p>
+                  {rider.certificate_recipient && (
+                    <p className="mt-1 text-black/55">
+                      To: {rider.certificate_recipient}
+                      {rider.certificate_sent_at && (
+                        <> · {new Date(rider.certificate_sent_at).toLocaleString()}</>
+                      )}
+                    </p>
+                  )}
+                </td>
                 <td className="p-4">
                   {rider.status === "checked_in" ? (
                     <span className="rounded-lg bg-[#d9ff38] px-3 py-2 text-xs font-black uppercase text-[#071313]">Checked in</span>
@@ -881,7 +1064,7 @@ function toEditableForm(fields, item) {
   return next;
 }
 
-function Manage({ title, fields, items, onSave, onRemove, render }) {
+function Manage({ title, fields, items, onSave, onRemove, render, adminKey }) {
   const [form, setForm] = useState(fields);
   const [editing, setEditing] = useState(null);
 
@@ -933,7 +1116,7 @@ function Manage({ title, fields, items, onSave, onRemove, render }) {
                   setForm({ ...form, [name]: event.target.checked })
                 }
               />
-            ) : name === "notes" || name === "bio" || name === "description" ? (
+            ) : name === "notes" || name === "bio" || name === "description" || name === "message" ? (
               <textarea
                 value={value}
                 onChange={(event) =>
@@ -941,6 +1124,31 @@ function Manage({ title, fields, items, onSave, onRemove, render }) {
                 }
                 className="mt-1 min-h-20 w-full rounded-lg border border-black/20 p-2 text-sm font-normal normal-case"
               />
+            ) : name === "image_url" && adminKey ? (
+              <div className="mt-1 space-y-2">
+                <input
+                  type="url"
+                  value={value}
+                  onChange={(event) => setForm({ ...form, [name]: event.target.value })}
+                  className="w-full rounded-lg border border-black/20 p-2 text-sm font-normal normal-case"
+                  placeholder="Upload an image or paste an HTTPS URL"
+                />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const result = await uploadAdminProfileImage(adminKey, file);
+                      setForm((current) => ({ ...current, image_url: result.image_url }));
+                    } catch (error) {
+                      window.alert(error.message);
+                    }
+                  }}
+                  className="w-full text-xs font-normal normal-case"
+                />
+              </div>
             ) : (
               <input
                 required={

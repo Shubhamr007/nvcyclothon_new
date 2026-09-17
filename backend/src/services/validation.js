@@ -129,6 +129,25 @@ const chiefGuestSchema = z.object({
   display_order: z.number().int().min(0).default(0),
 });
 
+const organizingMemberSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  role: z.string().trim().min(2).max(200),
+  message: z.string().trim().min(10).max(1000),
+  image_url: z.string().max(500).nullable().optional(),
+  display_order: z.number().int().min(0).default(0),
+  visible: z.boolean().default(true),
+});
+
+const sponsorshipTierSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  amount_paise: z.number().int().min(0).max(100_000_000),
+  availability: z.string().trim().min(2).max(120),
+  benefits: z.string().trim().min(10).max(2000),
+  complimentary_entries: z.number().int().min(0).max(1000).default(0),
+  active: z.boolean().default(true),
+  display_order: z.number().int().min(0).default(0),
+});
+
 const delegationSchema = z.object({
   organization: z.string().trim().min(2).max(160),
   contact_name: z.string().trim().min(2).max(160),
@@ -137,6 +156,7 @@ const delegationSchema = z.object({
   member_count: z.number().int().min(1).max(10_000).default(1),
   status: z.enum(DELEGATION_STATUSES).default("invited"),
   notes: z.string().max(3000).nullable().optional(),
+  image_url: z.string().max(500).nullable().optional(),
 });
 
 const adminLoginSchema = z.object({
@@ -289,6 +309,13 @@ function normalizeChiefGuestInput(payload) {
   };
 }
 
+function normalizeOrganizingMemberInput(payload) {
+  return {
+    ...payload,
+    image_url: validateHttpsUrl(payload.image_url),
+  };
+}
+
 function normalizeDelegationInput(payload) {
   return {
     ...payload,
@@ -320,6 +347,8 @@ module.exports = {
   bulkStatusUpdateSchema,
   offerSchema,
   chiefGuestSchema,
+  organizingMemberSchema,
+  sponsorshipTierSchema,
   delegationSchema,
   adminLoginSchema,
   volunteerSessionSchema,
@@ -337,5 +366,6 @@ module.exports = {
   normalizeRegistrationInput,
   normalizeOfferInput,
   normalizeChiefGuestInput,
+  normalizeOrganizingMemberInput,
   normalizeDelegationInput,
 };

@@ -27,6 +27,26 @@ function createCyclothonRouter({
 }) {
   const router = express.Router();
 
+  async function sendAndRecordRegistrationConfirmation(registration) {
+    const settings = await repository.getSiteSettings();
+    const sent = await emailService.sendRegistrationConfirmation({
+      recipient: registration.email,
+      registration,
+      checkinQrPrefix: config.checkinQrPrefix,
+      eventDate: settings.event_date,
+      eventLocation: settings.event_location,
+      eventStartTime: settings.event_start_time,
+    });
+    await repository.recordEmailDelivery({
+      registrationId: registration.id,
+      emailType: "registration_confirmation",
+      recipient: registration.email,
+      subject: "Your NV Cyclothon 2026 registration is confirmed",
+      sent,
+      status: config.emailEnabled ? (sent ? "sent" : "failed") : "disabled",
+    });
+  }
+
   router.post("/webhook/razorpay", async (req, res) => {
     if (!config.razorpayEnabled || !config.razorpayWebhookSecret) {
       res.status(404).json({ detail: "Not found" });
@@ -81,16 +101,13 @@ function createCyclothonRouter({
       const result = await repository.createCyclothonRegistration(payload, {
         razorpayEnabled: config.razorpayEnabled,
         razorpayKeyId: config.razorpayKeyId,
+        eventDate: settings.event_date,
         createPaymentOrder: ({ amountPaise, receipt }) =>
           razorpayService.createOrder({ amountPaise, receipt }),
       });
 
       if (!config.razorpayEnabled) {
-        void emailService.sendRegistrationConfirmation({
-          recipient: result.registration.email,
-          registration: result.registration,
-          checkinQrPrefix: config.checkinQrPrefix,
-        });
+        void sendAndRecordRegistrationConfirmation(result.registration);
       }
 
       res.status(201).json({
@@ -118,11 +135,7 @@ function createCyclothonRouter({
       expectedSignature
     );
 
-    void emailService.sendRegistrationConfirmation({
-      recipient: registration.email,
-      registration,
-      checkinQrPrefix: config.checkinQrPrefix,
-    });
+    void sendAndRecordRegistrationConfirmation(registration);
     void emailService.sendPaymentReceipt({
       recipient: registration.email,
       name: registration.full_name,

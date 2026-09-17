@@ -6,18 +6,27 @@
 html {
   scroll-behavior: smooth;
 }
+:root {
+  --color-ink: #071313;
+  --color-cream: #f4f1e9;
+  --color-lime: #d9ff38;
+  --color-coral: #ff5f3d;
+  --radius-control: 9999px;
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
+}
 body {
   margin: 0;
   background: #071313;
   font-family: "Manrope", Arial, sans-serif;
 }
 body[data-theme="light"] { background: #f4f1e9; color: #071313; }
-body[data-theme="light"] .site-header--glass { background: rgba(244, 241, 233, .42) !important; border-color: rgba(7, 19, 19, .15) !important; }
+body[data-theme="light"] .site-header--glass { background: #f4f1e9 !important; border-color: rgba(7, 19, 19, .15) !important; }
 body[data-theme="light"] .site-header > div { color: #071313 !important; }
 body[data-theme="light"] .site-header button { color: #071313; border-color: rgba(7, 19, 19, .28); }
 body[data-theme="light"] .site-header button:hover { background: rgba(7, 19, 19, .08); }
 .site-header--glass {
-  background: linear-gradient(180deg, rgba(7, 19, 19, 0.55) 0%, rgba(7, 19, 19, 0.28) 100%);
+  background: #071313;
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 32px rgba(0, 0, 0, 0.18);
@@ -38,6 +47,10 @@ body[data-theme="light"] .hero-overlay { background: linear-gradient(90deg, rgba
 *:focus-visible { outline: 3px solid #ff5f3d; outline-offset: 3px; }
 input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: 1px; }
 h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
+.accessible-light-surface .text-\[\#ff5f3d\] { color: #9f3126; }
+.hero-label { background: #071313; }
+/* Legacy microcopy utilities resolve to the smallest approved, readable size. */
+.text-\[9px\], .text-\[10px\], .text-\[11px\] { font-size: .75rem; line-height: 1rem; }
 .skip-link {
   transform: translateY(-180%);
   opacity: 0;
@@ -84,11 +97,20 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
     linear-gradient(
       90deg,
       rgba(7, 19, 19, 0.98) 0%,
-      rgba(7, 19, 19, 0.76) 42%,
-      rgba(7, 19, 19, 0.12) 78%
+      rgba(7, 19, 19, 0.82) 48%,
+      rgba(7, 19, 19, 0.34) 78%
     ),
     linear-gradient(0deg, rgba(7, 19, 19, 0.55), transparent 46%);
 }
+.hero-carousel img { filter: saturate(.72) contrast(.92); }
+.hero-heading { text-shadow: 0 3px 18px rgba(7, 19, 19, .8); }
+.cta-secondary {
+  border: 1px solid #071313;
+  border-radius: var(--radius-control);
+  background: #071313;
+  color: #fff;
+}
+.route-card .cta-secondary:hover { background: var(--color-ink); }
 .hero-radial {
   position: absolute;
   width: 62vw;
@@ -281,7 +303,7 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
 .route-navigator__grid { background-image: linear-gradient(rgba(217,255,56,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(217,255,56,.08) 1px, transparent 1px); background-size: 10% 10%; mask-image: linear-gradient(to bottom, transparent, black 12%, black 88%, transparent); }
 .route-navigator__stop { display: flex; align-items: center; gap: .55rem; transform: translate(-4px, -4px); }
 .route-navigator__pin { width: .62rem; height: .62rem; border: 2px solid #071313; border-radius: 50%; background: #d9ff38; box-shadow: 0 0 0 5px rgba(217,255,56,.15), 0 0 24px rgba(217,255,56,.8); }
-.route-navigator__label { display: grid; min-width: 4.7rem; padding: .36rem .52rem; border: 1px solid rgba(255,255,255,.2); border-radius: .55rem; background: rgba(7,19,19,.72); color: white; font-size: .6rem; line-height: 1.1; box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(10px); }
+.route-navigator__label { display: grid; min-width: 4.7rem; padding: .36rem .52rem; border: 1px solid rgba(255,255,255,.2); border-radius: .55rem; background: #071313; color: white; font-size: .6rem; line-height: 1.1; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .route-navigator__label small { margin-top: .18rem; color: #d9ff38; font-size: .5rem; font-weight: 800; letter-spacing: .08em; }
 .route-card { transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease; }
 .route-card:hover { box-shadow: 0 20px 45px rgba(0,0,0,.28); }

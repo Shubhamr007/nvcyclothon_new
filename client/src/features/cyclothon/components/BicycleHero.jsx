@@ -3,8 +3,7 @@ import detailedHeroImage from "../../../../assets/detailed_hero_image.png";
 import nvCyclothonHero from "../../../assets/nv-cyclothon-hero.webp";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { motion, useReducedMotion } from "framer-motion";
-import { HeroParticles } from "../../../components/HeroParticles";
+import { useReducedMotion } from "framer-motion";
 import { Typewriter } from "../../../components/Typewriter";
 import { formatEventDate, useSiteSettings } from "../../../state/SiteSettingsContext";
 
@@ -72,20 +71,19 @@ export function BicycleHero() {
       <div className="hero-overlay" />
       <div className="hero-radial" />
       <div className="noise" />
-      <HeroParticles />
       <div className="relative z-10 mx-auto flex min-h-screen w-[min(1240px,calc(100%-40px))] items-center pt-20">
         <div ref={heading} className="max-w-3xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d9ff38]/45 bg-[#d9ff38]/10 px-3 py-1.5 text-[10px] font-black tracking-[.28em] text-[#d9ff38] uppercase backdrop-blur">
+          <div className="hero-label mb-6 inline-flex items-center gap-2 rounded-full border border-[#d9ff38]/45 px-3 py-1.5 text-[10px] font-black tracking-[.28em] text-[#d9ff38] uppercase">
             <span className="relative inline-flex h-2 w-2">
               <span className="absolute inset-0 animate-ping rounded-full bg-[#d9ff38] opacity-60" />
               <span className="relative h-2 w-2 rounded-full bg-[#d9ff38]" />
             </span>
             {editionLabel} · Rewa’s flagship ride
           </div>
-          <p className="mb-6 text-xs font-bold tracking-[.3em] text-[#d9ff38] uppercase">
+          <p className="hero-label mb-6 w-fit rounded px-2 py-1 text-xs font-bold tracking-[.12em] text-[#d9ff38]">
             Sunday · {eventDateLabel} · Rewa
           </p>
-          <h1 className="font-black text-[clamp(4.3rem,12vw,10.5rem)] leading-[.77] tracking-[-.11em] uppercase">
+          <h1 className="hero-heading font-black text-[clamp(4.3rem,12vw,10.5rem)] leading-[.77] tracking-[-.11em]">
             Own
             <br />
             <span className="text-[#d9ff38]">the</span> road
@@ -105,17 +103,16 @@ export function BicycleHero() {
               href="/register"
               className="rounded-full bg-[#d9ff38] px-7 py-4 text-sm font-black text-[#071313] transition focus:outline-none focus:ring-4 focus:ring-white hover:-translate-y-1"
             >
-              Claim your bib →
+              Register for the ride →
             </a>
             <a
               href="#routes"
-              className="rounded-full border border-white/40 px-7 py-4 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-[#d9ff38] hover:bg-white hover:text-[#071313]"
+              className="rounded-full border border-white/40 bg-[#071313] px-7 py-4 text-sm font-bold transition focus:outline-none focus:ring-4 focus:ring-[#d9ff38] hover:bg-white hover:text-[#071313]"
             >
-              Explore routes
+              View route categories
             </a>
           </div>
         </div>
-        <BicycleArt />
       </div>
       <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3">
         {heroSlides.map((slide, i) => (
@@ -132,45 +129,15 @@ export function BicycleHero() {
           <button
             type="button"
             onClick={() => setIsPaused((current) => !current)}
-            className="ml-2 rounded-full border border-white/40 px-3 py-1 text-[10px] font-black tracking-[.12em] text-white uppercase focus:outline-none focus:ring-2 focus:ring-[#d9ff38]"
+            className="ml-2 rounded-full border border-white/40 bg-[#071313] px-3 py-1 text-xs font-black tracking-[.08em] text-white focus:outline-none focus:ring-2 focus:ring-[#d9ff38]"
           >
             {isPaused ? "Play" : "Pause"}
           </button>
         )}
       </div>
-      <a href="#routes" className="absolute bottom-16 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap text-[10px] tracking-[.25em] text-white/70 uppercase transition hover:text-[#d9ff38] focus-visible:text-[#d9ff38]">
-        Explore routes ↓
+      <a href="#routes" className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-[#071313] px-2 py-1 text-xs tracking-[.12em] text-white transition hover:text-[#d9ff38] focus-visible:text-[#d9ff38]">
+        Scroll to routes ↓
       </a>
     </section>
-  );
-}
-
-function BicycleArt() {
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.div
-      aria-hidden="true"
-      className="bicycle-art"
-      initial={reduceMotion ? false : { opacity: 0, x: 80, rotate: -4 }}
-      animate={reduceMotion ? undefined : { opacity: 1, x: 0, rotate: 0 }}
-      transition={{ delay: 0.25, duration: 1.15, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="bike-wheel wheel-back" />
-      <div className="bike-wheel wheel-front" />
-      <div className="bike-frame">
-        <i className="frame-a" />
-        <i className="frame-b" />
-        <i className="frame-c" />
-      </div>
-      <div className="bike-fork" />
-      <div className="bike-seat" />
-      <div className="bike-handle" />
-      <div className="bike-rider">
-        <i className="rider-head" />
-        <i className="rider-body" />
-        <i className="rider-arm" />
-        <i className="rider-leg" />
-      </div>
-    </motion.div>
   );
 }

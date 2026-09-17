@@ -37,7 +37,7 @@ export function RouteNavigator() {
           <p className="mt-7 max-w-md text-sm leading-7 text-white/70">
             A visual preview of race morning—from the first pedal at the start line to the final sweep through Rewa.
           </p>
-          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-[#d9ff38]/35 bg-[#d9ff38]/10 px-4 py-2 text-[10px] font-black tracking-[.16em] text-[#d9ff38] uppercase backdrop-blur">
+          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-[#d9ff38]/35 bg-[#071313] px-4 py-2 text-[10px] font-black tracking-[.16em] text-[#d9ff38] uppercase">
             <FaLocationArrow aria-hidden="true" /> Live route preview
           </div>
         </div>
@@ -47,7 +47,7 @@ export function RouteNavigator() {
           whileInView={{ opacity: 1, rotateX: 0, y: 0 }}
           viewport={{ once: true, margin: "-12%" }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          className="route-navigator__panel relative aspect-[1.25/1] overflow-hidden rounded-[2rem] border border-white/20 bg-[#071313]/60 shadow-[0_30px_90px_rgba(0,0,0,.42)]"
+          className="route-navigator__panel relative aspect-[1.25/1] overflow-hidden rounded-[2rem] border border-white/20 bg-[#071313] shadow-[0_30px_90px_rgba(0,0,0,.42)]"
           style={{ transformPerspective: 1200 }}
         >
           <div className="route-navigator__grid absolute inset-0" aria-hidden="true" />
@@ -86,7 +86,7 @@ export function RouteNavigator() {
               <span className="route-navigator__label"><b>{name}</b><small>{time} AM</small></span>
             </motion.div>
           ))}
-          <p className="absolute bottom-5 left-6 text-[10px] font-black tracking-[.18em] text-white/65 uppercase">Illustrative route view · Rewa</p>
+          <p className="absolute bottom-5 left-6 rounded bg-[#071313] px-2 py-1 text-xs font-black tracking-[.12em] text-white">Illustrative route view · Rewa</p>
         </motion.div>
       </div>
     </section>

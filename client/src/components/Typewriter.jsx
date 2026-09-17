@@ -20,7 +20,6 @@ export function Typewriter({ phrases, delay = 2200 }) {
   return (
     <span>
       {reduceMotion ? phrases[0] : phrases[phrase].slice(0, letters)}
-      {!reduceMotion && <span className="type-caret" aria-hidden="true">|</span>}
     </span>
   );
 }

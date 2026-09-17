@@ -69,16 +69,19 @@ npm run db:init
 - `/api/admin/offers`, `/api/admin/chief-guests`, `/api/admin/delegations` - admin CRUD
 - `GET /api/content/offers`, `GET /api/content/chief-guests` - public content
 
-## Participation certificates
+## Participant communications, rider passes, and certificates
 
 From `/admin`, use this flow:
 
-1. Upload a CSV/XLSX/PDF roster with `email`, `rider_id`, `registration_id`, or `id`.
-2. Approve selected participants.
+1. A successful payment sends the registration confirmation only; it does not attach a rider pass.
+2. Select paid, active participants and use **Rider passes -> Generate & send**. The pass is stamped with the rider data and check-in QR code from the approved PDF design.
 3. Mark present riders as `checked_in`.
-4. Generate/send personalized certificate PDFs, or upload a custom PDF and send to checked-in riders.
+4. Select checked-in riders and use **Certificates -> Generate & send**. The certificate is stamped from the approved PDF design. A custom certificate PDF can still be uploaded when needed.
+
+The participant table displays separate registration, rider-pass, and certificate delivery states. All previews and bulk-send actions are protected by the admin session.
 
 Enable transactional email by setting `EMAIL_ENABLED=true` plus SMTP settings in `backend/.env`.
+The default assets are the approval PDFs and email banner supplied in `client/assets`. To replace them without code changes, configure `EMAIL_BANNER_IMAGE_PATH`, `RIDER_PASS_TEMPLATE_PATH`, and `CERTIFICATE_TEMPLATE_PATH`.
 
 ## Database
 

@@ -15,19 +15,19 @@ export function RideCards() {
       <div className="mx-auto max-w-[1240px]">
         <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">Pick your pace</p>
         <h2 className="mt-5 text-5xl font-black leading-none tracking-[-.08em] uppercase md:text-7xl">Four ways<br />to fly.</h2>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-white/65">The first 50 registrations across all categories receive the early-bird rate. Each category has a limited number of places.</p>
+        <p className="mt-4 max-w-xl text-sm leading-6 text-white/85">The first 50 registrations across all categories receive the early-bird rate. Each category has a limited number of places.</p>
         <Swiper modules={[Pagination]} spaceBetween={16} pagination={{ clickable: true }} breakpoints={{ 768: { slidesPerView: 2 }, 1100: { slidesPerView: 4 } }} className="ride-swiper mt-14 !pb-12">
           {RIDE_OPTIONS.map((route, index) => (
             <SwiperSlide key={route.distance}>
               <Tilt tiltMaxAngleX={5} tiltMaxAngleY={5} glareEnable glareMaxOpacity={0.12} className="h-full">
                 <article className={`route-card route-${route.color} group relative flex min-h-[25rem] flex-col overflow-hidden rounded-2xl p-7 text-[#071313]`}>
                   <p className="text-xs font-black tracking-[.18em] uppercase">Category 0{index + 1}</p>
-                  <p className="mt-10 text-sm font-black tracking-[.16em] text-[#071313]/60">{route.length} · {route.capacity} spots</p>
-                  <h3 className="mt-3 text-4xl font-black leading-none tracking-[-.07em] uppercase">{route.title}</h3>
+                  <p className="mt-10 text-sm font-black tracking-[.16em] text-[#071313]">{route.length} · {route.capacity} spots</p>
+                  <h3 className="mt-3 min-h-[4rem] text-4xl font-black leading-none tracking-[-.07em] uppercase">{route.title}</h3>
                   <p className="mt-4 max-w-[15rem] text-sm font-medium leading-6">{route.description}</p>
                   <div className="mt-auto border-t border-black/15 pt-4">
                     <span className="block text-sm font-black">{route.fee}</span>
-                    <button type="button" onClick={() => setSelectedRide(route)} className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#071313] px-4 py-2 text-xs font-black text-white transition focus:outline-none focus:ring-4 focus:ring-white group-hover:translate-x-1">
+                    <button type="button" onClick={() => setSelectedRide(route)} className="cta-secondary mt-4 inline-flex items-center gap-2 px-5 py-3 text-xs font-black transition group-hover:translate-x-1">
                       Explore category <FaArrowRight aria-hidden="true" />
                     </button>
                   </div>

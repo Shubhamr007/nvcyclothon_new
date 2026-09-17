@@ -1,4 +1,4 @@
-const EVENT_DATE = new Date("2026-10-18T00:00:00.000Z");
+const EVENT_DATE = new Date("2026-11-22T00:00:00.000Z");
 const LAST_WEEK_START = new Date(EVENT_DATE);
 LAST_WEEK_START.setUTCDate(LAST_WEEK_START.getUTCDate() - 7);
 

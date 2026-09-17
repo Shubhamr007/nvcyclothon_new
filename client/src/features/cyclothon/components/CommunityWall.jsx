@@ -52,10 +52,10 @@ export function CommunityWall() {
     <section
       id="community"
       aria-labelledby="community-heading"
-      className="bg-[#f4f1e9] px-5 py-24 text-[#071313]"
+      className="accessible-light-surface bg-[#f4f1e9] px-5 py-24 text-[#071313]"
     >
       <div className="mx-auto max-w-[1240px]">
-        <Reveal>
+        <Reveal className={hideBecauseEmpty ? "mx-auto max-w-xl" : ""}>
           <p className="text-xs font-black tracking-[.28em] text-[#ff5f3d] uppercase">
             Community wall
           </p>
@@ -72,7 +72,7 @@ export function CommunityWall() {
           </p>
         </Reveal>
 
-        <div className="mt-10 grid gap-8 md:grid-cols-[1fr_1.3fr]">
+        <div className={`mt-10 grid gap-8 ${hideBecauseEmpty ? "mx-auto max-w-xl" : "md:grid-cols-[1fr_1.3fr]"}`}>
           <CommunitySubmissionForm onSubmitted={() => setRefreshTick((n) => n + 1)} />
           {!hideBecauseEmpty && (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -179,7 +179,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
   return (
     <form
       onSubmit={submit}
-      className="rounded-3xl bg-[#071313] p-6 text-white shadow-[10px_10px_0_#ff5f3d]"
+      className="w-full rounded-3xl bg-[#071313] p-6 text-white shadow-[10px_10px_0_#ff5f3d]"
     >
       <p className="text-xs font-black tracking-[.24em] text-[#d9ff38] uppercase">
         Share your story
@@ -220,7 +220,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
             placeholder="What did the ride mean to you?"
           />
           <span
-            className={`mt-1 block text-[10px] tracking-[.14em] uppercase ${
+            className={`mt-2 block text-xs tracking-[.1em] uppercase ${
               messageRemaining < 0 ? "text-[#ff5f3d]" : "text-white/50"
             }`}
           >
@@ -235,7 +235,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
             type="file"
             accept="image/jpeg,image/png,image/webp"
             onChange={handleImageChange}
-            className="mt-2 block w-full text-xs text-white/80 file:mr-3 file:rounded-full file:border-0 file:bg-[#d9ff38] file:px-3 file:py-1 file:text-xs file:font-black file:uppercase file:text-[#071313]"
+            className="mt-2 block w-full text-xs text-white/80 file:mr-3 file:rounded-full file:border file:border-white/30 file:bg-white/10 file:px-3 file:py-1 file:text-xs file:font-black file:uppercase file:text-white"
           />
           {imageError && (
             <span className="mt-1 block text-[11px] text-[#ff5f3d]">{imageError}</span>
@@ -249,8 +249,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
             onChange={(event) => setConsent(event.target.checked)}
             className="mt-0.5 h-4 w-4"
           />
-          I confirm I own the content or have permission to share it, and it does not
-          violate anyone's rights, sentiments, or applicable laws.
+          I confirm I have permission to share this content and it follows community guidelines.
         </label>
 
         <button
@@ -261,7 +260,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
           {status.state === "loading" ? (
             <LoadingIndicator label="Submitting…" className="text-[#071313]" />
           ) : (
-            "Submit for review"
+            "Post to the wall"
           )}
         </button>
         {status.text && (

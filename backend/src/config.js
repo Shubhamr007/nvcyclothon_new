@@ -90,8 +90,14 @@ function loadConfig(env = process.env) {
     uploadDir: path.resolve(__dirname, "..", env.UPLOAD_DIR || "uploads"),
     allowedOrigins: parseCsv(env.ALLOWED_ORIGINS, "http://localhost:5173"),
     allowedHosts: parseCsv(env.ALLOWED_HOSTS, "localhost,127.0.0.1"),
-    adminAuthEnabled: parseBool(env.ADMIN_AUTH_ENABLED, environment === "production"),
-    adminApiKey: env.ADMIN_API_KEY || "change-me-before-production",
+    adminAuthEnabled: parseBool(env.ADMIN_AUTH_ENABLED, true),
+    adminUsername: String(env.ADMIN_USERNAME || "admin").trim(),
+    adminBootstrapPassword: String(
+      env.ADMIN_BOOTSTRAP_PASSWORD || env.ADMIN_API_KEY || ""
+    ),
+    adminTokenSecret:
+      env.ADMIN_TOKEN_SECRET ||
+      (environment === "production" ? "" : env.ADMIN_API_KEY || "development-admin-token-secret"),
     adminSessionTtlSeconds: parseIntWithDefault(env.ADMIN_SESSION_TTL_SECONDS, 900),
     volunteerCheckinEnabled: parseBool(env.VOLUNTEER_CHECKIN_ENABLED, true),
     volunteerCheckinPin: env.VOLUNTEER_CHECKIN_PIN || "",
@@ -114,9 +120,26 @@ function loadConfig(env = process.env) {
     smtpHost: env.SMTP_HOST || "",
     smtpPort: parseIntWithDefault(env.SMTP_PORT, 587),
     smtpUsername: env.SMTP_USERNAME || "",
-    smtpPassword: env.SMTP_PASSWORD || "",
+    // Gmail displays application passwords in groups of four; SMTP expects
+    // the 16-character token without formatting spaces.
+    smtpPassword: String(env.SMTP_PASSWORD || "").replace(/\s+/g, ""),
     smtpFromEmail: env.SMTP_FROM_EMAIL || "",
     smtpUseTls: parseBool(env.SMTP_USE_TLS, true),
+    emailBannerImagePath: path.resolve(
+      __dirname,
+      "..",
+      env.EMAIL_BANNER_IMAGE_PATH || "../client/assets/email_banner_image.png"
+    ),
+    riderPassTemplatePath: path.resolve(
+      __dirname,
+      "..",
+      env.RIDER_PASS_TEMPLATE_PATH || "../client/assets/NV_Cyclothon_2026_Official_Rider_Pass_Approval.pdf"
+    ),
+    certificateTemplatePath: path.resolve(
+      __dirname,
+      "..",
+      env.CERTIFICATE_TEMPLATE_PATH || "../client/assets/NV_Cyclothon_2026_Certificate_Design_Approval.pdf"
+    ),
     razorpayEnabled: parseBool(env.RAZORPAY_ENABLED, false),
     razorpayKeyId: env.RAZORPAY_KEY_ID || "",
     razorpayKeySecret: env.RAZORPAY_KEY_SECRET || "",
@@ -130,8 +153,8 @@ function loadConfig(env = process.env) {
     if (!config.adminAuthEnabled) {
       throw new Error("ADMIN_AUTH_ENABLED must be true in production");
     }
-    if (config.adminApiKey === "change-me-before-production" || config.adminApiKey.length < 32) {
-      throw new Error("ADMIN_API_KEY must be set to a 32+ character secret in production");
+    if (!env.ADMIN_TOKEN_SECRET || config.adminTokenSecret.length < 32) {
+      throw new Error("ADMIN_TOKEN_SECRET must be set to a 32+ character secret in production");
     }
     if (
       config.allowedOrigins.includes("*") ||

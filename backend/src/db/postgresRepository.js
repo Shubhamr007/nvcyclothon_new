@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const { Pool } = require("pg");
 const {
   EARLY_BIRD_LIMIT,
@@ -127,6 +128,31 @@ class PostgresRepository {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS organizing_members (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(160) NOT NULL,
+        role VARCHAR(200) NOT NULL,
+        message TEXT NOT NULL,
+        image_url VARCHAR(500),
+        display_order INTEGER NOT NULL DEFAULT 0,
+        visible BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS sponsorship_tiers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(120) NOT NULL,
+        amount_paise INTEGER NOT NULL DEFAULT 0,
+        availability VARCHAR(120) NOT NULL,
+        benefits TEXT NOT NULL,
+        complimentary_entries INTEGER NOT NULL DEFAULT 0,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS delegations (
         id SERIAL PRIMARY KEY,
         organization VARCHAR(160) NOT NULL,
@@ -136,6 +162,7 @@ class PostgresRepository {
         member_count INTEGER NOT NULL DEFAULT 1,
         status VARCHAR(32) NOT NULL DEFAULT 'invited',
         notes TEXT,
+        image_url VARCHAR(500),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
@@ -193,6 +220,50 @@ class PostgresRepository {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(120) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS rider_passes (
+        id SERIAL PRIMARY KEY,
+        registration_id INTEGER NOT NULL UNIQUE REFERENCES cyclothon_registrations(id) ON DELETE CASCADE,
+        template_version VARCHAR(80) NOT NULL DEFAULT '2026-approved',
+        status VARCHAR(24) NOT NULL DEFAULT 'generated',
+        generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        emailed_at TIMESTAMPTZ
+      );
+
+      CREATE TABLE IF NOT EXISTS participation_certificates (
+        id SERIAL PRIMARY KEY,
+        registration_id INTEGER NOT NULL UNIQUE REFERENCES cyclothon_registrations(id) ON DELETE CASCADE,
+        template_version VARCHAR(80) NOT NULL DEFAULT '2026-approved',
+        status VARCHAR(24) NOT NULL DEFAULT 'generated',
+        generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        emailed_at TIMESTAMPTZ
+      );
+
+      CREATE TABLE IF NOT EXISTS registration_email_deliveries (
+        id SERIAL PRIMARY KEY,
+        registration_id INTEGER NOT NULL REFERENCES cyclothon_registrations(id) ON DELETE CASCADE,
+        email_type VARCHAR(40) NOT NULL,
+        recipient VARCHAR(255) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        status VARCHAR(24) NOT NULL,
+        attempt_count INTEGER NOT NULL DEFAULT 1,
+        last_error TEXT,
+        sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (registration_id, email_type)
+      );
+      CREATE INDEX IF NOT EXISTS registration_email_deliveries_registration_idx
+        ON registration_email_deliveries (registration_id, created_at DESC);
     `;
 
     await this.pool.query(schemaSql);
@@ -201,6 +272,9 @@ class PostgresRepository {
     // newer columns and indexes from previous Python deployments.
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS registration_fee_paise INTEGER NOT NULL DEFAULT 0"
+    );
+    await this.pool.query(
+      "ALTER TABLE delegations ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)"
     );
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS gender VARCHAR(32) NOT NULL DEFAULT 'Prefer not to say'"
@@ -258,6 +332,33 @@ class PostgresRepository {
     );
 
     await this.backfillMissingCheckinTokens();
+  }
+
+  async ensureAdminUser(username, bootstrapPassword) {
+    const existing = await this.pool.query(
+      "SELECT id FROM admin_users WHERE username = $1 LIMIT 1",
+      [username]
+    );
+    if (existing.rowCount > 0) {
+      return;
+    }
+    if (!bootstrapPassword) {
+      throw new Error("ADMIN_BOOTSTRAP_PASSWORD is required to initialize the admin user");
+    }
+    const passwordHash = await bcrypt.hash(bootstrapPassword, 12);
+    await this.pool.query(
+      `INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)
+       ON CONFLICT (username) DO NOTHING`,
+      [username, passwordHash]
+    );
+  }
+
+  async getAdminUser(username) {
+    const result = await this.pool.query(
+      "SELECT username, password_hash, active FROM admin_users WHERE username = $1 LIMIT 1",
+      [username]
+    );
+    return result.rows[0] || null;
   }
 
   async backfillMissingCheckinTokens() {
@@ -529,7 +630,7 @@ class PostgresRepository {
     return Array.from(grouped.values());
   }
 
-  calculateFeeChoice(now, rideCategory, activeCategoryCount, activeRegistrationCount) {
+  calculateFeeChoice(now, rideCategory, activeCategoryCount, activeRegistrationCount, eventDate = "2026-11-22") {
     const category = RACE_CATEGORIES[rideCategory];
     if (activeCategoryCount >= category.capacity) {
       throw new ConflictError(`${rideCategory} is full`);
@@ -537,7 +638,9 @@ class PostgresRepository {
     if (rideCategory === "Kid-o-thon") {
       return category.regular;
     }
-    if (now >= LAST_WEEK_START) {
+    const lastWeekStart = new Date(`${eventDate}T00:00:00.000Z`);
+    lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
+    if (now >= lastWeekStart) {
       return category.last_week;
     }
     return activeRegistrationCount < EARLY_BIRD_LIMIT
@@ -584,7 +687,8 @@ class PostgresRepository {
         new Date(),
         payload.ride_category,
         categoryCount,
-        activeCount
+        activeCount,
+        options.eventDate
       );
       const checkinToken = this.generateCheckinToken();
       const initialStatus = options.razorpayEnabled ? "pending" : "approved";
@@ -762,7 +866,14 @@ class PostgresRepository {
               status, registration_fee_paise, payment_status, razorpay_order_id,
               razorpay_payment_id, razorpay_signature, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
-              checkin_device, created_at
+              checkin_device, created_at,
+              (SELECT status FROM rider_passes WHERE registration_id = cyclothon_registrations.id) AS rider_pass_status,
+              (SELECT status FROM participation_certificates WHERE registration_id = cyclothon_registrations.id) AS certificate_status,
+              (SELECT recipient FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_recipient,
+              (SELECT status FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_delivery_status,
+              (SELECT sent_at FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_sent_at,
+              (SELECT attempt_count FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_attempt_count,
+              (SELECT status FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'registration_confirmation') AS registration_email_status
        FROM cyclothon_registrations
        ORDER BY created_at DESC`
     );
@@ -783,6 +894,47 @@ class PostgresRepository {
       [registrationId]
     );
     return result.rows[0] || null;
+  }
+
+  async recordEmailDelivery({ registrationId, emailType, recipient, subject, sent, status = sent ? "sent" : "failed", errorMessage = null }) {
+    await this.pool.query(
+      `INSERT INTO registration_email_deliveries (
+         registration_id, email_type, recipient, subject, status, attempt_count, last_error, sent_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5::varchar, 1, $6, CASE WHEN $5::varchar = 'sent'::varchar THEN NOW() ELSE NULL END, NOW())
+       ON CONFLICT (registration_id, email_type) DO UPDATE SET
+         recipient = EXCLUDED.recipient,
+         subject = EXCLUDED.subject,
+         status = EXCLUDED.status,
+         attempt_count = registration_email_deliveries.attempt_count + 1,
+         last_error = EXCLUDED.last_error,
+         sent_at = CASE WHEN EXCLUDED.status = 'sent' THEN NOW() ELSE registration_email_deliveries.sent_at END,
+         updated_at = NOW()`,
+      [registrationId, emailType, recipient, subject, status, errorMessage]
+    );
+  }
+
+  async recordRiderPass(registrationId, sent) {
+    await this.pool.query(
+      `INSERT INTO rider_passes (registration_id, status, emailed_at)
+       VALUES ($1, $2::varchar, CASE WHEN $2::varchar = 'sent'::varchar THEN NOW() ELSE NULL END)
+       ON CONFLICT (registration_id) DO UPDATE SET
+         status = EXCLUDED.status,
+         generated_at = NOW(),
+         emailed_at = CASE WHEN EXCLUDED.status = 'sent' THEN NOW() ELSE rider_passes.emailed_at END`,
+      [registrationId, sent ? "sent" : "generated"]
+    );
+  }
+
+  async recordParticipationCertificate(registrationId, sent) {
+    await this.pool.query(
+      `INSERT INTO participation_certificates (registration_id, status, emailed_at)
+       VALUES ($1, $2::varchar, CASE WHEN $2::varchar = 'sent'::varchar THEN NOW() ELSE NULL END)
+       ON CONFLICT (registration_id) DO UPDATE SET
+         status = EXCLUDED.status,
+         generated_at = NOW(),
+         emailed_at = CASE WHEN EXCLUDED.status = 'sent' THEN NOW() ELSE participation_certificates.emailed_at END`,
+      [registrationId, sent ? "sent" : "generated"]
+    );
   }
 
   async updateRegistrationStatus(registrationId, status) {
@@ -1235,8 +1387,8 @@ class PostgresRepository {
 
   async listDelegations() {
     const result = await this.pool.query(
-      `SELECT id, organization, contact_name, contact_email, contact_phone,
-              member_count, status, notes, created_at
+            `SELECT id, organization, contact_name, contact_email, contact_phone,
+              member_count, status, notes, image_url, created_at
        FROM delegations
        ORDER BY created_at DESC`
     );
@@ -1247,11 +1399,11 @@ class PostgresRepository {
     const result = await this.pool.query(
       `INSERT INTO delegations (
          organization, contact_name, contact_email, contact_phone,
-         member_count, status, notes
+         member_count, status, notes, image_url
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, organization, contact_name, contact_email, contact_phone,
-                 member_count, status, notes, created_at`,
+                 member_count, status, notes, image_url, created_at`,
       [
         payload.organization,
         payload.contact_name,
@@ -1260,6 +1412,7 @@ class PostgresRepository {
         payload.member_count,
         payload.status,
         payload.notes,
+        payload.image_url,
       ]
     );
     return result.rows[0];
@@ -1274,10 +1427,11 @@ class PostgresRepository {
            contact_phone = $4,
            member_count = $5,
            status = $6,
-           notes = $7
-       WHERE id = $8
+             notes = $7,
+             image_url = $8
+           WHERE id = $9
        RETURNING id, organization, contact_name, contact_email, contact_phone,
-                 member_count, status, notes, created_at`,
+               member_count, status, notes, image_url, created_at`,
       [
         payload.organization,
         payload.contact_name,
@@ -1286,10 +1440,119 @@ class PostgresRepository {
         payload.member_count,
         payload.status,
         payload.notes,
+        payload.image_url,
         id,
       ]
     );
     return result.rows[0] || null;
+  }
+
+  async listOrganizingMembers() {
+    const result = await this.pool.query(
+      `SELECT id, name, role, message, image_url, display_order, visible, created_at, updated_at
+       FROM organizing_members ORDER BY display_order ASC, id ASC`
+    );
+    return result.rows;
+  }
+
+  async listPublicOrganizingMembers() {
+    const result = await this.pool.query(
+      `SELECT id, name, role, message, image_url, display_order
+       FROM organizing_members WHERE visible = TRUE ORDER BY display_order ASC, id ASC`
+    );
+    return result.rows;
+  }
+
+  async createOrganizingMember(payload) {
+    const result = await this.pool.query(
+      `INSERT INTO organizing_members (name, role, message, image_url, display_order, visible)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, role, message, image_url, display_order, visible, created_at, updated_at`,
+      [payload.name, payload.role, payload.message, payload.image_url, payload.display_order, payload.visible]
+    );
+    return result.rows[0];
+  }
+
+  async updateOrganizingMember(id, payload) {
+    const result = await this.pool.query(
+      `UPDATE organizing_members
+       SET name = $1, role = $2, message = $3, image_url = $4, display_order = $5, visible = $6, updated_at = NOW()
+       WHERE id = $7
+       RETURNING id, name, role, message, image_url, display_order, visible, created_at, updated_at`,
+      [payload.name, payload.role, payload.message, payload.image_url, payload.display_order, payload.visible, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async deleteOrganizingMember(id) {
+    const result = await this.pool.query("DELETE FROM organizing_members WHERE id = $1 RETURNING id", [id]);
+    return result.rowCount > 0;
+  }
+
+  async seedOrganizingMembers() {
+    const existing = await this.pool.query("SELECT COUNT(*)::int AS count FROM organizing_members");
+    if (existing.rows[0].count > 0) return;
+    const members = [
+      ["Rajiv Khanna", "President, RDCA", "I am proud to help build a safer and stronger cycling culture across the Vindhya region.", 0],
+      ["Sunil Singh", "Vice President, RDCA", "Every rider who joins us adds momentum to a healthier, more connected community.", 1],
+      ["Vibhu Suri", "Secretary, RDCA", "Good events are built by detail, teamwork, and a shared belief in the road ahead.", 2],
+      ["Aman Mishra", "Joint Secretary, RDCA", "NV Cyclothon turns individual effort into a movement the whole region can feel.", 3],
+      ["CA Prashant Jain", "Office Bureau, RDCA", "Our goal is simple: make every edition more welcoming, credible, and memorable.", 4],
+    ];
+    for (const [name, role, message, displayOrder] of members) {
+      await this.pool.query(
+        `INSERT INTO organizing_members (name, role, message, display_order) VALUES ($1, $2, $3, $4)`,
+        [name, role, message, displayOrder]
+      );
+    }
+  }
+
+  async listSponsorshipTiers() {
+    const result = await this.pool.query("SELECT * FROM sponsorship_tiers ORDER BY display_order ASC, id ASC");
+    return result.rows;
+  }
+
+  async listPublicSponsorshipTiers() {
+    const result = await this.pool.query("SELECT id, name, amount_paise, availability, benefits, complimentary_entries FROM sponsorship_tiers WHERE active = TRUE ORDER BY display_order ASC, id ASC");
+    return result.rows;
+  }
+
+  async createSponsorshipTier(payload) {
+    const result = await this.pool.query(
+      `INSERT INTO sponsorship_tiers (name, amount_paise, availability, benefits, complimentary_entries, active, display_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [payload.name, payload.amount_paise, payload.availability, payload.benefits, payload.complimentary_entries, payload.active, payload.display_order]
+    );
+    return result.rows[0];
+  }
+
+  async updateSponsorshipTier(id, payload) {
+    const result = await this.pool.query(
+      `UPDATE sponsorship_tiers SET name=$1, amount_paise=$2, availability=$3, benefits=$4, complimentary_entries=$5, active=$6, display_order=$7, updated_at=NOW() WHERE id=$8 RETURNING *`,
+      [payload.name, payload.amount_paise, payload.availability, payload.benefits, payload.complimentary_entries, payload.active, payload.display_order, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async deleteSponsorshipTier(id) {
+    const result = await this.pool.query("DELETE FROM sponsorship_tiers WHERE id=$1", [id]);
+    return result.rowCount > 0;
+  }
+
+  async seedSponsorshipTiers() {
+    const existing = await this.pool.query("SELECT COUNT(*)::int AS count FROM sponsorship_tiers");
+    if (existing.rows[0].count > 0) return;
+    const tiers = [
+      ["Title Sponsor", 50000000, "1 available", "Largest logo on jersey, start/finish arch, bibs, website and press backdrop.", 10],
+      ["Powered By Sponsor", 25000000, "2 available", "Large logo on jersey, website, stage backdrop and event collateral.", 5],
+      ["Associate Sponsor", 10000000, "4-6 available", "Logo on jersey sleeves, banners, signage and website.", 3],
+      ["Supporting Partner", 5000000, "Multiple", "Logo on event signage and website.", 2],
+      ["Hydration / Medical Partner", 5000000, "Category exclusive", "Branding at water stations, medical booth and ambulance support.", 0],
+      ["Media Partner", 0, "In-kind exclusive", "Exclusive media rights and logo on media backdrops.", 0],
+    ];
+    for (const [index, tier] of tiers.entries()) {
+      await this.pool.query("INSERT INTO sponsorship_tiers (name, amount_paise, availability, benefits, complimentary_entries, display_order) VALUES ($1,$2,$3,$4,$5,$6)", [...tier, index]);
+    }
   }
 
   async deleteDelegation(id) {
@@ -1324,8 +1587,16 @@ class PostgresRepository {
       );
       return { ...defaults, updated_at: new Date().toISOString() };
     }
+    const data = { ...result.rows[0].data };
+    if (data.event_date === "2026-10-18") {
+      data.event_date = "2026-11-22";
+      await this.pool.query(
+        "UPDATE site_settings SET data = $1, updated_at = NOW() WHERE id = 1",
+        [data]
+      );
+    }
     return {
-      ...result.rows[0].data,
+      ...data,
       updated_at: result.rows[0].updated_at
         ? new Date(result.rows[0].updated_at).toISOString()
         : null,

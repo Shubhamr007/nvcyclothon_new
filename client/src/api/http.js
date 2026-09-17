@@ -1,12 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export async function request(path, options = {}) {
+  const { timeoutMs = 15000, ...fetchOptions } = options;
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 15000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       headers: { Accept: 'application/json', ...options.headers },
-      ...options,
+      ...fetchOptions,
       signal: options.signal || controller.signal,
     });
     const body = await response.json().catch(() => null);
@@ -132,6 +133,19 @@ export function adminRequest(path, accessToken, options = {}) {
     ...options,
     headers: { ...authHeader, ...options.headers },
   });
+}
+
+export async function uploadAdminProfileImage(accessToken, file) {
+  const body = new FormData();
+  body.append("image", file);
+  const response = await fetch(`${API_BASE}/admin/profile-images`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body,
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.detail || "Unable to upload image.");
+  return result;
 }
 
 export function checkinRequest(path, accessToken, options = {}) {

@@ -5,6 +5,7 @@ import { useInView } from "react-intersection-observer";
 const CountUp = CountUpModule.default || CountUpModule;
 import { FaBicycle, FaHeartPulse, FaMedal, FaMusic, FaPersonBiking, FaRegHeart, FaWater } from "react-icons/fa6";
 import { MdMedicalServices, MdPhotoCamera } from "react-icons/md";
+import { useSiteSettings } from "../../../state/SiteSettingsContext";
 
 const highlights = [
   [FaMedal, "Finisher medal"], [FaPersonBiking, "Ride with champions"], [FaHeartPulse, "Healthy lifestyle"], [FaRegHeart, "A family event"], [FaMusic, "Live music"], [FaWater, "Water stations"], [MdPhotoCamera, "Event photography"], [MdMedicalServices, "Medical support"],
@@ -40,12 +41,12 @@ export function SocialProofAndExperience() {
         </div>
       </section>
       <Countdown />
-      <section className="bg-[#f4f1e9] px-5 py-28 text-[#071313]">
+      <section className="accessible-light-surface bg-[#f4f1e9] px-5 py-28 text-[#071313]">
         <div className="mx-auto max-w-[1240px]">
           <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">
             A whole morning of movement
           </p>
-          <h2 className="mt-4 text-5xl font-black tracking-[-.08em] uppercase md:text-7xl">
+          <h2 className="mt-4 text-5xl font-black tracking-[-.08em] md:text-7xl">
             More than
             <br />a finish line.
           </h2>
@@ -56,7 +57,7 @@ export function SocialProofAndExperience() {
                 className="rounded-2xl border border-[#071313]/15 bg-white p-5"
               >
                 <Icon className="text-3xl text-[#ff5f3d]" aria-hidden="true" />
-                <h3 className="mt-5 text-sm font-black uppercase">{label}</h3>
+                <h3 className="mt-5 text-sm font-black">{label}</h3>
               </div>
             ))}
           </div>
@@ -95,10 +96,11 @@ export function SocialProofAndExperience() {
 }
 function AnimatedStat({ number, suffix, label }) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.6 });
-  return <div ref={ref}><b className="block text-3xl font-black text-[#d9ff38]">{inView ? <CountUp end={number} duration={1.4} separator="," /> : 0}{suffix}</b><span className="mt-1 block text-[10px] font-bold tracking-[.14em] text-white/65 uppercase">{label}</span></div>;
+  return <div ref={ref}><b className="block text-3xl font-black text-[#d9ff38]">{inView ? <CountUp end={number} duration={1.4} separator="," /> : 0}{suffix}</b><span className="mt-1 block text-xs font-bold tracking-[.08em] text-white/65">{label}</span></div>;
 }
 function Countdown() {
-  const target = new Date("2026-10-18T05:30:00+05:30").getTime();
+  const { settings } = useSiteSettings();
+  const target = new Date(`${settings.event_date || "2026-11-22"}T05:30:00+05:30`).getTime();
   const [remaining, setRemaining] = useState(Math.max(0, target - Date.now()));
   useEffect(() => {
     const timer = setInterval(
@@ -119,7 +121,7 @@ function Countdown() {
         <p className="text-xl font-black uppercase">
           The starting bell is waiting.
         </p>
-        <div aria-label="Countdown to 18 October 2026" className="flex gap-5">
+        <div role="group" aria-label={`Countdown to ${settings.event_date || "2026-11-22"}`} className="flex gap-5">
           {parts.map((value, index) => (
             <div key={index}>
               <b className="block text-4xl font-black tabular-nums">

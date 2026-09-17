@@ -5,7 +5,7 @@ const multer = require("multer");
 const { parse: parseCsv } = require("csv-parse/sync");
 const ExcelJS = require("exceljs");
 const pdfParse = require("pdf-parse");
-const { generateParticipationCertificate } = require("../services/certificates");
+const { generateParticipationCertificate, generateRiderPassPdf, riderId } = require("../services/eventDocuments");
 const {
   ValidationError,
   NotFoundError,
@@ -19,6 +19,8 @@ const {
   statusUpdateSchema,
   offerSchema,
   chiefGuestSchema,
+  organizingMemberSchema,
+  sponsorshipTierSchema,
   delegationSchema,
   eventUpdateEmailSchema,
   siteSettingsPatchSchema,
@@ -27,9 +29,12 @@ const {
   volunteerAccountUpdateSchema,
   normalizeOfferInput,
   normalizeChiefGuestInput,
+  normalizeOrganizingMemberInput,
   normalizeDelegationInput,
 } = require("../services/validation");
 const { deleteCommunityImage } = require("../services/communityMedia");
+const { getOrCreatePdf } = require("../services/documentStorage");
+const { storeProfileImage } = require("../services/profileMedia");
 
 const EMAIL_REGEX = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 
@@ -39,6 +44,55 @@ function parsePositiveInt(value, fieldName) {
     throw new ValidationError(`Invalid ${fieldName}`);
   }
   return parsed;
+}
+
+const DOCUMENT_VERSION = "2026-approved-v2";
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function consume() {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => consume())
+  );
+  return results;
+}
+
+async function getCachedRiderPass(config, repository, registration, checkinPayload) {
+  const settings = await repository.getSiteSettings();
+  return getOrCreatePdf({
+    rootDirectory: config.uploadDir,
+    directory: "generated-documents",
+    filename: `rider-pass-${DOCUMENT_VERSION}-${registration.id}.pdf`,
+    generate: () => generateRiderPassPdf({
+      templatePath: config.riderPassTemplatePath,
+      registration,
+      checkinPayload,
+      eventDate: settings.event_date,
+      assemblyPoint: settings.event_location,
+    }),
+  });
+}
+
+async function getCachedCertificate(config, repository, registration) {
+  const settings = await repository.getSiteSettings();
+  return getOrCreatePdf({
+    rootDirectory: config.uploadDir,
+    directory: "generated-documents",
+    filename: `certificate-${DOCUMENT_VERSION}-${registration.id}.pdf`,
+    generate: () => generateParticipationCertificate({
+      templatePath: config.certificateTemplatePath,
+      registration,
+      eventDate: settings.event_date,
+      venue: settings.event_location,
+    }),
+  });
 }
 
 function toVolunteerAccountRead(account) {
@@ -233,6 +287,17 @@ function createCrudHandlers({
 function createAdminRouter({ config, repository, emailService }) {
   const router = express.Router();
 
+  async function recordDelivery(registration, emailType, subject, sent) {
+    await repository.recordEmailDelivery({
+      registrationId: registration.id,
+      emailType,
+      recipient: registration.email,
+      subject,
+      sent,
+      status: config.emailEnabled ? (sent ? "sent" : "failed") : "disabled",
+    });
+  }
+
   const rosterUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
@@ -252,6 +317,12 @@ function createAdminRouter({ config, repository, emailService }) {
   router.get("/analytics", async (_req, res) => {
     const analytics = await repository.getAnalytics();
     res.json(analytics);
+  });
+
+  router.post("/profile-images", async (req, res) => {
+    const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 1 } }).single("image");
+    await runMulter(upload, req, res);
+    res.status(201).json({ image_url: await storeProfileImage(config, req.file) });
   });
 
   router.get("/settings", async (_req, res) => {
@@ -472,15 +543,17 @@ function createAdminRouter({ config, repository, emailService }) {
     const eligible = registrations.filter((item) => item.status === "checked_in");
 
     await Promise.all(
-      eligible.map((registration) =>
-        emailService.sendParticipationCertificate({
+      eligible.map(async (registration) => {
+        const sent = await emailService.sendParticipationCertificate({
           recipient: registration.email,
           name: registration.full_name,
-          riderId: registration.id,
+          riderId: riderId(registration),
           route: registration.ride_category,
           certificatePdf: req.file.buffer,
-        })
-      )
+        });
+        await repository.recordParticipationCertificate(registration.id, sent);
+        await recordDelivery(registration, "certificate", "Congratulations on completing NV Cyclothon 2026", sent);
+      })
     );
 
     const queuedIds = eligible.map((item) => item.id);
@@ -510,21 +583,22 @@ function createAdminRouter({ config, repository, emailService }) {
 
     const registrations = await repository.getRegistrationsByIds(ids);
     const eligible = registrations.filter((item) => item.status === "checked_in");
+    const sentIds = [];
+    const failedIds = [];
 
-    for (const registration of eligible) {
-      const certificatePdf = await generateParticipationCertificate({
-        name: registration.full_name,
-        riderId: registration.id,
-        route: registration.ride_category,
-      });
-      await emailService.sendParticipationCertificate({
+    await mapWithConcurrency(eligible, 4, async (registration) => {
+      const certificatePdf = await getCachedCertificate(config, repository, registration);
+      const sent = await emailService.sendParticipationCertificate({
         recipient: registration.email,
         name: registration.full_name,
-        riderId: registration.id,
+        riderId: riderId(registration),
         route: registration.ride_category,
         certificatePdf,
       });
-    }
+      await repository.recordParticipationCertificate(registration.id, sent);
+      await recordDelivery(registration, "certificate", "Congratulations on completing NV Cyclothon 2026", sent);
+      (sent ? sentIds : failedIds).push(registration.id);
+    });
 
     const queuedIds = eligible.map((item) => item.id);
     res.status(202).json({
@@ -535,6 +609,8 @@ function createAdminRouter({ config, repository, emailService }) {
         .filter((item) => !queuedIds.includes(item.id))
         .map((item) => item.id),
       missing_ids: ids.filter((id) => !registrations.some((item) => item.id === id)),
+      sent_ids: sentIds,
+      failed_ids: failedIds,
     });
   });
 
@@ -550,11 +626,7 @@ function createAdminRouter({ config, repository, emailService }) {
       );
     }
 
-    const certificatePdf = await generateParticipationCertificate({
-      name: registration.full_name,
-      riderId: registration.id,
-      route: registration.ride_category,
-    });
+    const certificatePdf = await getCachedCertificate(config, repository, registration);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -562,6 +634,52 @@ function createAdminRouter({ config, repository, emailService }) {
       `inline; filename=\"nv-cyclothon-certificate-${registration.id}.pdf\"`
     );
     res.send(certificatePdf);
+  });
+
+  router.post("/registrations/rider-passes/generate", async (req, res) => {
+    if (!Array.isArray(req.body)) {
+      throw new ValidationError("registration_ids must be an array");
+    }
+    const ids = [...new Set(req.body)]
+      .map((item) => Number.parseInt(String(item), 10))
+      .filter((item) => Number.isInteger(item) && item > 0)
+      .sort((a, b) => a - b);
+    if (!ids.length) throw new ValidationError("Select at least one participant");
+
+    const registrations = await repository.getRegistrationsByIds(ids);
+    const eligible = registrations.filter((item) => item.payment_status === "paid" && item.status !== "cancelled");
+    const sentIds = [];
+    const failedIds = [];
+    await mapWithConcurrency(eligible, 4, async (registration) => {
+      const checkinPayload = registration.checkin_token
+        ? `${config.checkinQrPrefix}${registration.checkin_token}`
+        : "";
+      const riderPassPdf = await getCachedRiderPass(config, repository, registration, checkinPayload);
+      const sent = await emailService.sendRiderPass({ recipient: registration.email, registration, riderPassPdf });
+      await repository.recordRiderPass(registration.id, sent);
+      await recordDelivery(registration, "rider_pass", "Your official NV Cyclothon 2026 rider pass", sent);
+      (sent ? sentIds : failedIds).push(registration.id);
+    });
+    const queuedIds = eligible.map((item) => item.id);
+    res.status(202).json({ queued: eligible.length, queued_ids: queuedIds, skipped: registrations.length - eligible.length, skipped_ids: registrations.filter((item) => !queuedIds.includes(item.id)).map((item) => item.id), missing_ids: ids.filter((id) => !registrations.some((item) => item.id === id)), sent_ids: sentIds, failed_ids: failedIds });
+  });
+
+  router.get("/registrations/:registrationId/rider-pass-preview", async (req, res) => {
+    const registrationId = parsePositiveInt(req.params.registrationId, "registration id");
+    const registration = await repository.getRegistrationById(registrationId);
+    if (!registration) throw new NotFoundError("Record not found");
+    if (registration.payment_status !== "paid" || registration.status === "cancelled") {
+      throw new ConflictError("Only paid, active participants are eligible for rider passes");
+    }
+    const riderPassPdf = await getCachedRiderPass(
+      config,
+      repository,
+      registration,
+      registration.checkin_token ? `${config.checkinQrPrefix}${registration.checkin_token}` : ""
+    );
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename=\"nv-cyclothon-rider-pass-${registration.id}.pdf\"`);
+    res.send(riderPassPdf);
   });
 
   router.patch("/registrations/:registrationId", async (req, res) => {
@@ -618,6 +736,33 @@ function createAdminRouter({ config, repository, emailService }) {
   router.post("/chief-guests", chiefGuestCrud.create);
   router.put("/chief-guests/:itemId", chiefGuestCrud.update);
   router.delete("/chief-guests/:itemId", chiefGuestCrud.remove);
+
+  const organizingMemberCrud = createCrudHandlers({
+    list: () => repository.listOrganizingMembers(),
+    create: (payload) => repository.createOrganizingMember(payload),
+    update: (id, payload) => repository.updateOrganizingMember(id, payload),
+    remove: (id) => repository.deleteOrganizingMember(id),
+    parseCreate: (body) => normalizeOrganizingMemberInput(parseSchema(organizingMemberSchema, body)),
+    parseUpdate: (body) => normalizeOrganizingMemberInput(parseSchema(organizingMemberSchema, body)),
+  });
+
+  router.get("/organizing-members", organizingMemberCrud.list);
+  router.post("/organizing-members", organizingMemberCrud.create);
+  router.put("/organizing-members/:itemId", organizingMemberCrud.update);
+  router.delete("/organizing-members/:itemId", organizingMemberCrud.remove);
+
+  const sponsorshipTierCrud = createCrudHandlers({
+    list: () => repository.listSponsorshipTiers(),
+    create: (payload) => repository.createSponsorshipTier(payload),
+    update: (id, payload) => repository.updateSponsorshipTier(id, payload),
+    remove: (id) => repository.deleteSponsorshipTier(id),
+    parseCreate: (body) => parseSchema(sponsorshipTierSchema, body),
+    parseUpdate: (body) => parseSchema(sponsorshipTierSchema, body),
+  });
+  router.get("/sponsorship-tiers", sponsorshipTierCrud.list);
+  router.post("/sponsorship-tiers", sponsorshipTierCrud.create);
+  router.put("/sponsorship-tiers/:itemId", sponsorshipTierCrud.update);
+  router.delete("/sponsorship-tiers/:itemId", sponsorshipTierCrud.remove);
 
   const delegationCrud = createCrudHandlers({
     list: () => repository.listDelegations(),

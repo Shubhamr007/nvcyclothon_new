@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -26,6 +27,7 @@ const { createUploadsRouter } = require("./routes/uploads");
 const { createAdminRouter } = require("./routes/admin");
 const { createContentRouter } = require("./routes/content");
 const { createCommunityRouter } = require("./routes/community");
+const { resolveProfileImage } = require("./services/profileMedia");
 
 const LOOPBACK_IPS = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
@@ -134,22 +136,8 @@ function createApp({ config, repository, emailService, razorpayService, logger =
   } }));
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
-  app.post("/api/admin/session", (req, res, next) => {
+  app.post("/api/admin/session", async (req, res, next) => {
     try {
-      if (!config.adminAuthEnabled) {
-        const isLocalEnvironment =
-          config.environment === "development" || config.environment === "test";
-        if (!isLocalEnvironment || !isLoopbackRequest(req)) {
-          throw new UnauthorizedError("Admin authentication is required");
-        }
-        res.json({
-          access_token: "admin-auth-disabled",
-          token_type: "bearer",
-          expires_in: 86_400,
-        });
-        return;
-      }
-
       const key = req.ip || req.connection?.remoteAddress || "unknown";
       rateLimiter.check({
         scope: "admin",
@@ -160,7 +148,11 @@ function createApp({ config, repository, emailService, razorpayService, logger =
       });
 
       const payload = parseSchema(adminLoginSchema, req.body);
-      if (!safeCompare(payload.admin_key, config.adminApiKey)) {
+      const adminUser = await repository.getAdminUser(config.adminUsername);
+      const passwordMatches = adminUser?.active
+        ? await bcrypt.compare(payload.admin_key, adminUser.password_hash)
+        : false;
+      if (!passwordMatches) {
         throw new UnauthorizedError("Invalid administrator credentials");
       }
 
@@ -217,13 +209,13 @@ function createApp({ config, repository, emailService, razorpayService, logger =
   });
   app.use(
     "/api/uploads",
-    config.adminAuthEnabled ? requireAdmin(config) : localBypassGuard(config),
+    requireAdmin(config),
     uploadsModule.router
   );
 
   app.use(
     "/api/admin",
-    config.adminAuthEnabled ? requireAdmin(config) : localBypassGuard(config),
+    requireAdmin(config),
     createAdminRouter({
       config,
       repository,
@@ -235,6 +227,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     "/api/content",
     createContentRouter({
       repository,
+      config,
     })
   );
 

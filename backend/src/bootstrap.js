@@ -11,6 +11,9 @@ async function buildApplication({ env = process.env, logger = console } = {}) {
 
   await repository.init();
   await repository.seedProducts(CATALOGUE);
+  await repository.seedOrganizingMembers();
+  await repository.seedSponsorshipTiers();
+  await repository.ensureAdminUser(config.adminUsername, config.adminBootstrapPassword);
 
   const emailService = createEmailService(config, logger);
   const razorpayService = createRazorpayService(config);

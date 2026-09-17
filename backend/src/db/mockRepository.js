@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const {
   EARLY_BIRD_LIMIT,
   LAST_WEEK_START,
@@ -28,7 +29,7 @@ function defaultSiteSettings() {
     sections[key] = true;
   }
   return {
-    event_date: "2026-10-18",
+    event_date: "2026-11-22",
     event_start_time: "5:30 AM",
     event_location: "Rewa, Madhya Pradesh",
     edition_label: "3rd Edition",
@@ -93,9 +94,15 @@ class MockRepository {
       volunteer_checkin_logs: [],
       event_offers: [],
       chief_guests: [],
+      organizing_members: [],
+      sponsorship_tiers: [],
       delegations: [],
       community_posts: [],
       volunteer_accounts: [],
+      rider_passes: [],
+      participation_certificates: [],
+      registration_email_deliveries: [],
+      admin_users: [],
     };
     this.ids = {
       products: 1,
@@ -107,9 +114,15 @@ class MockRepository {
       volunteer_checkin_logs: 1,
       event_offers: 1,
       chief_guests: 1,
+      organizing_members: 1,
+      sponsorship_tiers: 1,
       delegations: 1,
       community_posts: 1,
       volunteer_accounts: 1,
+      rider_passes: 1,
+      participation_certificates: 1,
+      registration_email_deliveries: 1,
+      admin_users: 1,
     };
     this.siteSettings = defaultSiteSettings();
   }
@@ -150,6 +163,25 @@ class MockRepository {
         created_at: this.now(),
       });
     }
+  }
+
+  async ensureAdminUser(username, bootstrapPassword) {
+    if (this.tables.admin_users.some((item) => item.username === username)) {
+      return;
+    }
+    if (!bootstrapPassword) {
+      throw new Error("ADMIN_BOOTSTRAP_PASSWORD is required to initialize the admin user");
+    }
+    this.tables.admin_users.push({
+      id: this.nextId("admin_users"),
+      username,
+      password_hash: await bcrypt.hash(bootstrapPassword, 4),
+      active: true,
+    });
+  }
+
+  async getAdminUser(username) {
+    return this.tables.admin_users.find((item) => item.username === username) || null;
   }
 
   async listProducts() {
@@ -280,7 +312,7 @@ class MockRepository {
       }));
   }
 
-  calculateRegistrationFee(rideCategory) {
+  calculateRegistrationFee(rideCategory, eventDate = "2026-11-22") {
     const category = RACE_CATEGORIES[rideCategory];
     const categoryCount = this.tables.cyclothon_registrations.filter(
       (item) => item.ride_category === rideCategory && item.status !== "cancelled"
@@ -293,7 +325,9 @@ class MockRepository {
     }
 
     const now = this.now();
-    if (now >= LAST_WEEK_START) {
+    const lastWeekStart = new Date(`${eventDate}T00:00:00.000Z`);
+    lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
+    if (now >= lastWeekStart) {
       return category.last_week;
     }
 
@@ -317,7 +351,10 @@ class MockRepository {
       throw new ConflictError("This email is already registered for NV Cyclothon");
     }
 
-    const registrationFee = this.calculateRegistrationFee(payload.ride_category);
+    const registrationFee = this.calculateRegistrationFee(
+      payload.ride_category,
+      options.eventDate
+    );
     const isPaidRegistration = options.razorpayEnabled;
     const registration = {
       id: this.nextId("cyclothon_registrations"),
@@ -434,7 +471,16 @@ class MockRepository {
     return this.tables.cyclothon_registrations
       .slice()
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .map((item) => this.clone(item));
+      .map((item) => ({
+        ...this.clone(item),
+        rider_pass_status: this.tables.rider_passes.find((pass) => pass.registration_id === item.id)?.status || null,
+        certificate_status: this.tables.participation_certificates.find((certificate) => certificate.registration_id === item.id)?.status || null,
+        certificate_recipient: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.recipient || null,
+        certificate_delivery_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.status || null,
+        certificate_sent_at: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.sent_at || null,
+        certificate_attempt_count: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.attempt_count || null,
+        registration_email_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "registration_confirmation")?.status || null,
+      }));
   }
 
   async getRegistrationById(registrationId) {
@@ -442,6 +488,49 @@ class MockRepository {
       (item) => item.id === registrationId
     );
     return registration ? this.clone(registration) : null;
+  }
+
+  async recordEmailDelivery({ registrationId, emailType, recipient, subject, sent, status = sent ? "sent" : "failed", errorMessage = null }) {
+    const existing = this.tables.registration_email_deliveries.find(
+      (item) => item.registration_id === registrationId && item.email_type === emailType
+    );
+    if (existing) {
+      existing.recipient = recipient;
+      existing.subject = subject;
+      existing.status = status;
+      existing.attempt_count += 1;
+      existing.last_error = errorMessage;
+      existing.sent_at = sent ? this.now() : existing.sent_at;
+      existing.updated_at = this.now();
+      return;
+    }
+    this.tables.registration_email_deliveries.push({
+      id: this.nextId("registration_email_deliveries"), registration_id: registrationId, email_type: emailType,
+      recipient, subject, status, attempt_count: 1, last_error: errorMessage,
+      sent_at: sent ? this.now() : null, created_at: this.now(), updated_at: this.now(),
+    });
+  }
+
+  async recordRiderPass(registrationId, sent) {
+    const existing = this.tables.rider_passes.find((item) => item.registration_id === registrationId);
+    if (existing) {
+      existing.status = sent ? "sent" : "generated";
+      existing.generated_at = this.now();
+      existing.emailed_at = sent ? this.now() : existing.emailed_at;
+      return;
+    }
+    this.tables.rider_passes.push({ id: this.nextId("rider_passes"), registration_id: registrationId, template_version: "2026-approved", status: sent ? "sent" : "generated", generated_at: this.now(), emailed_at: sent ? this.now() : null });
+  }
+
+  async recordParticipationCertificate(registrationId, sent) {
+    const existing = this.tables.participation_certificates.find((item) => item.registration_id === registrationId);
+    if (existing) {
+      existing.status = sent ? "sent" : "generated";
+      existing.generated_at = this.now();
+      existing.emailed_at = sent ? this.now() : existing.emailed_at;
+      return;
+    }
+    this.tables.participation_certificates.push({ id: this.nextId("participation_certificates"), registration_id: registrationId, template_version: "2026-approved", status: sent ? "sent" : "generated", generated_at: this.now(), emailed_at: sent ? this.now() : null });
   }
 
   async updateRegistrationStatus(registrationId, status) {
@@ -763,6 +852,94 @@ class MockRepository {
     };
     this.tables.chief_guests.push(guest);
     return this.clone(guest);
+  }
+
+  async listOrganizingMembers() {
+    return this.tables.organizing_members
+      .slice()
+      .sort((a, b) => a.display_order - b.display_order || a.id - b.id)
+      .map((item) => this.clone(item));
+  }
+
+  async listPublicOrganizingMembers() {
+    return (await this.listOrganizingMembers()).filter((item) => item.visible);
+  }
+
+  async createOrganizingMember(payload) {
+    const member = { id: this.nextId("organizing_members"), created_at: this.now(), updated_at: this.now(), ...payload };
+    this.tables.organizing_members.push(member);
+    return this.clone(member);
+  }
+
+  async updateOrganizingMember(id, payload) {
+    const member = this.tables.organizing_members.find((item) => item.id === id);
+    if (!member) return null;
+    Object.assign(member, payload, { updated_at: this.now() });
+    return this.clone(member);
+  }
+
+  async deleteOrganizingMember(id) {
+    const index = this.tables.organizing_members.findIndex((item) => item.id === id);
+    if (index < 0) return false;
+    this.tables.organizing_members.splice(index, 1);
+    return true;
+  }
+
+  async seedOrganizingMembers() {
+    if (this.tables.organizing_members.length > 0) return;
+    const members = [
+      ["Rajiv Khanna", "President, RDCA", "I am proud to help build a safer and stronger cycling culture across the Vindhya region."],
+      ["Sunil Singh", "Vice President, RDCA", "Every rider who joins us adds momentum to a healthier, more connected community."],
+      ["Vibhu Suri", "Secretary, RDCA", "Good events are built by detail, teamwork, and a shared belief in the road ahead."],
+      ["Aman Mishra", "Joint Secretary, RDCA", "NV Cyclothon turns individual effort into a movement the whole region can feel."],
+      ["CA Prashant Jain", "Office Bureau, RDCA", "Our goal is simple: make every edition more welcoming, credible, and memorable."],
+    ];
+    for (const [index, [name, role, message]] of members.entries()) {
+      await this.createOrganizingMember({ name, role, message, image_url: null, display_order: index, visible: true });
+    }
+  }
+
+  async listSponsorshipTiers() {
+    return this.tables.sponsorship_tiers.slice().sort((a, b) => a.display_order - b.display_order || a.id - b.id).map((item) => this.clone(item));
+  }
+
+  async listPublicSponsorshipTiers() {
+    return (await this.listSponsorshipTiers()).filter((item) => item.active);
+  }
+
+  async createSponsorshipTier(payload) {
+    const tier = { id: this.nextId("sponsorship_tiers"), created_at: this.now(), updated_at: this.now(), ...payload };
+    this.tables.sponsorship_tiers.push(tier);
+    return this.clone(tier);
+  }
+
+  async updateSponsorshipTier(id, payload) {
+    const tier = this.tables.sponsorship_tiers.find((item) => item.id === id);
+    if (!tier) return null;
+    Object.assign(tier, payload, { updated_at: this.now() });
+    return this.clone(tier);
+  }
+
+  async deleteSponsorshipTier(id) {
+    const index = this.tables.sponsorship_tiers.findIndex((item) => item.id === id);
+    if (index < 0) return false;
+    this.tables.sponsorship_tiers.splice(index, 1);
+    return true;
+  }
+
+  async seedSponsorshipTiers() {
+    if (this.tables.sponsorship_tiers.length > 0) return;
+    const tiers = [
+      ["Title Sponsor", 50000000, "1 available", "Largest logo on jersey, start/finish arch, bibs, website and press backdrop.", 10],
+      ["Powered By Sponsor", 25000000, "2 available", "Large logo on jersey, website, stage backdrop and event collateral.", 5],
+      ["Associate Sponsor", 10000000, "4-6 available", "Logo on jersey sleeves, banners, signage and website.", 3],
+      ["Supporting Partner", 5000000, "Multiple", "Logo on event signage and website.", 2],
+      ["Hydration / Medical Partner", 5000000, "Category exclusive", "Branding at water stations, medical booth and ambulance support.", 0],
+      ["Media Partner", 0, "In-kind exclusive", "Exclusive media rights and logo on media backdrops.", 0],
+    ];
+    for (const [index, [name, amount_paise, availability, benefits, complimentary_entries]] of tiers.entries()) {
+      await this.createSponsorshipTier({ name, amount_paise, availability, benefits, complimentary_entries, active: true, display_order: index });
+    }
   }
 
   async updateChiefGuest(id, payload) {

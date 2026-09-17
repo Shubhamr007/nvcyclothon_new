@@ -4,6 +4,7 @@ import {
   Editions,
   Gallery,
   PeopleAndSponsors,
+  OrganizingMembers,
   WhySport,
 } from "../features/cyclothon/components/EventStory";
 import { SocialProofAndExperience } from "../features/cyclothon/components/EventExperience";
@@ -23,7 +24,7 @@ export function HomePage() {
       <SocialProofAndExperience />
       {sections.editions !== false && <Editions />}
       {sections.about !== false && (
-      <section id="about" className="bg-[#f4f1e9] px-5 py-28 text-[#071313]">
+      <section id="about" className="accessible-light-surface bg-[#f4f1e9] px-5 py-28 text-[#071313]">
         <div className="mx-auto max-w-[1240px]">
           <div className="grid gap-10 md:grid-cols-[.6fr_1.4fr]">
             <Reveal>
@@ -66,12 +67,13 @@ export function HomePage() {
           <Reveal>
             <div className="mt-14 flex flex-col justify-between gap-6 border-t-2 border-[#071313] pt-7 md:flex-row md:items-end">
               <p className="max-w-2xl text-sm leading-6 text-[#071313]/70">We ride to champion road safety, promote greenery, build fitness and health, and help more women feel powerful, visible and free on the road.</p>
-              <a href="#routes" className="inline-flex shrink-0 rounded-full bg-[#ff5f3d] px-6 py-4 text-xs font-black tracking-wider text-white transition hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-[#071313]">Find your ride →</a>
+              <a href="#routes" className="inline-flex shrink-0 rounded-full bg-[#ff5f3d] px-6 py-4 text-xs font-black tracking-wider text-[#071313] transition hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-[#071313]">Find your ride →</a>
             </div>
           </Reveal>
         </div>
       </section>
       )}
+      {sections.about !== false && <OrganizingMembers />}
       {sections.routes !== false && <RideCards />}
       {sections.routes !== false && <RouteNavigator />}
       {sections.updates !== false && <EventUpdates />}

@@ -14,7 +14,7 @@ const DEFAULT_SECTIONS = {
 };
 
 const DEFAULT_SETTINGS = {
-  event_date: "2026-10-18",
+  event_date: "2026-11-22",
   event_start_time: "5:30 AM",
   event_location: "Rewa, Madhya Pradesh",
   edition_label: "3rd Edition",

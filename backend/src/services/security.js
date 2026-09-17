@@ -65,7 +65,7 @@ function issueAdminToken(config) {
   return issueScopedToken({
     scope: "admin",
     expiresInSeconds: config.adminSessionTtlSeconds,
-    secret: config.adminApiKey,
+    secret: config.adminTokenSecret,
     claims: { subject: "admin" },
   });
 }
@@ -73,7 +73,7 @@ function issueAdminToken(config) {
 function verifyAdminToken(token, config) {
   return verifyScopedToken(token, {
     expectedScope: "admin",
-    secret: config.adminApiKey,
+    secret: config.adminTokenSecret,
     errorMessage: "Invalid or expired admin session",
   });
 }
