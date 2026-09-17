@@ -42,6 +42,15 @@ function defaultSiteSettings() {
       body: "",
       image_url: "",
     },
+    prize_pool: { enabled: false, eyebrow: "Prize pool", title: "Ride for the podium.", body: "", total: "", prizes: [], terms: "" },
+    participant_kit: {
+      enabled: true,
+      eyebrow: "Every rider receives",
+      title: "Your ride-day kit.",
+      body: "Every registered participant receives these essentials on race day.",
+      items: ["Event jersey", "Rider bib", "Finisher medal", "E-certificate", "Hydration support"],
+      note: "Included with every registered category.",
+    },
     sections,
     updated_at: null,
   };
@@ -64,6 +73,11 @@ function mergeSiteSettings(current, patch) {
   }
   if (patch.feature_section && typeof patch.feature_section === "object") {
     next.feature_section = { ...current.feature_section, ...patch.feature_section };
+  }
+  for (const key of ["prize_pool", "participant_kit"]) {
+    if (patch[key] && typeof patch[key] === "object") {
+      next[key] = { ...(current[key] || defaultSiteSettings()[key]), ...patch[key] };
+    }
   }
   if (patch.sections && typeof patch.sections === "object") {
     const nextSections = { ...current.sections };

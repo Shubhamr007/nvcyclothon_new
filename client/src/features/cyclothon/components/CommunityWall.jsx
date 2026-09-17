@@ -57,18 +57,18 @@ export function CommunityWall() {
       <div className="mx-auto max-w-[1240px]">
         <Reveal className={hideBecauseEmpty ? "mx-auto max-w-xl" : ""}>
           <p className="text-xs font-black tracking-[.28em] text-[#ff5f3d] uppercase">
-            Community wall
+            Your ride memories
           </p>
           <h2
             id="community-heading"
             className="mt-3 max-w-2xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl"
           >
-            Ride stories,<br />
-            <span className="text-[#ff5f3d]">your words.</span>
+            Share the ride,<br />
+            <span className="text-[#ff5f3d]">keep the memory.</span>
           </h2>
           <p className="mt-6 max-w-2xl text-sm leading-6 text-[#071313]/70">
-            Share a memory, a shout-out to a fellow rider, or a photo from a past edition.
-            Every submission is reviewed by our team before it goes live.
+            Add your photo, memory or shout-out to the rider memory wall. Every
+            submission is reviewed by our team before it goes live.
           </p>
         </Reveal>
 
@@ -182,10 +182,10 @@ function CommunitySubmissionForm({ onSubmitted }) {
       className="w-full rounded-3xl bg-[#071313] p-6 text-white shadow-[10px_10px_0_#ff5f3d]"
     >
       <p className="text-xs font-black tracking-[.24em] text-[#d9ff38] uppercase">
-        Share your story
+        Add your memory
       </p>
       <h3 className="mt-2 text-2xl font-black leading-tight tracking-tight">
-        Post a message to the wall
+        Share it with the riders
       </h3>
       <p className="mt-2 text-xs text-white/60">
         Reviewed before publishing. Please do not share other people's images

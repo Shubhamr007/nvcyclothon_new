@@ -212,6 +212,23 @@ const siteSettingsPatchSchema = z
       body: z.string().trim().max(1000).optional(),
       image_url: z.union([z.literal(""), z.string().url().startsWith("https://")]).optional(),
     }).optional(),
+    prize_pool: z.object({
+      enabled: z.boolean().optional(),
+      eyebrow: z.string().trim().max(80).optional(),
+      title: z.string().trim().max(160).optional(),
+      body: z.string().trim().max(1000).optional(),
+      total: z.string().trim().max(80).optional(),
+      prizes: z.array(z.object({ label: z.string().trim().min(1).max(120), amount: z.string().trim().min(1).max(80), detail: z.string().trim().max(240).optional() })).max(20).optional(),
+      terms: z.string().trim().max(1000).optional(),
+    }).optional(),
+    participant_kit: z.object({
+      enabled: z.boolean().optional(),
+      eyebrow: z.string().trim().max(80).optional(),
+      title: z.string().trim().max(160).optional(),
+      body: z.string().trim().max(1000).optional(),
+      items: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+      note: z.string().trim().max(500).optional(),
+    }).optional(),
     sections: siteSectionsPatchSchema.optional(),
   })
   .partial()

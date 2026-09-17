@@ -1,5 +1,6 @@
 import { BicycleHero } from "../features/cyclothon/components/BicycleHero";
 import { RideCards } from "../features/cyclothon/components/RideCards";
+import { RiderBenefits } from "../features/cyclothon/components/RiderBenefits";
 import {
   Editions,
   Gallery,
@@ -75,11 +76,11 @@ export function HomePage() {
       )}
       {sections.about !== false && <OrganizingMembers />}
       {sections.routes !== false && <RideCards />}
+      {sections.routes !== false && <RiderBenefits />}
       {sections.routes !== false && <RouteNavigator />}
       {sections.updates !== false && <EventUpdates />}
       {sections.gallery !== false && <Gallery />}
       {sections.why_sport !== false && <WhySport />}
-      {sections.community !== false && <CommunityWall />}
       {sections.contact !== false && (
       <section id="contact" className="bg-[#071313] px-5 py-28 text-white">
         <div className="mx-auto max-w-[1240px]">
@@ -119,6 +120,7 @@ export function HomePage() {
       </section>
       )}
       {sections.sponsors !== false && <PeopleAndSponsors />}
+      {sections.community !== false && <CommunityWall />}
     </>
   );
 }

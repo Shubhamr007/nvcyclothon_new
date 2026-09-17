@@ -100,20 +100,20 @@ export function Gallery() {
         <div className="max-w-2xl">
           <div>
             <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">
-              The ride in motion
+              Official event gallery
             </p>
             <h2
               id="gallery-heading"
               className="mt-4 text-5xl font-black tracking-[-.08em] uppercase md:text-7xl"
             >
-              Made for
+              See the
               <br />
-              moments.
+              ride.
             </h2>
           </div>
           <p className="mt-6 max-w-sm text-sm leading-6 text-[#071313]/70">
-            A little preview of the early starts, open roads and finish-line
-            energy waiting for you.
+            A preview of the routes, riders and race-day energy that make NV
+            Cyclothon special.
           </p>
         </div>
         <div className="mt-12 grid gap-4 md:auto-rows-[16rem] md:grid-cols-[1.2fr_.8fr_.8fr]">
@@ -191,15 +191,21 @@ export function OrganizingMembers() {
   return (
     <section className="accessible-light-surface bg-[#f4f1e9] px-5 py-24 text-[#071313]" aria-labelledby="members-heading">
       <div className="mx-auto max-w-[1240px]">
-        <Reveal><p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">The people behind the ride</p><h2 id="members-heading" className="mt-4 max-w-3xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl">Built by people<br /><span className="text-[#ff5f3d]">who show up.</span></h2></Reveal>
+        <Reveal><p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">The people behind the ride</p><h2 id="members-heading" className="mt-4 max-w-3xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl">Built by people<br /><span className="text-[#ff5f3d]">who show up.</span></h2><p className="mt-5 max-w-xl text-sm leading-6 text-[#071313]/70">Meet the people bringing NV Cyclothon to life.</p></Reveal>
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {members.map((member, index) => (
             <Reveal key={member.id} delay={index * 0.06}>
-              <article className="h-full rounded-2xl border-2 border-[#071313] bg-white p-6 shadow-[6px_6px_0_#d9ff38]">
-                {member.image_url ? <img src={member.image_url} alt={member.name} className="h-16 w-16 rounded-full object-cover" /> : <div className="grid h-16 w-16 place-items-center rounded-full bg-[#071313] text-xl font-black text-[#d9ff38]">{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}
-                <h3 className="mt-5 text-xl font-black uppercase">{member.name}</h3>
-                <p className="mt-1 text-xs font-black tracking-[.12em] text-[#ff5f3d] uppercase">{member.role}</p>
-                <p className="mt-5 text-sm leading-6 text-[#071313]/70">“{member.message}”</p>
+              <article className="group h-full overflow-hidden rounded-3xl border-2 border-[#071313] bg-white shadow-[6px_6px_0_#d9ff38]">
+                {member.image_url ? (
+                  <img src={member.image_url} alt={`Portrait of ${member.name}`} className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                ) : (
+                  <div className="grid aspect-[4/5] w-full place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-label={`Profile image unavailable for ${member.name}`}>{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
+                )}
+                <div className="border-t-2 border-[#071313] p-6">
+                  <h3 className="text-2xl font-black leading-tight">{member.name}</h3>
+                  <p className="mt-1 text-xs font-black tracking-[.12em] text-[#9f3126] uppercase">{member.role}</p>
+                  <p className="mt-5 text-sm leading-6 text-[#071313]/70">“{member.message}”</p>
+                </div>
               </article>
             </Reveal>
           ))}

@@ -344,7 +344,7 @@ export function AdminPage() {
                   save(id ? `/organizing-members/${id}` : "/organizing-members", value, reset, id ? "PUT" : "POST")
                 }
                 onRemove={(id) => remove(`/organizing-members/${id}`)}
-                render={(item) => <><b>{item.name}</b><span>{item.role} · {item.visible ? "Visible" : "Hidden"}</span></>}
+                render={(item) => <>{item.image_url ? <img src={item.image_url} alt="" className="mb-2 h-16 w-16 rounded-full object-cover" /> : <div className="mb-2 grid h-16 w-16 place-items-center rounded-full bg-[#071313] text-xs font-black text-[#d9ff38]" aria-hidden="true">{item.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}<b>{item.name}</b><span>{item.role} · {item.visible ? "Visible" : "Hidden"}</span></>}
               />
             )}
             {tab === "delegations" && (
@@ -1106,7 +1106,7 @@ function Manage({ title, fields, items, onSave, onRemove, render, adminKey }) {
             key={name}
             className="mt-4 block text-xs font-black tracking-[.12em] uppercase"
           >
-            {name.replaceAll("_", " ")}
+            {name === "image_url" ? "Profile photograph" : name.replaceAll("_", " ")}
             {typeof value === "boolean" ? (
               <input
                 className="ml-3 accent-[#ff5f3d]"
@@ -1133,6 +1133,7 @@ function Manage({ title, fields, items, onSave, onRemove, render, adminKey }) {
                   className="w-full rounded-lg border border-black/20 p-2 text-sm font-normal normal-case"
                   placeholder="Upload an image or paste an HTTPS URL"
                 />
+                <span className="block text-[11px] font-normal normal-case text-black/60">Upload a JPG, PNG or WebP portrait, or paste an HTTPS image URL.</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -1270,6 +1271,18 @@ function SiteSettingsPanel({ accessToken, onFeedback }) {
       sections: { ...current.sections, [key]: !current.sections?.[key] },
     }));
 
+  const updatePrizePool = (key, value) =>
+    updateField("prize_pool", { ...settings.prize_pool, [key]: value });
+
+  const updatePrize = (index, key, value) => {
+    const prizes = [...(settings.prize_pool?.prizes || [])];
+    prizes[index] = { ...prizes[index], [key]: value };
+    updatePrizePool("prizes", prizes);
+  };
+
+  const updateParticipantKit = (key, value) =>
+    updateField("participant_kit", { ...settings.participant_kit, [key]: value });
+
   const submit = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -1283,6 +1296,8 @@ function SiteSettingsPanel({ accessToken, onFeedback }) {
         registration_open: settings.registration_open,
         hero_images: settings.hero_images || [],
         feature_section: settings.feature_section || {},
+        prize_pool: settings.prize_pool || {},
+        participant_kit: settings.participant_kit || {},
         sections: settings.sections,
       });
       setSettings(updated);
@@ -1365,6 +1380,34 @@ function SiteSettingsPanel({ accessToken, onFeedback }) {
             className="w-full rounded-xl border border-black/20 p-3 text-sm"
             placeholder="https://example.com/event-photo.webp"
           />
+        </fieldset>
+
+        <fieldset className="rounded-2xl border border-black/10 p-4">
+          <legend className="px-2 text-xs font-black tracking-[.14em] text-[#071313]/70 uppercase">Prize pool</legend>
+          <label className="flex items-center gap-3 text-sm font-bold text-[#071313]"><input type="checkbox" checked={Boolean(settings.prize_pool?.enabled)} onChange={(event) => updatePrizePool("enabled", event.target.checked)} className="h-4 w-4" /> Show prize pool on the homepage</label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="text-xs font-bold uppercase tracking-[.1em]">Eyebrow<input value={settings.prize_pool?.eyebrow || ""} onChange={(event) => updatePrizePool("eyebrow", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+            <label className="text-xs font-bold uppercase tracking-[.1em]">Total prize pool<input value={settings.prize_pool?.total || ""} onChange={(event) => updatePrizePool("total", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" placeholder="₹1,00,000" /></label>
+            <label className="sm:col-span-2 text-xs font-bold uppercase tracking-[.1em]">Title<input value={settings.prize_pool?.title || ""} onChange={(event) => updatePrizePool("title", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+            <label className="sm:col-span-2 text-xs font-bold uppercase tracking-[.1em]">Introduction<textarea rows={3} value={settings.prize_pool?.body || ""} onChange={(event) => updatePrizePool("body", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+          </div>
+          <div className="mt-5 space-y-3" aria-label="Prize breakdown">
+            {(settings.prize_pool?.prizes || []).map((prize, index) => <div key={index} className="grid gap-2 rounded-lg bg-[#f4f1e9] p-3 sm:grid-cols-[1fr_10rem_1fr_auto]"><input aria-label={`Prize ${index + 1} label`} value={prize.label || ""} onChange={(event) => updatePrize(index, "label", event.target.value)} className="rounded border border-black/20 p-2 text-sm" placeholder="e.g. Road Challenge — 1st" /><input aria-label={`Prize ${index + 1} amount`} value={prize.amount || ""} onChange={(event) => updatePrize(index, "amount", event.target.value)} className="rounded border border-black/20 p-2 text-sm" placeholder="₹25,000" /><input aria-label={`Prize ${index + 1} detail`} value={prize.detail || ""} onChange={(event) => updatePrize(index, "detail", event.target.value)} className="rounded border border-black/20 p-2 text-sm" placeholder="Optional detail" /><button type="button" onClick={() => updatePrizePool("prizes", settings.prize_pool.prizes.filter((_, prizeIndex) => prizeIndex !== index))} className="rounded border border-black/20 px-3 py-2 text-xs font-bold">Remove</button></div>)}
+            <button type="button" onClick={() => updatePrizePool("prizes", [...(settings.prize_pool?.prizes || []), { label: "", amount: "", detail: "" }])} className="rounded-lg border border-[#071313] px-3 py-2 text-xs font-bold">Add prize row</button>
+          </div>
+          <label className="mt-4 block text-xs font-bold uppercase tracking-[.1em]">Eligibility and terms<textarea rows={3} value={settings.prize_pool?.terms || ""} onChange={(event) => updatePrizePool("terms", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+        </fieldset>
+
+        <fieldset className="rounded-2xl border border-black/10 p-4">
+          <legend className="px-2 text-xs font-black tracking-[.14em] text-[#071313]/70 uppercase">Participant riding kit</legend>
+          <label className="flex items-center gap-3 text-sm font-bold text-[#071313]"><input type="checkbox" checked={Boolean(settings.participant_kit?.enabled)} onChange={(event) => updateParticipantKit("enabled", event.target.checked)} className="h-4 w-4" /> Show kit details on the homepage</label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="text-xs font-bold uppercase tracking-[.1em]">Eyebrow<input value={settings.participant_kit?.eyebrow || ""} onChange={(event) => updateParticipantKit("eyebrow", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+            <label className="text-xs font-bold uppercase tracking-[.1em]">Title<input value={settings.participant_kit?.title || ""} onChange={(event) => updateParticipantKit("title", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+            <label className="sm:col-span-2 text-xs font-bold uppercase tracking-[.1em]">Introduction<textarea rows={3} value={settings.participant_kit?.body || ""} onChange={(event) => updateParticipantKit("body", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+            <label className="sm:col-span-2 text-xs font-bold uppercase tracking-[.1em]">Kit items (one per line)<textarea rows={5} value={(settings.participant_kit?.items || []).join("\n")} onChange={(event) => updateParticipantKit("items", event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+            <label className="sm:col-span-2 text-xs font-bold uppercase tracking-[.1em]">Included-for-all note<input value={settings.participant_kit?.note || ""} onChange={(event) => updateParticipantKit("note", event.target.value)} className="mt-2 w-full rounded-lg border border-black/20 p-2 text-sm normal-case" /></label>
+          </div>
         </fieldset>
 
         <fieldset className="rounded-2xl border border-black/10 p-4">

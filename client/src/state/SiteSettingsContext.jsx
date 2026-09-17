@@ -21,6 +21,15 @@ const DEFAULT_SETTINGS = {
   registration_open: false,
   hero_images: [],
   feature_section: { enabled: false, eyebrow: "", title: "", body: "", image_url: "" },
+  prize_pool: { enabled: false, eyebrow: "Prize pool", title: "Ride for the podium.", body: "", total: "", prizes: [], terms: "" },
+  participant_kit: {
+    enabled: true,
+    eyebrow: "Every rider receives",
+    title: "Your ride-day kit.",
+    body: "Every registered participant receives these essentials on race day.",
+    items: ["Event jersey", "Rider bib", "Finisher medal", "E-certificate", "Hydration support"],
+    note: "Included with every registered category.",
+  },
   sections: DEFAULT_SECTIONS,
   updated_at: null,
 };
@@ -40,7 +49,7 @@ export function SiteSettingsProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    getSiteSettings()
+    const loadSettings = () => getSiteSettings()
       .then((settings) => {
         if (cancelled) return;
         setState({
@@ -51,10 +60,13 @@ export function SiteSettingsProvider({ children }) {
       })
       .catch((error) => {
         if (cancelled) return;
-        setState({ settings: DEFAULT_SETTINGS, loading: false, error });
+        setState((current) => ({ ...current, loading: false, error }));
       });
+    loadSettings();
+    const refreshTimer = window.setInterval(loadSettings, 30_000);
     return () => {
       cancelled = true;
+      window.clearInterval(refreshTimer);
     };
   }, []);
 
@@ -83,6 +95,8 @@ function mergeWithDefaults(raw) {
         : DEFAULT_SETTINGS.registration_open,
       hero_images: Array.isArray(raw?.hero_images) ? raw.hero_images : [],
       feature_section: { ...DEFAULT_SETTINGS.feature_section, ...(raw?.feature_section || {}) },
+      prize_pool: { ...DEFAULT_SETTINGS.prize_pool, ...(raw?.prize_pool || {}) },
+      participant_kit: { ...DEFAULT_SETTINGS.participant_kit, ...(raw?.participant_kit || {}) },
     sections,
     updated_at: raw?.updated_at || null,
   };
