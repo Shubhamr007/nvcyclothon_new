@@ -15,10 +15,13 @@ function normalizeIndianMobile(value) {
     return `+91${local}`;
   }
   if (compact.startsWith("+")) {
-    throw new ValidationError("Use an Indian mobile number with country code +91");
+    if (!/^\+[1-9]\d{6,14}$/.test(compact)) {
+      throw new ValidationError("Enter a valid phone number with country code");
+    }
+    return compact;
   }
   if (!INDIAN_MOBILE_PATTERN.test(compact)) {
-    throw new ValidationError("Enter a valid 10-digit Indian mobile number");
+    throw new ValidationError("Enter a valid 10-digit mobile number");
   }
   return `+91${compact}`;
 }
@@ -82,19 +85,34 @@ const orderCreateSchema = z.object({
     .max(20),
 });
 
-const registrationCreateSchema = z.object({
-  full_name: z.string().trim().min(2).max(160),
-  email: z.string().trim().min(5).max(255),
-  phone: z.string().trim().min(8).max(32),
-  age: z.number().int().min(10).max(100),
-  city: z.string().trim().min(2).max(100),
-  gender: z.enum(["Female", "Male", "Non-binary", "Prefer not to say"]),
-  ride_category: z.enum(Object.keys(RACE_CATEGORIES)),
-  emergency_contact: z.string().trim().min(5).max(160),
-  t_shirt_size: z.enum(["XS", "S", "M", "L", "XL", "XXL", "N/A"]),
-  waiver_accepted: z.boolean(),
-  privacy_accepted: z.boolean(),
-});
+const registrationCreateSchema = z
+  .object({
+    full_name: z.string().trim().min(2).max(160),
+    email: z.string().trim().min(5).max(255),
+    phone: z.string().trim().min(8).max(32),
+    age: z.number().int().min(10).max(100),
+    city: z.string().trim().min(2).max(100),
+    gender: z.enum(["Female", "Male", "Non-binary", "Prefer not to say"]),
+    ride_category: z.enum(Object.keys(RACE_CATEGORIES)),
+    organization_type: z.enum(["School/College", "Corporate", "Cycling Club", "Individual"]).optional().nullable(),
+    organization_name: z.string().trim().max(200).optional().nullable(),
+    emergency_contact: z.string().trim().min(5).max(160),
+    t_shirt_size: z.enum(["XS", "S", "M", "L", "XL", "XXL", "N/A"]),
+    waiver_accepted: z.boolean(),
+    privacy_accepted: z.boolean(),
+  })
+  .refine(
+    (data) => {
+      if (data.ride_category === "25 Km Senior Masters" && data.age < 50) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Senior Masters Challenge is reserved for riders aged 50 and above",
+      path: ["age"],
+    }
+  );
 
 const paymentVerifySchema = z.object({
   razorpay_order_id: z.string().trim().min(5).max(100),
@@ -310,6 +328,8 @@ function normalizeRegistrationInput(payload) {
     email: normalizeEmail(payload.email),
     phone: normalizeIndianMobile(payload.phone),
     emergency_contact: normalizeIndianMobile(payload.emergency_contact),
+    organization_type: payload.organization_type || "Individual",
+    organization_name: payload.organization_name ? payload.organization_name.trim() : null,
   };
 }
 

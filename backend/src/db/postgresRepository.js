@@ -95,10 +95,15 @@ class PostgresRepository {
         checked_in_by VARCHAR(160),
         checkin_method VARCHAR(32),
         checkin_device VARCHAR(200),
+        organization_type VARCHAR(64) DEFAULT 'Individual',
+        organization_name VARCHAR(200),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         CONSTRAINT uq_cyclothon_razorpay_order UNIQUE (razorpay_order_id),
         CONSTRAINT uq_cyclothon_razorpay_payment UNIQUE (razorpay_payment_id)
       );
+
+      ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS organization_type VARCHAR(64) DEFAULT 'Individual';
+      ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS organization_name VARCHAR(200);
 
       CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_registrations_email_normalized
       ON cyclothon_registrations (lower(email));
@@ -964,15 +969,18 @@ class PostgresRepository {
         const insertResult = await client.query(
           `INSERT INTO cyclothon_registrations (
              full_name, email, phone, age, city, gender, ride_category,
+             organization_type, organization_name,
              emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
              status, registration_fee_paise, payment_status, payment_verified_at,
              checkin_token
            ) VALUES (
              $1, $2, $3, $4, $5, $6, $7,
-             $8, $9, TRUE, TRUE,
-             $10, $11, $12, $13, $14
+             $8, $9,
+             $10, $11, TRUE, TRUE,
+             $12, $13, $14, $15, $16
            )
            RETURNING id, full_name, email, phone, age, city, gender, ride_category,
+                     organization_type, organization_name,
                      emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
                      status, registration_fee_paise, payment_status, razorpay_order_id,
                      razorpay_payment_id, razorpay_signature, payment_verified_at,
@@ -986,6 +994,8 @@ class PostgresRepository {
             payload.city,
             payload.gender,
             payload.ride_category,
+            payload.organization_type || "Individual",
+            payload.organization_name || null,
             payload.emergency_contact,
             payload.t_shirt_size,
             initialStatus,
@@ -1126,6 +1136,7 @@ class PostgresRepository {
   async listRegistrations() {
     const result = await this.pool.query(
       `SELECT id, full_name, email, phone, age, city, gender, ride_category,
+              organization_type, organization_name,
               emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
               status, registration_fee_paise, payment_status, razorpay_order_id,
               razorpay_payment_id, razorpay_signature, payment_verified_at,
@@ -1147,6 +1158,7 @@ class PostgresRepository {
   async getRegistrationById(registrationId) {
     const result = await this.pool.query(
       `SELECT id, full_name, email, phone, age, city, gender, ride_category,
+              organization_type, organization_name,
               emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
               status, registration_fee_paise, payment_status, razorpay_order_id,
               razorpay_payment_id, razorpay_signature, payment_verified_at,

@@ -610,6 +610,11 @@ export function CheckinPage() {
                         <td className="p-3 align-top">
                           <p className="font-bold">{participant.ride_category}</p>
                           <p className="mt-1 text-black/60">{participant.city}</p>
+                          {participant.organization_name && (
+                            <p className="mt-1 text-xs font-semibold text-black/70">
+                              🏛️ {participant.organization_name}
+                            </p>
+                          )}
                         </td>
                         <td className="p-3 align-top">
                           <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase ${statusPillClasses(participant.status)}`}>

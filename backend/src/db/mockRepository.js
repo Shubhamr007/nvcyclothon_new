@@ -393,6 +393,8 @@ class MockRepository {
       city: payload.city,
       gender: payload.gender,
       ride_category: payload.ride_category,
+      organization_type: payload.organization_type || "Individual",
+      organization_name: payload.organization_name || null,
       emergency_contact: payload.emergency_contact,
       t_shirt_size: payload.t_shirt_size,
       waiver_accepted: true,

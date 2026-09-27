@@ -29,6 +29,12 @@ const RACE_CATEGORIES = {
     regular: 29_900,
     last_week: 29_900,
   },
+  "25 Km Senior Masters": {
+    capacity: 100,
+    early_bird: 69_900,
+    regular: 89_900,
+    last_week: 109_900,
+  },
 };
 
 const CATALOGUE = [

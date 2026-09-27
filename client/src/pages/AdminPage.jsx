@@ -994,7 +994,14 @@ function Riders({ riders, adminKey, refresh }) {
                 <td className="p-4 text-black/75">
                   {rider.email}<br />{rider.phone}
                 </td>
-                <td className="p-4">{rider.ride_category}</td>
+                <td className="p-4">
+                  <span className="font-bold">{rider.ride_category}</span>
+                  {rider.organization_name && (
+                    <span className="mt-1 block text-xs text-black/60">
+                      🏛️ {rider.organization_name} ({rider.organization_type})
+                    </span>
+                  )}
+                </td>
                 <td className="p-4">{rider.city}</td>
                 <td className="p-4">{rider.gender}</td>
                 <td className="p-4">{rider.t_shirt_size}</td>

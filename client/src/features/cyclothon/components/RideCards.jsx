@@ -17,7 +17,7 @@ export function RideCards() {
           <div>
             <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">Pick your pace</p>
             <h2 className="mt-4 text-4xl font-black leading-none tracking-[-.07em] uppercase sm:text-6xl md:text-7xl">
-              Four ways<br />to fly.
+              Five ways<br />to fly.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-white/85">
               The first 50 registrations across all categories receive the early-bird rate. Each category has a limited number of places.
@@ -66,7 +66,14 @@ export function RideCards() {
               <article
                 className={`route-card route-${route.color} group relative flex min-h-[24rem] sm:min-h-[26rem] h-full w-full flex-col overflow-hidden rounded-2xl p-6 sm:p-7 md:p-8 text-[#071313] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl`}
               >
-                <p className="text-xs font-black tracking-[.18em] uppercase">Category 0{index + 1}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black tracking-[.18em] uppercase">Category 0{index + 1}</p>
+                  {route.minAge && (
+                    <span className="rounded-full bg-[#071313] px-2 py-0.5 text-[9px] font-black uppercase text-[#facc15]">
+                      Age 50+
+                    </span>
+                  )}
+                </div>
                 <p className="mt-8 text-sm font-black tracking-[.16em] text-[#071313]">
                   {route.length} · {route.capacity} spots
                 </p>
