@@ -12,8 +12,8 @@ export function OurPartners({ partners = [], onApplyClick }) {
   const mediaPartners = partners.filter((p) => /media/i.test(p.tier_name));
 
   return (
-    <section className="relative border-b border-white/10 bg-[#071313] px-5 py-20 text-white sm:py-28">
-      <div className="mx-auto max-w-6xl">
+    <section className="relative border-b border-white/10 bg-[#071313] px-4 py-20 text-white sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal>
           <div className="text-center">
             <span className="text-xs font-bold uppercase tracking-[.25em] text-[#d9ff38]">

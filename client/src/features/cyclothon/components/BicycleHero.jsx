@@ -71,8 +71,8 @@ export function BicycleHero() {
       <div className="hero-overlay" />
       <div className="hero-radial" />
       <div className="noise" />
-      <div className="relative z-10 mx-auto flex min-h-screen w-[min(1240px,calc(100%-40px))] items-center pt-20">
-        <div ref={heading} className="max-w-3xl">
+      <div className="relative z-10 mx-auto flex min-h-screen w-[min(1400px,calc(100%-48px))] items-center pt-20">
+        <div ref={heading} className="max-w-4xl">
           <div className="hero-label mb-6 inline-flex items-center gap-2 rounded-full border border-[#d9ff38]/45 px-3 py-1.5 text-[10px] font-black tracking-[.28em] text-[#d9ff38] uppercase">
             <span className="relative inline-flex h-2 w-2">
               <span className="absolute inset-0 animate-ping rounded-full bg-[#d9ff38] opacity-60" />
@@ -83,7 +83,7 @@ export function BicycleHero() {
           <p className="hero-label mb-6 w-fit rounded px-2 py-1 text-xs font-bold tracking-[.12em] text-[#d9ff38]">
             Sunday · {eventDateLabel} · Rewa
           </p>
-          <h1 className="hero-heading font-black text-[clamp(4.3rem,12vw,10.5rem)] leading-[.77] tracking-[-.11em]">
+          <h1 className="hero-heading font-black text-[clamp(4.3rem,12vw,10.5rem)] leading-[.77] tracking-[-.05em]">
             Own
             <br />
             <span className="text-[#d9ff38]">the</span> road

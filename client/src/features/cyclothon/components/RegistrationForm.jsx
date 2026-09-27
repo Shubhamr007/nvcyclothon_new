@@ -60,7 +60,7 @@ export function RegistrationForm({ initialRoute }) {
   if (status.state === "success") return <>{!reduceMotion && <Confetti aria-hidden="true" recycle={false} numberOfPieces={220} colors={["#d9ff38", "#ff5f3d", "#071313"]} />}<Success message={status.message} /></>;
   if (settingsLoading || !settings.registration_open) {
     return (
-      <section className="rounded-3xl bg-[#071313] p-8 text-white shadow-[10px_10px_0_#ff5f3d]" aria-live="polite">
+      <section data-theme="dark" className="rounded-3xl bg-[#071313] p-8 text-white shadow-[10px_10px_0_#ff5f3d]" aria-live="polite">
         <p className="text-xs font-black tracking-[.16em] text-[#d9ff38] uppercase">Registration</p>
         <h2 className="mt-2 text-3xl font-black tracking-tight">{settingsLoading ? "Checking availability…" : "Registration is closed."}</h2>
         <p className="mt-3 text-sm leading-6 text-white/70">
@@ -131,7 +131,7 @@ export function RegistrationForm({ initialRoute }) {
         <Field label="City" {...register("city", { required: "Enter your city", minLength: { value: 2, message: "City must be at least 2 characters" } })} error={errors.city} minLength="2" maxLength="100" autoComplete="address-level2" />
         <label className="text-xs font-black tracking-[.1em] uppercase">
           Gender
-          <select {...register("gender", { required: "Choose a gender category" })} aria-invalid={Boolean(errors.gender)} className={`mt-2 w-full border-b-2 bg-transparent py-2 text-sm font-medium normal-case outline-none transition focus:border-[#ff5f3d] ${errors.gender ? "border-red-600" : "border-[#071313]/25"}`}>
+          <select {...register("gender", { required: "Choose a gender category" })} aria-invalid={Boolean(errors.gender)} className={`mt-2 w-full border-b-2 bg-transparent py-3 text-base font-medium normal-case outline-none transition focus:border-[#ff5f3d] ${errors.gender ? "border-red-600" : "border-[#071313]/25"}`}>
             <option value="" disabled>Select gender</option>
             <option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option>
           </select>
@@ -153,11 +153,11 @@ export function RegistrationForm({ initialRoute }) {
         <legend className="mb-3 text-xs font-black tracking-[.15em] uppercase">
           Choose your race category
         </legend>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
           {RIDE_OPTIONS.map((route) => (
             <label
               key={route.distance}
-              className={`cursor-pointer rounded-xl border-2 p-3 text-center transition ${errors.ride_category ? "border-red-600" : selectedRoute === route.distance ? "border-[#071313] bg-[#d9ff38]" : "border-[#071313]/15"}`}
+              className={`cursor-pointer rounded-xl border-2 p-4 text-center transition ${errors.ride_category ? "border-red-600" : selectedRoute === route.distance ? "border-[#071313] bg-[#d9ff38]" : "border-[#071313]/15"}`}
             >
               <input
                 className="sr-only"
@@ -166,17 +166,17 @@ export function RegistrationForm({ initialRoute }) {
                 value={route.distance}
                 {...register("ride_category", { required: "Choose a bicycle route" })}
               />
-              <b className="block text-xs">{route.distance}</b>
-              <span className="mt-1 block text-[10px]">{route.fee}</span>
-              <span className="block text-[9px] text-[#071313]/60">{route.capacity} spots</span>
+              <b className="block text-sm">{route.distance}</b>
+              <span className="mt-1 block text-xs">{route.fee}</span>
+              <span className="block text-[10px] text-[#071313]/60">{route.capacity} spots</span>
             </label>
           ))}
         </div>
         {errors.ride_category && <FieldError id="ride-category-error" message={errors.ride_category.message} />}
       </fieldset>
-      <div className="mt-5 flex items-center justify-between gap-4 rounded-xl border border-[#071313]/15 bg-white/60 p-4 text-sm">
-        <div><b className="block">Registration fee: {selectedRide.fee}</b><span className="block text-xs text-[#071313]/65">{selectedRide.pricing}. Final fee is confirmed at secure checkout.</span></div>
-        <span className="rounded-full bg-[#071313] px-3 py-1 text-[10px] font-black tracking-wider text-[#d9ff38] uppercase">Razorpay</span>
+      <div className="mt-5 flex flex-col gap-3 rounded-xl border border-[#071313]/15 bg-white/60 p-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div><b className="block">{selectedRide.fee}</b><span className="block text-xs text-[#071313]/65">{selectedRide.pricing}. Final fee is confirmed at secure checkout.</span></div>
+        <span className="self-start rounded-full bg-[#071313] px-3 py-1 text-[10px] font-black tracking-wider text-[#d9ff38] uppercase sm:self-auto">Razorpay</span>
       </div>
       {selectedRide.jersey ? (
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -241,7 +241,7 @@ const Field = forwardRef(function Field({ label, error, ...props }, ref) {
         {...props}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`mt-2 w-full border-b-2 bg-transparent py-2 text-sm font-medium normal-case outline-none transition focus:border-[#ff5f3d] ${error ? "border-red-600" : "border-[#071313]/25"}`}
+        className={`mt-2 w-full border-b-2 bg-transparent py-3 text-base font-medium normal-case outline-none transition focus:border-[#ff5f3d] ${error ? "border-red-600" : "border-[#071313]/25"}`}
       />
       {error && <FieldError id={`${id}-error`} message={error.message} />}
     </label>
@@ -251,7 +251,7 @@ const ConsentCheckbox = forwardRef(function ConsentCheckbox({ name, error, child
   const id = `field-${name}`;
   return (
     <div className="mt-4">
-    <label className="flex gap-3 text-xs leading-5" htmlFor={id}>
+    <label className="flex gap-3 text-sm leading-5" htmlFor={id}>
       <input
         id={id}
         type="checkbox"
@@ -260,7 +260,7 @@ const ConsentCheckbox = forwardRef(function ConsentCheckbox({ name, error, child
         {...props}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`mt-1 h-4 w-4 shrink-0 accent-[#ff5f3d] ${error ? "outline outline-2 outline-red-600" : ""}`}
+        className={`mt-0.5 h-5 w-5 shrink-0 accent-[#ff5f3d] ${error ? "outline outline-2 outline-red-600" : ""}`}
       />
       {children}
     </label>

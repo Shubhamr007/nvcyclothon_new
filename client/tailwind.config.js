@@ -22,7 +22,7 @@ export default {
     },
     extend: {
       colors: { ink: '#20342d', cream: '#f7f0df', rust: '#b94d25', gold: '#e0b04a' },
-      fontFamily: { display: ['"Playfair Display"', 'serif'], sans: ['"DM Sans"', 'sans-serif'] },
+      fontFamily: { display: ['"Sora"', 'Arial', 'sans-serif'], sans: ['"Manrope"', 'Arial', 'sans-serif'] },
     },
   },
   plugins: [],

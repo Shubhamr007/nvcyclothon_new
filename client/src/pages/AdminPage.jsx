@@ -408,7 +408,7 @@ function Login({ onLogin, message, loading }) {
   };
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#071313] p-5 text-white">
+    <main data-theme="dark" className="grid min-h-screen place-items-center bg-[#071313] p-5 text-white">
       <div className="w-full max-w-md rounded-3xl bg-[#f4f1e9] p-8 text-[#071313] shadow-2xl">
         <p className="text-xs font-black tracking-[.18em] text-[#ff5f3d] uppercase">
           Staff only

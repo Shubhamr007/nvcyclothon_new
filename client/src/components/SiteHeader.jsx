@@ -11,7 +11,7 @@ export function SiteHeader({ theme, onToggleTheme }) {
       >
         Skip to main content
       </a>
-      <div className="mx-auto flex h-20 w-[min(1240px,calc(100%-40px))] items-center justify-between text-white">
+      <div className="mx-auto flex h-20 w-[min(1400px,calc(100%-48px))] items-center justify-between text-white">
         <a
           href="/"
           aria-label={`${EVENT.name} home`}

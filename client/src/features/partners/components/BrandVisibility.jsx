@@ -6,8 +6,8 @@ export function BrandVisibility() {
   const [activeItem, setActiveItem] = useState(BRAND_VISIBILITY_ITEMS[0]);
 
   return (
-    <section className="relative border-b border-white/10 bg-[#071313] px-5 py-20 text-white sm:py-28">
-      <div className="mx-auto max-w-6xl">
+    <section className="relative border-b border-white/10 bg-[#071313] px-4 py-20 text-white sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal>
           <div className="max-w-2xl">
             <span className="text-xs font-bold uppercase tracking-[.25em] text-[#d9ff38]">

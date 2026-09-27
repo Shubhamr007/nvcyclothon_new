@@ -52,9 +52,9 @@ export function CommunityWall() {
     <section
       id="community"
       aria-labelledby="community-heading"
-      className="accessible-light-surface bg-[#f4f1e9] px-5 py-24 text-[#071313]"
+      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]"
     >
-      <div className="mx-auto max-w-[1240px]">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal className={hideBecauseEmpty ? "mx-auto max-w-xl" : ""}>
           <p className="text-xs font-black tracking-[.28em] text-[#ff5f3d] uppercase">
             Your ride memories
@@ -94,7 +94,7 @@ export function CommunityWall() {
                     <p className="mt-4 text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
                       {post.name}
                     </p>
-                    <p className="mt-1 text-[10px] tracking-[.16em] text-[#071313]/50 uppercase">
+                    <p className="mt-1 text-[10px] tracking-[.16em] text-[#071313]/70 uppercase">
                       {formatDate(post.approved_at || post.created_at)}
                     </p>
                   </article>

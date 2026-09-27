@@ -10,8 +10,8 @@ export function EventUpdates() {
   }, []);
   if (!content.offers.length && !content.guests.length) return null;
   return (
-    <section className="bg-[#071313] px-5 py-20 text-white">
-      <div className="mx-auto max-w-[1240px]">
+    <section className="bg-[#071313] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white">
+      <div className="mx-auto max-w-[1400px]">
         {content.offers.length > 0 && (
           <div>
             <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">

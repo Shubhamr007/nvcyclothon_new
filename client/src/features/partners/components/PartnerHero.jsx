@@ -4,12 +4,12 @@ import { EVENT_DETAILS } from "../constants";
 
 export function PartnerHero({ onBecomePartnerClick, onExplorePackagesClick }) {
   return (
-    <section className="relative overflow-hidden border-b border-white/10 bg-[#071313] px-5 pb-16 pt-32 text-white sm:pt-40 lg:pb-24">
+    <section className="relative overflow-hidden border-b border-white/10 bg-[#071313] px-4 pb-16 pt-32 text-white sm:px-6 sm:pt-40 lg:px-8 lg:pb-24">
       {/* Background ambient lighting */}
       <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#ff5f3d]/10 blur-3xl" />
       <div className="pointer-events-none absolute -left-32 bottom-0 h-96 w-96 rounded-full bg-[#d9ff38]/10 blur-3xl" />
 
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal>
           <div className="inline-flex items-center gap-2 rounded-full border border-[#d9ff38]/30 bg-[#d9ff38]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[.25em] text-[#d9ff38]">
             <span className="h-2 w-2 rounded-full bg-[#d9ff38] animate-pulse" />

@@ -27,9 +27,9 @@ export function Editions() {
     <section
       id="editions"
       aria-labelledby="editions-heading"
-      className="bg-[#071313] px-5 py-24 text-white"
+      className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-white"
     >
-      <div className="mx-auto max-w-[1240px]">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal>
           <p className="text-xs font-black tracking-[.28em] text-[#d9ff38] uppercase">
             {EVENT.editionLabel} · A tradition on two wheels
@@ -95,9 +95,9 @@ export function Gallery() {
   return (
     <section
       aria-labelledby="gallery-heading"
-      className="accessible-light-surface bg-[#f4f1e9] px-5 py-28 text-[#071313]"
+      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]"
     >
-      <div className="mx-auto max-w-[1240px]">
+      <div className="mx-auto max-w-[1400px]">
         <div className="max-w-2xl">
           <div>
             <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">
@@ -146,10 +146,10 @@ export function WhySport() {
     ["Fitness", "Train with purpose, push your limits and enjoy the finish line."],
   ];
   return (
-    <section className="accessible-light-surface relative isolate overflow-hidden bg-[#d9ff38] px-5 py-28 text-[#071313]">
+    <section className="accessible-light-surface relative isolate overflow-hidden bg-[#d9ff38] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
       <img src={rewaMap} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-center opacity-60" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[#d9ff38]/20" aria-hidden="true" />
-      <div className="mx-auto grid max-w-[1240px] gap-14 md:grid-cols-[.7fr_1.3fr]">
+      <div className="mx-auto grid max-w-[1400px] gap-14 md:grid-cols-[.7fr_1.3fr]">
         <p className="h-fit rounded-xl bg-[#f4f1e9]/90 px-4 py-3 text-xs font-black tracking-[.2em] shadow-[4px_4px_0_#071313] uppercase">
           Why we ride
         </p>
@@ -211,8 +211,8 @@ export function OrganizingMembers() {
 
   if (!members.length) return null;
   return (
-    <section className="accessible-light-surface bg-[#f4f1e9] px-5 py-24 text-[#071313]" aria-labelledby="members-heading">
-      <div className="mx-auto max-w-[1240px]">
+    <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]" aria-labelledby="members-heading">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal><p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">The people behind the ride</p><h2 id="members-heading" className="mt-4 max-w-3xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl">Built by people<br /><span className="text-[#ff5f3d]">who show up.</span></h2><p className="mt-5 max-w-xl text-sm leading-6 text-[#071313]/70">Meet the people bringing NV Cyclothon to life.</p></Reveal>
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {members.map((member, index) => (
@@ -250,7 +250,7 @@ function MemberProfileDialog({ member, onClose }) {
     <AnimatePresence>
       {member && (
         <motion.div className="fixed inset-0 z-50 grid place-items-center bg-[#071313]/75 px-5 py-8 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-          <motion.section role="dialog" aria-modal="true" aria-labelledby="member-profile-title" aria-describedby="member-profile-message" className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/30 bg-white/10 text-white shadow-[0_28px_100px_rgba(0,0,0,.5)] backdrop-blur-2xl" initial={{ opacity: 0, rotateX: -12, y: 36, scale: 0.94 }} animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }} exit={{ opacity: 0, rotateX: 8, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 260, damping: 22 }} style={{ transformPerspective: 1200 }}>
+          <motion.section role="dialog" aria-modal="true" aria-labelledby="member-profile-title" aria-describedby="member-profile-message" data-theme="dark" className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/30 bg-white/10 text-white shadow-[0_28px_100px_rgba(0,0,0,.5)] backdrop-blur-2xl" initial={{ opacity: 0, rotateX: -12, y: 36, scale: 0.94 }} animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }} exit={{ opacity: 0, rotateX: 8, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 260, damping: 22 }} style={{ transformPerspective: 1200 }}>
             <div className="grid md:grid-cols-[.8fr_1.2fr]">
               {member.image_url ? <img src={member.image_url} alt={`Portrait of ${member.name}`} className="h-64 w-full object-cover md:h-full" /> : <div className="grid min-h-64 place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-hidden="true">{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}
               <div className="relative p-7 md:p-9">
@@ -280,9 +280,9 @@ export function PeopleAndSponsors() {
   return (
     <section
       aria-labelledby="people-heading"
-      className="bg-[#071313] px-5 py-28 text-white"
+      className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white"
     >
-      <div className="mx-auto max-w-[1240px]">
+      <div className="mx-auto max-w-[1400px]">
         <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">
           The people behind the peloton
         </p>
@@ -308,7 +308,7 @@ export function PeopleAndSponsors() {
               </div>
             </div>
           </div>
-          <div className="rounded-3xl border border-[#d9ff38]/35 bg-[#0b2525] p-7 md:p-9">
+          <div data-theme="dark" className="rounded-3xl border border-[#d9ff38]/35 bg-[#0b2525] p-7 md:p-9">
             <p className="text-xs font-black tracking-[.18em] text-[#d9ff38] uppercase">Official cycling association</p>
             <div className="mt-5 flex items-center gap-4">
               <img src={associationLogo} alt="Rewa District Cycling Association logo" className="h-16 w-16 shrink-0 rounded-full bg-white object-cover" />

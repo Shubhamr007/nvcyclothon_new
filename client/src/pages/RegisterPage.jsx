@@ -9,13 +9,13 @@ export function RegisterPage() {
     ? route
     : "60 Km Road Challenge";
   return (
-    <main className="min-h-screen bg-[#071313] px-5 pb-20 pt-36 text-white">
-      <div className="mx-auto grid max-w-[1100px] gap-12 lg:grid-cols-[.8fr_1.2fr]">
+    <main className="min-h-screen bg-[#071313] px-4 pb-16 pt-24 text-white sm:px-6 sm:pb-20 sm:pt-36 lg:px-8">
+      <div className="mx-auto grid max-w-[1300px] gap-8 sm:gap-12 lg:grid-cols-[.8fr_1.2fr]">
         <aside>
           <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">
             Your next finish line
           </p>
-          <h1 className="mt-5 text-6xl font-black leading-[.82] tracking-[-.1em] uppercase">
+          <h1 className="mt-5 text-5xl font-black leading-[.82] tracking-[-.05em] uppercase sm:text-6xl">
             Get
             <br />
             in the
@@ -37,7 +37,7 @@ export function RegisterPage() {
         </aside>
         <section
           aria-labelledby="registration-heading"
-          className="rounded-2xl bg-[#f4f1e9] p-6 text-[#071313] md:p-10"
+          className="rounded-2xl bg-[#f4f1e9] p-4 text-[#071313] sm:p-6 md:p-10"
         >
           <RegistrationForm initialRoute={initialRoute} />
         </section>

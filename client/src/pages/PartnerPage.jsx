@@ -78,9 +78,9 @@ export function PartnerPage() {
       <section
         ref={applicationRef}
         aria-labelledby="partner-apply-heading"
-        className="relative px-5 py-24 sm:py-32"
+        className="relative px-4 py-20 sm:px-6 sm:py-32 lg:px-8"
       >
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-[1400px]">
           <div className="text-center mb-12">
             <span className="text-xs font-bold uppercase tracking-[.25em] text-[#d9ff38]">
               OFFICIAL SPONSORSHIP PORTAL

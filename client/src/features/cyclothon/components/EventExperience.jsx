@@ -33,16 +33,16 @@ const testimonials = [
 export function SocialProofAndExperience() {
   return (
     <>
-      <section className="bg-[#071313] px-5 py-10 text-white">
-        <div className="mx-auto grid max-w-[1240px] grid-cols-2 gap-8 text-center sm:grid-cols-5">
+      <section className="bg-[#071313] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-white">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-8 text-center sm:grid-cols-5">
           {[[500, "", "Total rider places"], [4, "", "Race categories"], [300, "+", "Finish moments"], [50, "+", "Volunteers"], [12, "", "Community partners"]].map(([number, suffix, label]) => (
             <AnimatedStat key={label} number={number} suffix={suffix} label={label} />
           ))}
         </div>
       </section>
       <Countdown />
-      <section className="accessible-light-surface bg-[#f4f1e9] px-5 py-28 text-[#071313]">
-        <div className="mx-auto max-w-[1240px]">
+      <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
+        <div className="mx-auto max-w-[1400px]">
           <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">
             A whole morning of movement
           </p>
@@ -63,8 +63,8 @@ export function SocialProofAndExperience() {
           </div>
         </div>
       </section>
-      <section className="bg-[#ff5f3d] px-5 py-28 text-[#071313]">
-        <div className="mx-auto max-w-[1240px]">
+      <section className="bg-[#ff5f3d] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
+        <div className="mx-auto max-w-[1400px]">
           <p className="text-xs font-black tracking-[.2em] uppercase">
             The last ride, in their words
           </p>
@@ -116,8 +116,8 @@ function Countdown() {
     Math.floor(remaining / 1000) % 60,
   ];
   return (
-    <section className="bg-[#d9ff38] px-5 py-10 text-[#071313]">
-      <div className="mx-auto flex max-w-[1240px] flex-col justify-between gap-6 md:flex-row md:items-center">
+    <section className="bg-[#d9ff38] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-[#071313]">
+      <div className="mx-auto flex max-w-[1400px] flex-col justify-between gap-6 md:flex-row md:items-center">
         <p className="text-xl font-black uppercase">
           The starting bell is waiting.
         </p>
@@ -153,8 +153,8 @@ function Faq() {
     ],
   ];
   return (
-    <section className="bg-[#f4f1e9] px-5 py-28 text-[#071313]">
-      <div className="mx-auto grid max-w-[1240px] gap-10 md:grid-cols-[.7fr_1.3fr]">
+    <section className="bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
+      <div className="mx-auto grid max-w-[1400px] gap-10 md:grid-cols-[.7fr_1.3fr]">
         <h2 className="text-5xl font-black leading-[.86] tracking-[-.08em] uppercase md:text-7xl">
           Good
           <br />

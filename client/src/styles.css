@@ -36,13 +36,153 @@ body[data-theme="light"] .site-header button:hover { background: rgba(7, 19, 19,
   body[data-theme="light"] .site-header--glass { background: rgba(244, 241, 233, 0.92) !important; }
 }
 body[data-theme="light"] footer { background: #f4f1e9 !important; color: rgba(7, 19, 19, .7) !important; border-top: 1px solid rgba(7, 19, 19, .15); }
-body[data-theme="light"] section.bg-\[\#071313\] { background-color: #e8eef0 !important; color: #071313 !important; }
-body[data-theme="light"] main.bg-\[\#071313\] { background-color: #e8eef0 !important; color: #071313 !important; }
-body[data-theme="light"] main.bg-\[\#071313\] .text-white { color: #071313 !important; }
-body[data-theme="light"] .hero-section { background-color: #071313 !important; color: white !important; }
-body[data-theme="light"] .hero-section .text-white { color: white !important; }
-body[data-theme="light"] section.bg-\[\#071313\] .text-white { color: #071313 !important; }
-body[data-theme="light"] section.bg-\[\#071313\] .text-white\/65, body[data-theme="light"] section.bg-\[\#071313\] .text-white\/70, body[data-theme="light"] section.bg-\[\#071313\] .text-white\/75 { color: rgba(7, 19, 19, .68) !important; }
+
+/* Pinned dark containers keep dark background and white text */
+body[data-theme="light"] .hero-section,
+body[data-theme="light"] [data-theme="dark"] {
+  background-color: #071313 !important;
+  color: white !important;
+}
+body[data-theme="light"] .hero-section .text-white,
+body[data-theme="light"] [data-theme="dark"] .text-white {
+  color: white !important;
+}
+
+/* Light mode base conversions for public dark sections and main */
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]),
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) {
+  background-color: #e8eef0 !important;
+  color: #071313 !important;
+}
+
+/* Direct/standard text in converted sections becomes dark */
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white {
+  color: #071313 !important;
+}
+
+/* All white opacity variants on converted light surfaces map to legible dark ink */
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/30,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/40,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/50,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/60,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/65,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/70,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/75,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/80,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/85,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/90,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/30,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/40,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/50,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/60,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/65,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/70,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/75,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/80,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/85,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-white\/90 {
+  color: rgba(7, 19, 19, .72) !important;
+}
+
+/* Neon lime text on light converted surfaces maps to high-contrast dark green/ink */
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .text-\[\#d9ff38\],
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .text-\[\#d9ff38\] {
+  color: #071313 !important;
+}
+
+/* Darken coral text to #9f3126 on all light surfaces */
+body[data-theme="light"] .text-\[\#ff5f3d\] {
+  color: #9f3126 !important;
+}
+
+/* Preserve bright coral and lime accents within explicitly dark elements */
+body[data-theme="light"] .hero-section .text-\[\#d9ff38\],
+body[data-theme="light"] .hero-section .text-\[\#ff5f3d\],
+body[data-theme="light"] [data-theme="dark"] .text-\[\#d9ff38\],
+body[data-theme="light"] [data-theme="dark"] .text-\[\#ff5f3d\],
+body[data-theme="light"] [role="dialog"] .text-\[\#d9ff38\],
+body[data-theme="light"] [role="dialog"] .text-\[\#ff5f3d\],
+body[data-theme="light"] .bg-\[\#071313\] .text-\[\#d9ff38\],
+body[data-theme="light"] .bg-\[\#071313\] .text-\[\#ff5f3d\] {
+  color: revert !important;
+}
+
+/* CRITICAL: Protect dark buttons, dark badges, dark dialogs, and dark cards from text inversion */
+body[data-theme="light"] button.bg-\[\#071313\],
+body[data-theme="light"] a.bg-\[\#071313\],
+body[data-theme="light"] button.bg-\[\#071313\] .text-white,
+body[data-theme="light"] a.bg-\[\#071313\] .text-white,
+body[data-theme="light"] .bg-\[\#071313\] > button,
+body[data-theme="light"] .bg-\[\#071313\] > a,
+body[data-theme="light"] .bg-\[\#0b2525\],
+body[data-theme="light"] .bg-\[\#0b2525\] .text-white,
+body[data-theme="light"] .bg-\[\#0b2525\] p,
+body[data-theme="light"] .bg-\[\#0b2525\] h2,
+body[data-theme="light"] .member-profile-card .text-white,
+body[data-theme="light"] .member-profile-card__glass,
+body[data-theme="light"] .member-profile-card__glass .text-white,
+body[data-theme="light"] [role="dialog"],
+body[data-theme="light"] [role="dialog"] .text-white,
+body[data-theme="light"] [role="dialog"] h3,
+body[data-theme="light"] [role="dialog"] p,
+body[data-theme="light"] [role="dialog"] span,
+body[data-theme="light"] [role="dialog"] dt,
+body[data-theme="light"] [role="dialog"] li,
+body[data-theme="light"] .admin-topbar,
+body[data-theme="light"] .admin-topbar .text-white,
+body[data-theme="light"] .admin-topbar h1,
+body[data-theme="light"] .admin-topbar p,
+body[data-theme="light"] .route-navigator__panel .text-white,
+body[data-theme="light"] .route-navigator__label,
+body[data-theme="light"] thead.bg-\[\#071313\],
+body[data-theme="light"] thead.bg-\[\#071313\] th {
+  color: #ffffff !important;
+}
+
+/* Also ensure dark buttons retain dark background and light buttons retain light background */
+body[data-theme="light"] button.bg-\[\#071313\],
+body[data-theme="light"] a.bg-\[\#071313\] {
+  background-color: #071313 !important;
+}
+
+/* Card backgrounds and borders in converted light mode sections */
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .border-white\/10,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .border-white\/15,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .border-white\/20,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .border-white\/10,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .border-white\/15,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .border-white\/20 {
+  border-color: rgba(7, 19, 19, 0.15) !important;
+}
+
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/5,
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/\[0\.02\],
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/\[0\.03\],
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/\[0\.04\],
+body[data-theme="light"] section.bg-\[\#071313\]:not([data-theme="dark"]) .bg-black\/30,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/5,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/\[0\.02\],
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/\[0\.03\],
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .bg-white\/\[0\.04\],
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) .bg-black\/30 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 4px 16px rgba(7, 19, 19, 0.05);
+}
+
+/* Accessible form inputs, selects and textareas in light mode */
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) select,
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) input:not([type="checkbox"]):not([type="radio"]),
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) textarea {
+  background-color: #ffffff !important;
+  color: #071313 !important;
+  border-color: rgba(7, 19, 19, 0.25) !important;
+}
+body[data-theme="light"] main.bg-\[\#071313\]:not([data-theme="dark"]) select option {
+  background-color: #ffffff !important;
+  color: #071313 !important;
+}
+
 body[data-theme="light"] .hero-overlay { background: linear-gradient(90deg, rgba(7,19,19,.92) 0%, rgba(7,19,19,.62) 48%, rgba(7,19,19,.12) 80%), linear-gradient(0deg, rgba(7,19,19,.4), transparent 46%); }
 *:focus-visible { outline: 3px solid #ff5f3d; outline-offset: 3px; }
 input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: 1px; }
@@ -447,3 +587,51 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
     animation: none !important;
   }
 }
+
+/* Swiper ride cards customization */
+.ride-swiper {
+  width: 100%;
+}
+.ride-swiper .swiper-wrapper {
+  align-items: stretch;
+}
+.ride-swiper .swiper-slide {
+  height: auto;
+  display: flex;
+}
+.ride-swiper .swiper-pagination {
+  bottom: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ride-swiper .swiper-pagination-bullet {
+  width: 10px;
+  height: 10px;
+  margin: 0 !important;
+  background: rgba(255, 255, 255, 0.38);
+  opacity: 1;
+  border-radius: 9999px;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+.ride-swiper .swiper-pagination-bullet:hover {
+  background: rgba(255, 255, 255, 0.75);
+  transform: scale(1.15);
+}
+.ride-swiper .swiper-pagination-bullet-active {
+  width: 32px;
+  height: 10px;
+  background: #d9ff38 !important;
+  border-radius: 9999px;
+  box-shadow: 0 0 14px rgba(217, 255, 56, 0.6);
+}
+body[data-theme="light"] .ride-swiper .swiper-pagination-bullet {
+  background: rgba(7, 19, 19, 0.28);
+}
+body[data-theme="light"] .ride-swiper .swiper-pagination-bullet-active {
+  background: #071313 !important;
+  box-shadow: 0 0 10px rgba(7, 19, 19, 0.2);
+}
+

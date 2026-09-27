@@ -26,7 +26,7 @@ function InternalSeo() {
 
 function PageFallback() {
   return (
-    <main className="grid min-h-screen place-items-center bg-[#071313] text-white">
+    <main data-theme="dark" className="grid min-h-screen place-items-center bg-[#071313] text-white">
       <LoadingIndicator label="Loading internal workspace..." />
     </main>
   );

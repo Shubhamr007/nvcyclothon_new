@@ -21,9 +21,9 @@ export function VendorPage() {
       <section
         ref={formRef}
         aria-labelledby="vendor-apply-heading"
-        className="relative px-5 py-24 sm:py-32"
+        className="relative px-4 py-20 sm:px-6 sm:py-32 lg:px-8"
       >
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-[1400px]">
           {settings.vendor_applications_open === false ? (
             <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
               <span className="rounded-full bg-[#ff5f3d]/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#ff5f3d]">

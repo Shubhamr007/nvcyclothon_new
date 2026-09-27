@@ -3,8 +3,8 @@ import { COMPARISON_FEATURES, COMPARISON_MATRIX } from "../constants";
 
 export function SponsorshipComparison() {
   return (
-    <section className="relative border-b border-white/10 bg-[#071313] px-5 py-20 text-white sm:py-28">
-      <div className="mx-auto max-w-6xl">
+    <section className="relative border-b border-white/10 bg-[#071313] px-4 py-20 text-white sm:px-6 sm:py-28 lg:px-8">
+      <div className="mx-auto max-w-[1400px]">
         <Reveal>
           <div className="max-w-2xl">
             <span className="text-xs font-bold uppercase tracking-[.25em] text-[#d9ff38]">
@@ -19,7 +19,10 @@ export function SponsorshipComparison() {
           </div>
 
           {/* Horizontally scrollable table container */}
-          <div className="mt-12 overflow-x-auto pb-4">
+          <p className="mt-10 text-[11px] font-bold text-[#d9ff38] uppercase tracking-wider md:hidden">
+            ← Scroll table horizontally to compare →
+          </p>
+          <div className="mt-3 overflow-x-auto pb-4 md:mt-12">
             <table className="w-full min-w-[700px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-white/20">

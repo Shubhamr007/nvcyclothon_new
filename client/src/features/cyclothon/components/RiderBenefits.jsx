@@ -11,8 +11,8 @@ export function RiderBenefits() {
   if (!showPrizes && !showKit) return null;
 
   return (
-    <section aria-labelledby="rider-benefits-heading" className="bg-[#f4f1e9] px-5 py-24 text-[#071313]">
-      <div className="mx-auto max-w-[1240px]">
+    <section aria-labelledby="rider-benefits-heading" className="bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]">
+      <div className="mx-auto max-w-[1400px]">
         <h2 id="rider-benefits-heading" className="sr-only">Rider benefits</h2>
         <div className={`grid gap-6 ${showPrizes && showKit ? "lg:grid-cols-2" : "max-w-2xl"}`}>
           {showPrizes && <PrizePool prizePool={prizePool} />}

@@ -17,7 +17,7 @@ export function RouteNavigator() {
   const mapY = useTransform(scrollYProgress, [0, 1], reduceMotion ? ["0%", "0%"] : ["-7%", "7%"]);
 
   return (
-    <section ref={sectionRef} className="route-navigator relative isolate overflow-hidden bg-[#071313] px-5 py-28 text-white">
+    <section ref={sectionRef} className="route-navigator relative isolate overflow-hidden bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white">
       <motion.img
         src={rewaMap}
         alt=""
@@ -26,7 +26,7 @@ export function RouteNavigator() {
         className="route-navigator__map pointer-events-none absolute inset-x-0 -top-[10%] -z-10 h-[120%] w-full object-cover"
       />
       <div className="route-navigator__veil absolute inset-0 -z-10" aria-hidden="true" />
-      <div className="mx-auto grid max-w-[1240px] gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-center">
+      <div className="mx-auto grid max-w-[1400px] gap-12 lg:grid-cols-[.72fr_1.28fr] lg:items-center">
         <div>
           <p className="text-xs font-black tracking-[.24em] text-[#d9ff38] uppercase">Route intelligence</p>
           <h2 className="mt-4 text-5xl font-black leading-[.85] tracking-[-.08em] uppercase md:text-7xl">

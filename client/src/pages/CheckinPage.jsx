@@ -380,7 +380,7 @@ export function CheckinPage() {
 
   if (availability.state === "loading") {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#071313] px-5 text-white">
+      <main data-theme="dark" className="grid min-h-screen place-items-center bg-[#071313] px-5 text-white">
         <LoadingIndicator label="Loading check-in workspace…" />
       </main>
     );
@@ -388,7 +388,7 @@ export function CheckinPage() {
 
   if (!availability.enabled) {
     return (
-      <main className="min-h-screen bg-[#071313] px-5 pb-16 pt-10 text-white">
+      <main data-theme="dark" className="min-h-screen bg-[#071313] px-5 pb-16 pt-10 text-white">
         <div className="mx-auto w-full max-w-xl rounded-3xl bg-[#f4f1e9] p-8 text-[#071313] shadow-2xl">
           <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
             Volunteer check-in
@@ -414,7 +414,7 @@ export function CheckinPage() {
 
   if (!sessionToken) {
     return (
-      <main className="min-h-screen bg-[#071313] px-5 pb-16 pt-10 text-white">
+      <main data-theme="dark" className="min-h-screen bg-[#071313] px-5 pb-16 pt-10 text-white">
         <div className="mx-auto w-full max-w-xl rounded-3xl bg-[#f4f1e9] p-8 text-[#071313] shadow-2xl">
           <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
             Volunteer check-in

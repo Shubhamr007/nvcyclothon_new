@@ -25,8 +25,8 @@ export function HomePage() {
       <SocialProofAndExperience />
       {sections.editions !== false && <Editions />}
       {sections.about !== false && (
-      <section id="about" className="accessible-light-surface bg-[#f4f1e9] px-5 py-28 text-[#071313]">
-        <div className="mx-auto max-w-[1240px]">
+      <section id="about" className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
+        <div className="mx-auto max-w-[1400px]">
           <div className="grid gap-10 md:grid-cols-[.6fr_1.4fr]">
             <Reveal>
               <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">What we believe</p>
@@ -82,8 +82,8 @@ export function HomePage() {
       {sections.gallery !== false && <Gallery />}
       {sections.why_sport !== false && <WhySport />}
       {sections.contact !== false && (
-      <section id="contact" className="bg-[#071313] px-5 py-28 text-white">
-        <div className="mx-auto max-w-[1240px]">
+      <section id="contact" className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white">
+        <div className="mx-auto max-w-[1400px]">
           <Reveal>
             <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">Point of contact</p>
             <h2 className="mt-4 text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-5xl">
@@ -127,8 +127,8 @@ export function HomePage() {
 
 function ManagedFeatureSection({ feature }) {
   return (
-    <section className="bg-[#ff5f3d] px-5 py-20 text-white">
-      <div className="mx-auto grid max-w-[1240px] gap-8 md:grid-cols-[1fr_.9fr] md:items-center">
+    <section className="bg-[#ff5f3d] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white">
+      <div className="mx-auto grid max-w-[1400px] gap-8 md:grid-cols-[1fr_.9fr] md:items-center">
         <Reveal>
           {feature.eyebrow && <p className="text-xs font-black tracking-[.22em] text-[#071313] uppercase">{feature.eyebrow}</p>}
           {feature.title && <h2 className="mt-4 text-4xl font-black leading-none tracking-[-.05em] uppercase md:text-6xl">{feature.title}</h2>}

@@ -5,7 +5,7 @@ import associationLogo from "../../assets/Rewa_District_Cycyling_Association.jpe
 export function SiteFooter() {
   return (
     <footer className="bg-[#071313] px-5 py-8 text-white/60">
-      <div className="mx-auto flex max-w-[1240px] flex-col justify-between gap-5 text-xs md:flex-row md:items-center">
+      <div className="mx-auto flex max-w-[1400px] flex-col justify-between gap-5 text-xs md:flex-row md:items-center">
         <div className="flex items-center gap-3">
           <img src={nvCyclothonLogo} alt="NV Cyclothon" className="h-10 w-16 rounded object-cover" />
           <span>NV CYCLOTHON · 2026</span>
