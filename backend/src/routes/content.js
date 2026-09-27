@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const { resolveProfileImage } = require("../services/profileMedia");
+const { parseSchema, visitorEventSchema } = require("../services/validation");
 
 function createContentRouter({ repository, config }) {
   const router = express.Router();
@@ -28,6 +29,11 @@ function createContentRouter({ repository, config }) {
     const settings = await repository.getSiteSettings();
     res.set("Cache-Control", "public, max-age=30");
     res.json(settings);
+  });
+
+  router.post("/visits", async (req, res) => {
+    await repository.recordPageVisit(parseSchema(visitorEventSchema, req.body || {}));
+    res.status(204).end();
   });
 
   router.get("/profile-media/:key", (req, res) => {

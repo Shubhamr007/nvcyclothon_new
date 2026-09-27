@@ -34,6 +34,8 @@ function defaultSiteSettings() {
     event_location: "Rewa, Madhya Pradesh",
     edition_label: "3rd Edition",
     registration_open: true,
+    partner_applications_open: false,
+    vendor_applications_open: false,
     hero_images: [],
     feature_section: {
       enabled: false,
@@ -117,6 +119,12 @@ class MockRepository {
       participation_certificates: [],
       registration_email_deliveries: [],
       admin_users: [],
+      page_visits: [],
+      partner_applications: [],
+      partner_brand_assets: [],
+      partner_deliverables: [],
+      partner_payments: [],
+      vendor_applications: [],
     };
     this.ids = {
       products: 1,
@@ -137,6 +145,12 @@ class MockRepository {
       participation_certificates: 1,
       registration_email_deliveries: 1,
       admin_users: 1,
+      page_visits: 1,
+      partner_applications: 1,
+      partner_brand_assets: 1,
+      partner_deliverables: 1,
+      partner_payments: 1,
+      vendor_applications: 1,
     };
     this.siteSettings = defaultSiteSettings();
   }
@@ -784,6 +798,27 @@ class MockRepository {
     };
   }
 
+  async recordPageVisit(payload) {
+    this.tables.page_visits.push({ ...payload, created_at: this.now() });
+  }
+
+  async getVisitorAnalytics() {
+    const visits = this.tables.page_visits;
+    const hourly = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }));
+    const half_day = [{ label: "00:00–11:59", count: 0 }, { label: "12:00–23:59", count: 0 }];
+    const days = {};
+    const timezones = {};
+    for (const visit of visits) {
+      const date = new Date(visit.created_at);
+      hourly[date.getUTCHours()].count += 1;
+      half_day[date.getUTCHours() < 12 ? 0 : 1].count += 1;
+      const day = date.toISOString().slice(0, 10);
+      days[day] = (days[day] || 0) + 1;
+      if (visit.timezone) timezones[visit.timezone] = (timezones[visit.timezone] || 0) + 1;
+    }
+    return { total_visits: visits.length, hourly, half_day, daily: Object.entries(days).sort().slice(-14).map(([day, count]) => ({ day, count })), timezones: Object.entries(timezones).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([timezone, count]) => ({ timezone, count })) };
+  }
+
   listByCreatedAt(table) {
     return this.tables[table]
       .slice()
@@ -1142,6 +1177,346 @@ class MockRepository {
     post.moderated_by = moderator || null;
     post.moderation_reason = reason || null;
     return this.clone(post);
+  }
+
+  // --- Sponsorship Tiers Helper ---
+
+  async getSponsorshipTierById(id) {
+    const tier = this.tables.sponsorship_tiers.find((item) => item.id === Number(id));
+    return tier ? this.clone(tier) : null;
+  }
+
+  // --- Partner Applications ---
+
+  generatePartnerApplicationNumber() {
+    return `NV-26-P-${Math.floor(10000 + Math.random() * 90000)}`;
+  }
+
+  generateVendorApplicationNumber() {
+    return `NV-26-V-${Math.floor(10000 + Math.random() * 90000)}`;
+  }
+
+  async createPartnerApplication(payload) {
+    const partnerId = this.nextId("partner_applications");
+    const appNumber = payload.application_number || this.generatePartnerApplicationNumber();
+    const partner = {
+      id: partnerId,
+      application_number: appNumber,
+      company_name: payload.company_name,
+      brand_name: payload.brand_name || payload.company_name,
+      business_type: payload.business_type || 'Corporate',
+      contact_name: payload.contact_name,
+      designation: payload.designation || null,
+      email: payload.email,
+      phone: payload.phone,
+      website: payload.website || null,
+      gst_number: payload.gst_number || null,
+      pan_number: payload.pan_number || null,
+      address: payload.address || null,
+      city: payload.city || null,
+      state: payload.state || null,
+      pincode: payload.pincode || null,
+      sponsorship_tier_id: payload.sponsorship_tier_id || null,
+      package_name: payload.package_name || payload.selected_package || null,
+      partnership_type: payload.partnership_type || 'Cash Sponsorship',
+      proposed_value: payload.proposed_value || null,
+      custom_description: payload.custom_description || payload.message || null,
+      brand_tagline: payload.brand_tagline || null,
+      brand_description: payload.brand_description || null,
+      industry: payload.industry || null,
+      social_links: payload.social_links || {},
+      logo_key: payload.logo_key || null,
+      logo_content_type: payload.logo_content_type || null,
+      logo_size_bytes: payload.logo_size_bytes || null,
+      activation_options: payload.activation_options || [],
+      activation_description: payload.activation_description || null,
+      visibility_interests: payload.visibility_interests || [],
+      status: payload.status || 'SUBMITTED',
+      payment_status: payload.payment_status || 'PENDING',
+      application_fee_paise: payload.application_fee_paise || 0,
+      razorpay_order_id: payload.razorpay_order_id || null,
+      razorpay_payment_id: null,
+      razorpay_signature: null,
+      payment_verified_at: null,
+      reviewed_by: null,
+      reviewed_at: null,
+      approved_at: null,
+      review_notes: null,
+      created_at: this.now(),
+      updated_at: this.now(),
+    };
+    this.tables.partner_applications.push(partner);
+
+    const defaultDeliverables = [
+      'Logo on Official Website',
+      'Logo on Social Media Announcement',
+      'Event Signage Placement',
+      'Certificate of Partnership',
+    ];
+    if (Array.isArray(payload.visibility_interests) && payload.visibility_interests.length > 0) {
+      for (const item of payload.visibility_interests) {
+        if (!defaultDeliverables.includes(`Branding: ${item}`)) {
+          defaultDeliverables.push(`Branding: ${item}`);
+        }
+      }
+    }
+    for (const d of defaultDeliverables) {
+      this.tables.partner_deliverables.push({
+        id: this.nextId("partner_deliverables"),
+        partner_id: partnerId,
+        deliverable_type: d,
+        status: 'PENDING',
+        notes: null,
+        completed_at: null,
+        created_at: this.now(),
+      });
+    }
+
+    return this.clone(partner);
+  }
+
+  async listPartnerApplications(options = {}) {
+    let status = null;
+    let search = null;
+    if (typeof options === 'string') {
+      status = options;
+    } else if (options && typeof options === 'object') {
+      status = options.status || null;
+      search = options.search || null;
+    }
+
+    let list = this.tables.partner_applications.slice();
+    if (status && status !== 'all') {
+      list = list.filter((p) => p.status === status);
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((p) =>
+        (p.company_name && p.company_name.toLowerCase().includes(q)) ||
+        (p.contact_name && p.contact_name.toLowerCase().includes(q)) ||
+        (p.email && p.email.toLowerCase().includes(q)) ||
+        (p.phone && p.phone.includes(q)) ||
+        (p.application_number && p.application_number.toLowerCase().includes(q))
+      );
+    }
+    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return list.map((item) => {
+      const cloned = this.clone(item);
+      const tier = this.tables.sponsorship_tiers.find((t) => t.id === cloned.sponsorship_tier_id);
+      cloned.tier_name = tier?.name || cloned.package_name || null;
+      return cloned;
+    });
+  }
+
+  async getPartnerApplicationById(id) {
+    const partner = this.tables.partner_applications.find((p) => p.id === Number(id));
+    if (!partner) return null;
+    const cloned = this.clone(partner);
+    const tier = this.tables.sponsorship_tiers.find((t) => t.id === cloned.sponsorship_tier_id);
+    cloned.tier_name = tier?.name || cloned.package_name || null;
+    return cloned;
+  }
+
+  async getPartnerApplicationByNumber(appNum) {
+    const partner = this.tables.partner_applications.find((p) => p.application_number === appNum);
+    if (!partner) return null;
+    const cloned = this.clone(partner);
+    const tier = this.tables.sponsorship_tiers.find((t) => t.id === cloned.sponsorship_tier_id);
+    cloned.tier_name = tier?.name || cloned.package_name || null;
+    return cloned;
+  }
+
+  async updatePartnerApplicationStatus(id, { status, reviewer, notes }) {
+    const partner = this.tables.partner_applications.find((p) => p.id === Number(id));
+    if (!partner) return null;
+    partner.status = status;
+    partner.reviewed_by = reviewer || 'admin';
+    partner.review_notes = notes || null;
+    partner.reviewed_at = this.now();
+    if (String(status).toUpperCase() === 'APPROVED') {
+      partner.approved_at = this.now();
+    }
+    partner.updated_at = this.now();
+    return this.clone(partner);
+  }
+
+  async verifyPartnerPayment(id, { paymentId, signature }) {
+    const partner = this.tables.partner_applications.find((p) => p.id === Number(id));
+    if (!partner) return null;
+    partner.payment_status = 'PAYMENT_VERIFIED';
+    partner.status = 'PAYMENT_VERIFIED';
+    partner.razorpay_payment_id = paymentId;
+    partner.razorpay_signature = signature;
+    partner.payment_verified_at = this.now();
+    partner.updated_at = this.now();
+    return this.clone(partner);
+  }
+
+  async listApprovedPartners() {
+    const approved = this.tables.partner_applications
+      .filter((p) => p.status === 'APPROVED' || p.status === 'EVENT_READY' || p.status === 'COMPLETED')
+      .map((p) => {
+        const tier = this.tables.sponsorship_tiers.find((t) => t.id === p.sponsorship_tier_id);
+        return {
+          id: p.id,
+          application_number: p.application_number,
+          company_name: p.company_name,
+          brand_name: p.brand_name || p.company_name,
+          logo_key: p.logo_key,
+          website: p.website,
+          sponsorship_tier_id: p.sponsorship_tier_id,
+          tier_name: tier?.name || p.package_name || 'Partner',
+          display_order: tier?.display_order ?? 99,
+        };
+      });
+    approved.sort((a, b) => a.display_order - b.display_order);
+    return approved;
+  }
+
+  async listPartnerDeliverables(partnerId) {
+    return this.tables.partner_deliverables
+      .filter((d) => d.partner_id === Number(partnerId))
+      .map(this.clone);
+  }
+
+  async updatePartnerDeliverable(deliverableId, { status, notes }) {
+    const item = this.tables.partner_deliverables.find((d) => d.id === Number(deliverableId));
+    if (!item) return null;
+    item.status = status;
+    if (notes !== undefined) item.notes = notes;
+    if (String(status).toUpperCase() === 'COMPLETED') {
+      item.completed_at = this.now();
+    }
+    return this.clone(item);
+  }
+
+  // --- Vendor Applications ---
+
+  async createVendorApplication(payload) {
+    const appNumber = payload.application_number || this.generateVendorApplicationNumber();
+    const vendor = {
+      id: this.nextId("vendor_applications"),
+      application_number: appNumber,
+      business_name: payload.business_name,
+      representative_name: payload.representative_name || payload.contact_name,
+      contact_name: payload.contact_name || payload.representative_name,
+      email: payload.email,
+      phone: payload.phone,
+      category: payload.category,
+      gst_number: payload.gst_number || null,
+      pan_number: payload.pan_number || null,
+      address: payload.address || null,
+      city: payload.city || null,
+      state: payload.state || null,
+      pincode: payload.pincode || null,
+      products_services: payload.products_services || payload.description,
+      description: payload.description,
+      space_requirement: payload.space_requirement || null,
+      electricity_required: Boolean(payload.electricity_required),
+      water_required: Boolean(payload.water_required),
+      furniture_required: Boolean(payload.furniture_required),
+      branding_support_required: Boolean(payload.branding_support_required),
+      vehicle_access_required: Boolean(payload.vehicle_access_required),
+      staff_count: Number(payload.staff_count) || 1,
+      document_key: payload.document_key || null,
+      document_content_type: payload.document_content_type || null,
+      document_size_bytes: payload.document_size_bytes || null,
+      documents: payload.documents || [],
+      status: payload.status || 'SUBMITTED',
+      payment_status: payload.payment_status || 'PENDING',
+      stall_fee_paise: payload.stall_fee_paise || 0,
+      razorpay_order_id: payload.razorpay_order_id || null,
+      razorpay_payment_id: null,
+      razorpay_signature: null,
+      payment_verified_at: null,
+      reviewed_by: null,
+      reviewed_at: null,
+      approved_at: null,
+      review_notes: null,
+      created_at: this.now(),
+      updated_at: this.now(),
+    };
+    this.tables.vendor_applications.push(vendor);
+    return this.clone(vendor);
+  }
+
+  async listVendorApplications(options = {}) {
+    let status = null;
+    let search = null;
+    if (typeof options === 'string') {
+      status = options;
+    } else if (options && typeof options === 'object') {
+      status = options.status || null;
+      search = options.search || null;
+    }
+
+    let list = this.tables.vendor_applications.slice();
+    if (status && status !== 'all') {
+      list = list.filter((v) => v.status === status);
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((v) =>
+        (v.business_name && v.business_name.toLowerCase().includes(q)) ||
+        (v.representative_name && v.representative_name.toLowerCase().includes(q)) ||
+        (v.email && v.email.toLowerCase().includes(q)) ||
+        (v.phone && v.phone.includes(q)) ||
+        (v.application_number && v.application_number.toLowerCase().includes(q)) ||
+        (v.category && v.category.toLowerCase().includes(q))
+      );
+    }
+    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return list.map(this.clone);
+  }
+
+  async getVendorApplicationById(id) {
+    const vendor = this.tables.vendor_applications.find((v) => v.id === Number(id));
+    return vendor ? this.clone(vendor) : null;
+  }
+
+  async getVendorApplicationByNumber(appNum) {
+    const vendor = this.tables.vendor_applications.find((v) => v.application_number === appNum);
+    return vendor ? this.clone(vendor) : null;
+  }
+
+  async updateVendorApplicationStatus(id, { status, reviewer, notes }) {
+    const vendor = this.tables.vendor_applications.find((v) => v.id === Number(id));
+    if (!vendor) return null;
+    vendor.status = status;
+    vendor.reviewed_by = reviewer || 'admin';
+    vendor.review_notes = notes || null;
+    vendor.reviewed_at = this.now();
+    if (String(status).toUpperCase() === 'APPROVED') {
+      vendor.approved_at = this.now();
+    }
+    vendor.updated_at = this.now();
+    return this.clone(vendor);
+  }
+
+  async verifyVendorPayment(id, { paymentId, signature }) {
+    const vendor = this.tables.vendor_applications.find((v) => v.id === Number(id));
+    if (!vendor) return null;
+    vendor.payment_status = 'PAYMENT_VERIFIED';
+    vendor.razorpay_payment_id = paymentId;
+    vendor.razorpay_signature = signature;
+    vendor.payment_verified_at = this.now();
+    vendor.updated_at = this.now();
+    return this.clone(vendor);
+  }
+
+  async getPartnerVendorAnalytics() {
+    const partnerStatus = {};
+    for (const p of this.tables.partner_applications) {
+      partnerStatus[p.status] = (partnerStatus[p.status] || 0) + 1;
+    }
+    const vendorStatus = {};
+    for (const v of this.tables.vendor_applications) {
+      vendorStatus[v.status] = (vendorStatus[v.status] || 0) + 1;
+    }
+    return {
+      partners: Object.entries(partnerStatus).map(([status, count]) => ({ status, count })),
+      vendors: Object.entries(vendorStatus).map(([status, count]) => ({ status, count })),
+    };
   }
 }
 

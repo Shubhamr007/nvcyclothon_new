@@ -117,6 +117,15 @@ class PostgresRepository {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS page_visits (
+        id BIGSERIAL PRIMARY KEY,
+        path VARCHAR(160) NOT NULL,
+        timezone VARCHAR(80),
+        locale VARCHAR(40),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS ix_page_visits_created_at ON page_visits (created_at);
+
       CREATE TABLE IF NOT EXISTS chief_guests (
         id SERIAL PRIMARY KEY,
         name VARCHAR(160) NOT NULL,
@@ -264,9 +273,264 @@ class PostgresRepository {
       );
       CREATE INDEX IF NOT EXISTS registration_email_deliveries_registration_idx
         ON registration_email_deliveries (registration_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS partner_applications (
+        id SERIAL PRIMARY KEY,
+        application_number VARCHAR(64) UNIQUE,
+        company_name VARCHAR(200) NOT NULL,
+        brand_name VARCHAR(200),
+        business_type VARCHAR(100) DEFAULT 'Corporate',
+        contact_name VARCHAR(160) NOT NULL,
+        designation VARCHAR(120),
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(32) NOT NULL,
+        website VARCHAR(500),
+        gst_number VARCHAR(32),
+        pan_number VARCHAR(32),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        pincode VARCHAR(20),
+        sponsorship_tier_id INTEGER REFERENCES sponsorship_tiers(id),
+        package_name VARCHAR(120),
+        partnership_type VARCHAR(100) DEFAULT 'Cash Sponsorship',
+        proposed_value VARCHAR(100),
+        custom_description TEXT,
+        brand_tagline VARCHAR(255),
+        brand_description TEXT,
+        industry VARCHAR(120),
+        social_links JSONB DEFAULT '{}',
+        logo_key VARCHAR(300),
+        logo_content_type VARCHAR(80),
+        logo_size_bytes INTEGER,
+        activation_options JSONB DEFAULT '[]',
+        activation_description TEXT,
+        visibility_interests JSONB DEFAULT '[]',
+        status VARCHAR(32) NOT NULL DEFAULT 'SUBMITTED',
+        payment_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+        application_fee_paise INTEGER NOT NULL DEFAULT 0,
+        razorpay_order_id VARCHAR(100),
+        razorpay_payment_id VARCHAR(100),
+        razorpay_signature VARCHAR(128),
+        payment_verified_at TIMESTAMPTZ,
+        reviewed_by VARCHAR(120),
+        reviewed_at TIMESTAMPTZ,
+        approved_at TIMESTAMPTZ,
+        review_notes TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS partner_applications_status_idx ON partner_applications (status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS partner_applications_email_idx ON partner_applications (lower(email));
+      CREATE INDEX IF NOT EXISTS partner_applications_appnum_idx ON partner_applications (application_number);
+
+      CREATE TABLE IF NOT EXISTS partner_brand_assets (
+        id SERIAL PRIMARY KEY,
+        partner_id INTEGER NOT NULL REFERENCES partner_applications(id) ON DELETE CASCADE,
+        asset_type VARCHAR(64) NOT NULL DEFAULT 'LOGO',
+        file_key VARCHAR(300) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        mime_type VARCHAR(100),
+        size_bytes INTEGER,
+        version INTEGER NOT NULL DEFAULT 1,
+        status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+        uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        approved_at TIMESTAMPTZ
+      );
+
+      CREATE TABLE IF NOT EXISTS partner_deliverables (
+        id SERIAL PRIMARY KEY,
+        partner_id INTEGER NOT NULL REFERENCES partner_applications(id) ON DELETE CASCADE,
+        deliverable_type VARCHAR(120) NOT NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+        notes TEXT,
+        completed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS partner_payments (
+        id SERIAL PRIMARY KEY,
+        partner_id INTEGER NOT NULL REFERENCES partner_applications(id) ON DELETE CASCADE,
+        amount_paise INTEGER NOT NULL,
+        currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+        payment_gateway VARCHAR(50) DEFAULT 'RAZORPAY',
+        gateway_order_id VARCHAR(100),
+        gateway_payment_id VARCHAR(100),
+        payment_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+        paid_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS vendor_applications (
+        id SERIAL PRIMARY KEY,
+        application_number VARCHAR(64) UNIQUE,
+        business_name VARCHAR(200) NOT NULL,
+        representative_name VARCHAR(160) NOT NULL,
+        contact_name VARCHAR(160),
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(32) NOT NULL,
+        category VARCHAR(80) NOT NULL,
+        gst_number VARCHAR(32),
+        pan_number VARCHAR(32),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        pincode VARCHAR(20),
+        products_services TEXT NOT NULL,
+        description TEXT NOT NULL,
+        space_requirement VARCHAR(120),
+        electricity_required BOOLEAN DEFAULT FALSE,
+        water_required BOOLEAN DEFAULT FALSE,
+        furniture_required BOOLEAN DEFAULT FALSE,
+        branding_support_required BOOLEAN DEFAULT FALSE,
+        vehicle_access_required BOOLEAN DEFAULT FALSE,
+        staff_count INTEGER DEFAULT 1,
+        document_key VARCHAR(300),
+        document_content_type VARCHAR(80),
+        document_size_bytes INTEGER,
+        documents JSONB DEFAULT '[]',
+        status VARCHAR(32) NOT NULL DEFAULT 'SUBMITTED',
+        payment_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+        stall_fee_paise INTEGER NOT NULL DEFAULT 0,
+        razorpay_order_id VARCHAR(100),
+        razorpay_payment_id VARCHAR(100),
+        razorpay_signature VARCHAR(128),
+        payment_verified_at TIMESTAMPTZ,
+        reviewed_by VARCHAR(120),
+        reviewed_at TIMESTAMPTZ,
+        approved_at TIMESTAMPTZ,
+        review_notes TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS vendor_applications_status_idx ON vendor_applications (status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS vendor_applications_email_idx ON vendor_applications (lower(email));
+      CREATE INDEX IF NOT EXISTS vendor_applications_appnum_idx ON vendor_applications (application_number);
     `;
 
     await this.pool.query(schemaSql);
+
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS application_number VARCHAR(64)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS brand_name VARCHAR(200)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS business_type VARCHAR(100) DEFAULT 'Corporate'"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS designation VARCHAR(120)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS gst_number VARCHAR(32)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS pan_number VARCHAR(32)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS address TEXT"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS city VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS state VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS pincode VARCHAR(20)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS package_name VARCHAR(120)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS partnership_type VARCHAR(100) DEFAULT 'Cash Sponsorship'"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS proposed_value VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS custom_description TEXT"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS brand_tagline VARCHAR(255)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS brand_description TEXT"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS industry VARCHAR(120)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS social_links JSONB DEFAULT '{}'"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS activation_options JSONB DEFAULT '[]'"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS activation_description TEXT"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS visibility_interests JSONB DEFAULT '[]'"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ"
+    );
+
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS application_number VARCHAR(64)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS representative_name VARCHAR(160)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS gst_number VARCHAR(32)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS pan_number VARCHAR(32)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS address TEXT"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS city VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS state VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS pincode VARCHAR(20)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS products_services TEXT"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS space_requirement VARCHAR(120)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS electricity_required BOOLEAN DEFAULT FALSE"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS water_required BOOLEAN DEFAULT FALSE"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS furniture_required BOOLEAN DEFAULT FALSE"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS branding_support_required BOOLEAN DEFAULT FALSE"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS vehicle_access_required BOOLEAN DEFAULT FALSE"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS staff_count INTEGER DEFAULT 1"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS documents JSONB DEFAULT '[]'"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ"
+    );
 
     // Keep compatibility with already-running databases that may predate
     // newer columns and indexes from previous Python deployments.
@@ -1253,6 +1517,23 @@ class PostgresRepository {
     };
   }
 
+  async recordPageVisit(payload) {
+    await this.pool.query("INSERT INTO page_visits (path, timezone, locale) VALUES ($1, $2, $3)", [payload.path, payload.timezone || null, payload.locale || null]);
+  }
+
+  async getVisitorAnalytics() {
+    const [total, hourly, halfDay, daily, timezones] = await Promise.all([
+      this.pool.query("SELECT COUNT(*)::int AS count FROM page_visits"),
+      this.pool.query("SELECT EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC')::int AS hour, COUNT(*)::int AS count FROM page_visits GROUP BY hour ORDER BY hour"),
+      this.pool.query("SELECT CASE WHEN EXTRACT(HOUR FROM created_at AT TIME ZONE 'UTC') < 12 THEN '00:00–11:59' ELSE '12:00–23:59' END AS label, COUNT(*)::int AS count FROM page_visits GROUP BY label ORDER BY label"),
+      this.pool.query("SELECT TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, COUNT(*)::int AS count FROM page_visits WHERE created_at >= NOW() - INTERVAL '14 days' GROUP BY day ORDER BY day"),
+      this.pool.query("SELECT timezone, COUNT(*)::int AS count FROM page_visits WHERE timezone IS NOT NULL GROUP BY timezone ORDER BY count DESC LIMIT 8"),
+    ]);
+    const hourlyRows = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }));
+    for (const row of hourly.rows) hourlyRows[row.hour] = row;
+    return { total_visits: total.rows[0].count, hourly: hourlyRows, half_day: halfDay.rows, daily: daily.rows, timezones: timezones.rows };
+  }
+
   async listOffers() {
     const result = await this.pool.query(
       `SELECT id, title, description, code, active, starts_at, ends_at, created_at
@@ -1761,6 +2042,353 @@ class PostgresRepository {
       throw new NotFoundError("Community post not found");
     }
     return result.rows[0];
+  }
+
+  // --- Sponsorship Tiers Helper ---
+
+  async getSponsorshipTierById(id) {
+    const result = await this.pool.query(
+      "SELECT * FROM sponsorship_tiers WHERE id = $1",
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
+  // --- Partner Applications ---
+
+  generatePartnerApplicationNumber() {
+    return `NV-26-P-${Math.floor(10000 + Math.random() * 90000)}`;
+  }
+
+  generateVendorApplicationNumber() {
+    return `NV-26-V-${Math.floor(10000 + Math.random() * 90000)}`;
+  }
+
+  async createPartnerApplication(payload) {
+    const appNumber = payload.application_number || this.generatePartnerApplicationNumber();
+    const result = await this.pool.query(
+      `INSERT INTO partner_applications
+       (application_number, company_name, brand_name, business_type, contact_name, designation,
+        email, phone, website, gst_number, pan_number, address, city, state, pincode,
+        sponsorship_tier_id, package_name, partnership_type, proposed_value, custom_description,
+        brand_tagline, brand_description, industry, social_links,
+        logo_key, logo_content_type, logo_size_bytes, activation_options, activation_description,
+        visibility_interests, status, payment_status, application_fee_paise, razorpay_order_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34)
+       RETURNING *`,
+      [
+        appNumber,
+        payload.company_name,
+        payload.brand_name || payload.company_name,
+        payload.business_type || 'Corporate',
+        payload.contact_name,
+        payload.designation || null,
+        payload.email,
+        payload.phone,
+        payload.website || null,
+        payload.gst_number || null,
+        payload.pan_number || null,
+        payload.address || null,
+        payload.city || null,
+        payload.state || null,
+        payload.pincode || null,
+        payload.sponsorship_tier_id || null,
+        payload.package_name || payload.selected_package || null,
+        payload.partnership_type || 'Cash Sponsorship',
+        payload.proposed_value || null,
+        payload.custom_description || payload.message || null,
+        payload.brand_tagline || null,
+        payload.brand_description || null,
+        payload.industry || null,
+        JSON.stringify(payload.social_links || {}),
+        payload.logo_key || null,
+        payload.logo_content_type || null,
+        payload.logo_size_bytes || null,
+        JSON.stringify(payload.activation_options || []),
+        payload.activation_description || null,
+        JSON.stringify(payload.visibility_interests || []),
+        payload.status || 'SUBMITTED',
+        payload.payment_status || 'PENDING',
+        payload.application_fee_paise || 0,
+        payload.razorpay_order_id || null,
+      ]
+    );
+
+    const partner = result.rows[0];
+
+    // Seed default deliverables based on visibility interests or standard deliverables
+    const defaultDeliverables = [
+      'Logo on Official Website',
+      'Logo on Social Media Announcement',
+      'Event Signage Placement',
+      'Certificate of Partnership',
+    ];
+    if (Array.isArray(payload.visibility_interests) && payload.visibility_interests.length > 0) {
+      for (const item of payload.visibility_interests) {
+        if (!defaultDeliverables.includes(`Branding: ${item}`)) {
+          defaultDeliverables.push(`Branding: ${item}`);
+        }
+      }
+    }
+    for (const d of defaultDeliverables) {
+      await this.pool.query(
+        `INSERT INTO partner_deliverables (partner_id, deliverable_type, status)
+         VALUES ($1, $2, 'PENDING')`,
+        [partner.id, d]
+      );
+    }
+
+    return partner;
+  }
+
+  async listPartnerApplications(options = {}) {
+    let status = null;
+    let search = null;
+    if (typeof options === 'string') {
+      status = options;
+    } else if (options && typeof options === 'object') {
+      status = options.status || null;
+      search = options.search || null;
+    }
+
+    const params = [];
+    let sql = `
+      SELECT pa.*, st.name AS tier_name
+      FROM partner_applications pa
+      LEFT JOIN sponsorship_tiers st ON pa.sponsorship_tier_id = st.id
+      WHERE 1=1
+    `;
+
+    if (status && status !== 'all') {
+      params.push(status);
+      sql += ` AND pa.status = $${params.length}`;
+    }
+
+    if (search && search.trim()) {
+      params.push(`%${search.trim().toLowerCase()}%`);
+      sql += ` AND (
+        LOWER(pa.company_name) LIKE $${params.length}
+        OR LOWER(pa.contact_name) LIKE $${params.length}
+        OR LOWER(pa.email) LIKE $${params.length}
+        OR pa.phone LIKE $${params.length}
+        OR LOWER(COALESCE(pa.application_number, '')) LIKE $${params.length}
+      )`;
+    }
+
+    sql += ' ORDER BY pa.created_at DESC';
+    const result = await this.pool.query(sql, params);
+    return result.rows;
+  }
+
+  async getPartnerApplicationById(id) {
+    const result = await this.pool.query(
+      `SELECT pa.*, st.name AS tier_name
+       FROM partner_applications pa
+       LEFT JOIN sponsorship_tiers st ON pa.sponsorship_tier_id = st.id
+       WHERE pa.id = $1`,
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async getPartnerApplicationByNumber(appNum) {
+    const result = await this.pool.query(
+      `SELECT pa.*, st.name AS tier_name
+       FROM partner_applications pa
+       LEFT JOIN sponsorship_tiers st ON pa.sponsorship_tier_id = st.id
+       WHERE pa.application_number = $1`,
+      [appNum]
+    );
+    return result.rows[0] || null;
+  }
+
+  async updatePartnerApplicationStatus(id, { status, reviewer, notes }) {
+    const isApproved = String(status).toUpperCase() === 'APPROVED';
+    const result = await this.pool.query(
+      `UPDATE partner_applications
+       SET status=$1, reviewed_by=$2, reviewed_at=NOW(), review_notes=$3,
+           approved_at = CASE WHEN $4::boolean THEN NOW() ELSE approved_at END,
+           updated_at=NOW()
+       WHERE id=$5 RETURNING *`,
+      [status, reviewer || 'admin', notes || null, isApproved, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async verifyPartnerPayment(id, { paymentId, signature }) {
+    const result = await this.pool.query(
+      `UPDATE partner_applications
+       SET payment_status='PAYMENT_VERIFIED', status='PAYMENT_VERIFIED',
+           razorpay_payment_id=$1, razorpay_signature=$2, payment_verified_at=NOW(), updated_at=NOW()
+       WHERE id=$3 RETURNING *`,
+      [paymentId, signature, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async listApprovedPartners() {
+    const result = await this.pool.query(
+      `SELECT pa.id, pa.application_number, pa.company_name, pa.brand_name, pa.logo_key,
+              pa.website, pa.sponsorship_tier_id, COALESCE(st.name, pa.package_name, 'Partner') AS tier_name,
+              st.display_order
+       FROM partner_applications pa
+       LEFT JOIN sponsorship_tiers st ON pa.sponsorship_tier_id = st.id
+       WHERE pa.status = 'APPROVED' OR pa.status = 'EVENT_READY' OR pa.status = 'COMPLETED'
+       ORDER BY COALESCE(st.display_order, 99) ASC, pa.created_at ASC`
+    );
+    return result.rows;
+  }
+
+  async listPartnerDeliverables(partnerId) {
+    const result = await this.pool.query(
+      `SELECT * FROM partner_deliverables WHERE partner_id = $1 ORDER BY id ASC`,
+      [partnerId]
+    );
+    return result.rows;
+  }
+
+  async updatePartnerDeliverable(deliverableId, { status, notes }) {
+    const isCompleted = String(status).toUpperCase() === 'COMPLETED';
+    const result = await this.pool.query(
+      `UPDATE partner_deliverables
+       SET status=$1, notes=COALESCE($2, notes),
+           completed_at = CASE WHEN $3::boolean THEN NOW() ELSE completed_at END
+       WHERE id=$4 RETURNING *`,
+      [status, notes || null, isCompleted, deliverableId]
+    );
+    return result.rows[0] || null;
+  }
+
+  // --- Vendor Applications ---
+
+  async createVendorApplication(payload) {
+    const appNumber = payload.application_number || this.generateVendorApplicationNumber();
+    const result = await this.pool.query(
+      `INSERT INTO vendor_applications
+       (application_number, business_name, representative_name, contact_name, email, phone,
+        category, gst_number, pan_number, address, city, state, pincode,
+        products_services, description, space_requirement, electricity_required, water_required,
+        furniture_required, branding_support_required, vehicle_access_required, staff_count,
+        document_key, document_content_type, document_size_bytes, documents,
+        stall_fee_paise, razorpay_order_id, payment_status, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)
+       RETURNING *`,
+      [
+        appNumber,
+        payload.business_name,
+        payload.representative_name || payload.contact_name,
+        payload.contact_name || payload.representative_name,
+        payload.email,
+        payload.phone,
+        payload.category,
+        payload.gst_number || null,
+        payload.pan_number || null,
+        payload.address || null,
+        payload.city || null,
+        payload.state || null,
+        payload.pincode || null,
+        payload.products_services || payload.description,
+        payload.description,
+        payload.space_requirement || null,
+        Boolean(payload.electricity_required),
+        Boolean(payload.water_required),
+        Boolean(payload.furniture_required),
+        Boolean(payload.branding_support_required),
+        Boolean(payload.vehicle_access_required),
+        Number(payload.staff_count) || 1,
+        payload.document_key || null,
+        payload.document_content_type || null,
+        payload.document_size_bytes || null,
+        JSON.stringify(payload.documents || []),
+        payload.stall_fee_paise || 0,
+        payload.razorpay_order_id || null,
+        payload.payment_status || 'PENDING',
+        payload.status || 'SUBMITTED',
+      ]
+    );
+    return result.rows[0];
+  }
+
+  async listVendorApplications(options = {}) {
+    let status = null;
+    let search = null;
+    if (typeof options === 'string') {
+      status = options;
+    } else if (options && typeof options === 'object') {
+      status = options.status || null;
+      search = options.search || null;
+    }
+
+    const params = [];
+    let sql = 'SELECT * FROM vendor_applications WHERE 1=1';
+
+    if (status && status !== 'all') {
+      params.push(status);
+      sql += ` AND status = $${params.length}`;
+    }
+
+    if (search && search.trim()) {
+      params.push(`%${search.trim().toLowerCase()}%`);
+      sql += ` AND (
+        LOWER(business_name) LIKE $${params.length}
+        OR LOWER(representative_name) LIKE $${params.length}
+        OR LOWER(email) LIKE $${params.length}
+        OR phone LIKE $${params.length}
+        OR LOWER(COALESCE(application_number, '')) LIKE $${params.length}
+        OR LOWER(category) LIKE $${params.length}
+      )`;
+    }
+
+    sql += ' ORDER BY created_at DESC';
+    const result = await this.pool.query(sql, params);
+    return result.rows;
+  }
+
+  async getVendorApplicationById(id) {
+    const result = await this.pool.query('SELECT * FROM vendor_applications WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  }
+
+  async getVendorApplicationByNumber(appNum) {
+    const result = await this.pool.query('SELECT * FROM vendor_applications WHERE application_number = $1', [appNum]);
+    return result.rows[0] || null;
+  }
+
+  async updateVendorApplicationStatus(id, { status, reviewer, notes }) {
+    const isApproved = String(status).toUpperCase() === 'APPROVED';
+    const result = await this.pool.query(
+      `UPDATE vendor_applications
+       SET status=$1, reviewed_by=$2, reviewed_at=NOW(), review_notes=$3,
+           approved_at = CASE WHEN $4::boolean THEN NOW() ELSE approved_at END,
+           updated_at=NOW()
+       WHERE id=$5 RETURNING *`,
+      [status, reviewer || 'admin', notes || null, isApproved, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async verifyVendorPayment(id, { paymentId, signature }) {
+    const result = await this.pool.query(
+      `UPDATE vendor_applications
+       SET payment_status='PAYMENT_VERIFIED',
+           razorpay_payment_id=$1, razorpay_signature=$2, payment_verified_at=NOW(), updated_at=NOW()
+       WHERE id=$3 RETURNING *`,
+      [paymentId, signature, id]
+    );
+    return result.rows[0] || null;
+  }
+
+  async getPartnerVendorAnalytics() {
+    const partnerResult = await this.pool.query(
+      `SELECT status, COUNT(*)::int AS count FROM partner_applications GROUP BY status`
+    );
+    const vendorResult = await this.pool.query(
+      `SELECT status, COUNT(*)::int AS count FROM vendor_applications GROUP BY status`
+    );
+    return {
+      partners: partnerResult.rows,
+      vendors: vendorResult.rows,
+    };
   }
 }
 

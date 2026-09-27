@@ -167,3 +167,168 @@ export async function adminDownload(path, accessToken) {
   }
   return response.blob();
 }
+
+// --- Partner API ---
+export async function getPartnerTiers() {
+  return request('/partners/tiers');
+}
+
+export async function submitPartnerApplication(formData) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${API_BASE}/partners/applications`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(body?.detail || 'Unable to submit partner application.');
+    return body;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+export async function getApprovedPartners() {
+  return request('/partnerships/approved');
+}
+
+export async function getPartnerApplicationStatus(ref) {
+  return request(`/partnerships/applications/${encodeURIComponent(ref)}`);
+}
+
+export async function verifyPartnerPayment(id, payload) {
+  return request(`/partners/applications/${id}/payment/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+// --- Vendor API ---
+export async function getVendorCategories() {
+  return request('/vendors/categories');
+}
+
+export async function submitVendorApplication(formData) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(`${API_BASE}/vendors/applications`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal,
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(body?.detail || 'Unable to submit vendor application.');
+    return body;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+export async function getVendorApplicationStatus(ref) {
+  return request(`/vendors/applications/${encodeURIComponent(ref)}`);
+}
+
+export async function verifyVendorPayment(id, payload) {
+  return request(`/vendors/applications/${id}/payment/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+// --- Admin Partner/Vendor API ---
+export function listAdminPartnerApplications(accessToken, options = {}) {
+  const params = new URLSearchParams();
+  if (typeof options === 'string' && options) {
+    params.set('status', options);
+  } else if (options && typeof options === 'object') {
+    if (options.status && options.status !== 'all') params.set('status', options.status);
+    if (options.search) params.set('search', options.search);
+  }
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return adminRequest(`/partner-applications${qs}`, accessToken);
+}
+
+export function reviewPartnerApplication(accessToken, id, payload) {
+  return adminRequest(`/partner-applications/${id}/review`, accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getAdminPartnerDeliverables(accessToken, id) {
+  return adminRequest(`/partner-applications/${id}/deliverables`, accessToken);
+}
+
+export function updateAdminPartnerDeliverable(accessToken, id, deliverableId, payload) {
+  return adminRequest(`/partner-applications/${id}/deliverables/${deliverableId}`, accessToken, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function exportAdminPartnersCsv(accessToken) {
+  const response = await fetch(`${API_BASE}/admin/partner-applications/export`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error('Unable to export partner applications.');
+  return response.blob();
+}
+
+export async function getAdminPartnerLogo(accessToken, id) {
+  const response = await fetch(
+    `${API_BASE}/admin/partner-applications/${id}/logo`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail || 'Unable to load partner logo.');
+  }
+  return response.blob();
+}
+
+export function listAdminVendorApplications(accessToken, options = {}) {
+  const params = new URLSearchParams();
+  if (typeof options === 'string' && options) {
+    params.set('status', options);
+  } else if (options && typeof options === 'object') {
+    if (options.status && options.status !== 'all') params.set('status', options.status);
+    if (options.search) params.set('search', options.search);
+  }
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return adminRequest(`/vendor-applications${qs}`, accessToken);
+}
+
+export function reviewVendorApplication(accessToken, id, payload) {
+  return adminRequest(`/vendor-applications/${id}/review`, accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function exportAdminVendorsCsv(accessToken) {
+  const response = await fetch(`${API_BASE}/admin/vendor-applications/export`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) throw new Error('Unable to export vendor applications.');
+  return response.blob();
+}
+
+export async function getAdminVendorDocument(accessToken, id) {
+  const response = await fetch(
+    `${API_BASE}/admin/vendor-applications/${id}/document`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail || 'Unable to load vendor document.');
+  }
+  return response.blob();
+}

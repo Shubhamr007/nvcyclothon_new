@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { FaArrowRight, FaCalendarDay, FaCheck, FaPeopleGroup, FaTags, FaUsers } from "react-icons/fa6";
-import { adminDownload, adminRequest, createAdminSession, getAdminSettings, updateSiteSettings, listAdminCommunityPosts, moderateCommunityPost, getAdminCommunityMedia, createVolunteer, listVolunteers, updateVolunteer, uploadAdminProfileImage } from "../api/http";
+import { adminDownload, adminRequest, createAdminSession, getAdminSettings, updateSiteSettings, listAdminCommunityPosts, moderateCommunityPost, getAdminCommunityMedia, createVolunteer, listVolunteers, updateVolunteer, uploadAdminProfileImage, listAdminPartnerApplications, reviewPartnerApplication, getAdminPartnerLogo, getAdminPartnerDeliverables, updateAdminPartnerDeliverable, exportAdminPartnersCsv, listAdminVendorApplications, reviewVendorApplication, getAdminVendorDocument, exportAdminVendorsCsv } from "../api/http";
 import { LoadingIndicator } from "../components/LoadingIndicator";
 import { useDebouncedValue } from "../components/useDebouncedValue";
 import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
@@ -56,6 +56,9 @@ const tabs = [
   ["delegations", "Delegations"],
   ["volunteers", "Volunteers"],
   ["community", "Community wall"],
+  ["partners", "Partners"],
+  ["vendors", "Vendors"],
+  ["visitors", "Visitor analytics"],
   ["settings", "Site settings"],
 ];
 
@@ -194,57 +197,53 @@ export function AdminPage() {
       initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
-      className="min-h-screen bg-[#f4f1e9] px-5 pb-16 pt-28 text-[#071313]"
+      className="admin-shell min-h-screen bg-[#f4f1e9] pb-16 text-[#071313]"
     >
-      <div className="mx-auto max-w-[1240px]">
-        <section className="relative overflow-hidden rounded-3xl bg-[#071313] px-6 py-7 text-white shadow-[0_20px_50px_rgba(7,19,19,.28)] sm:px-8">
-          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#d9ff38]/20 blur-3xl" />
-          <div className="absolute -bottom-20 left-20 h-48 w-48 rounded-full bg-[#ff5f3d]/20 blur-3xl" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <img
-                src={nvCyclothonLogo}
-                alt="NV Cyclothon"
-                className="h-14 w-24 rounded-md object-cover"
-              />
-              <div>
-                <p className="text-[11px] font-black tracking-[.22em] text-[#d9ff38] uppercase">
-                  NV Cyclothon 2026
-                </p>
-                <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
-                  Admin control center
-                </h1>
-              </div>
+      <header className="admin-topbar sticky top-0 z-40 border-b border-white/10 text-white">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-5 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <img
+              src={nvCyclothonLogo}
+              alt="NV Cyclothon"
+              className="h-12 w-20 rounded-md object-cover"
+            />
+            <div>
+              <p className="text-[11px] font-black tracking-[.22em] text-[#d9ff38] uppercase">
+                NV Cyclothon 2026 · Event operations
+              </p>
+              <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
+                Admin control center
+              </h1>
             </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="hidden rounded-full border border-[#d9ff38]/35 bg-[#d9ff38]/10 px-3 py-1 text-xs font-bold text-[#d9ff38] sm:inline">Secure staff workspace</span>
             <button
               onClick={() => {
                 setAccessToken("");
                 setData({});
                 setMessage("");
               }}
-              className="rounded-full border border-white/35 px-4 py-2 text-xs font-black tracking-wide uppercase transition hover:bg-white/10"
+              className="rounded-full border border-white/35 px-4 py-2 text-xs font-black tracking-wide uppercase transition hover:bg-white/10 focus:outline-none focus:ring-4 focus:ring-[#d9ff38]"
             >
               Sign out
             </button>
           </div>
-          <p className="relative mt-4 max-w-3xl text-sm text-white/75">
-            Manage registrations, offers, guests, and delegation operations from
-            one place using the same visual identity as the public NV Cyclothon
-            experience.
-          </p>
-        </section>
-
-        <nav className="mt-7 flex flex-wrap gap-2">
+        </div>
+      </header>
+      <div className="mx-auto w-full max-w-[1440px] px-5 pt-8 sm:px-8">
+        <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <nav aria-label="Admin workspace" className="admin-tabs flex gap-2 overflow-x-auto pb-1 lg:sticky lg:top-[92px] lg:block lg:h-fit lg:space-y-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-[#071313]/10 lg:bg-white lg:p-2 lg:shadow-sm">
           {tabs.map(([id, label]) => (
             <motion.button
               layout
               key={id}
               onClick={() => setTab(id)}
               whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
-              className={`rounded-full px-4 py-2 text-sm font-black tracking-[.06em] uppercase transition ${
+              className={`shrink-0 rounded-lg px-4 py-2.5 text-xs font-black tracking-[.06em] uppercase transition lg:flex lg:w-full lg:items-center lg:text-left ${
                 tab === id
-                  ? "bg-[#071313] text-[#d9ff38]"
-                  : "border border-[#071313]/18 bg-white text-[#071313] hover:border-[#ff5f3d]/45"
+                  ? "bg-[#071313] text-[#d9ff38] shadow-sm"
+                  : "border border-[#071313]/12 bg-white text-[#071313] hover:border-[#9f3126]"
               }`}
             >
               {label}
@@ -252,6 +251,7 @@ export function AdminPage() {
           ))}
         </nav>
 
+        <div>
         {message && (
           <p
             className="mt-4 rounded-2xl border border-[#ff5f3d]/30 bg-[#fff1eb] px-4 py-3 text-sm text-[#7a260f]"
@@ -382,8 +382,17 @@ export function AdminPage() {
             {tab === "community" && (
               <CommunityModerationPanel accessToken={accessToken} onFeedback={setMessage} />
             )}
+            {tab === "partners" && (
+              <PartnerApplicationsPanel accessToken={accessToken} onFeedback={setMessage} />
+            )}
+            {tab === "vendors" && (
+              <VendorApplicationsPanel accessToken={accessToken} onFeedback={setMessage} />
+            )}
+            {tab === "visitors" && <VisitorAnalyticsPanel accessToken={accessToken} />}
           </motion.div>
         </AnimatePresence>
+        </div>
+        </div>
       </div>
     </motion.main>
   );
@@ -451,10 +460,7 @@ function Overview({ analytics, registrations, onNavigate }) {
   const cards = [
     { label: "Riders", value: analytics.total_registrations, detail: "All registrations", icon: FaUsers, tone: "bg-white", tab: "riders" },
     { label: "Approved", value: analytics.approved_registrations, detail: "Ready for event prep", icon: FaCheck, tone: "bg-[#d9ff38]", tab: "riders" },
-    { label: "Checked in", value: analytics.checked_in_registrations, detail: "On-site progress", icon: FaUsers, tone: "bg-[#ffdfc9]", tab: "riders" },
-    { label: "Today", value: analytics.registrations_today, detail: "New registrations", icon: FaCalendarDay, tone: "bg-white", tab: "riders" },
-    { label: "Delegates", value: analytics.delegation_members, detail: `${analytics.delegation_count} groups`, icon: FaPeopleGroup, tone: "bg-white", tab: "delegations" },
-    { label: "Live offers", value: analytics.active_offers, detail: "Active promotions", icon: FaTags, tone: "bg-white", tab: "offers" },
+    { label: "Pending review", value: Math.max(0, Number(analytics.total_registrations || 0) - Number(analytics.approved_registrations || 0)), detail: "Needs attention", icon: FaCalendarDay, tone: "bg-[#ffdfc9]", tab: "riders" },
   ];
   const routeEntries = Object.entries(analytics.registrations_by_route);
   const routeTotal = routeEntries.reduce((total, [, count]) => total + Number(count), 0);
@@ -494,29 +500,7 @@ function Overview({ analytics, registrations, onNavigate }) {
         ))}
       </motion.div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
-        <div className="relative overflow-hidden rounded-2xl bg-[#071313] p-6 text-white shadow-[0_16px_36px_rgba(7,19,19,.18)]">
-          <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full border-[22px] border-[#d9ff38]/10" />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[11px] font-black tracking-[.18em] text-[#d9ff38] uppercase">Operations pulse</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight">The ride is taking shape.</h2>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-white/65">Keep an eye on approvals, check-ins, and route demand from one live view.</p>
-            </div>
-            <div className="text-left sm:text-right">
-              <p className="text-4xl font-black text-[#d9ff38]">{analytics.checked_in_registrations}</p>
-              <p className="text-xs font-bold text-white/55">riders checked in</p>
-            </div>
-          </div>
-          <div className="relative mt-6 h-2 overflow-hidden rounded-full bg-white/10">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${analytics.total_registrations ? Math.min(100, (analytics.checked_in_registrations / analytics.total_registrations) * 100) : 0}%` }}
-              transition={{ duration: 1, delay: 0.25, ease: "easeOut" }}
-              className="h-full rounded-full bg-[#d9ff38]"
-            />
-          </div>
-        </div>
+      <div className="mt-5">
         <button
           type="button"
           onClick={() => onNavigate("riders")}
@@ -567,6 +551,15 @@ function Overview({ analytics, registrations, onNavigate }) {
       </div>
     </section>
   );
+}
+
+function VisitorAnalyticsPanel({ accessToken }) {
+  const [data, setData] = useState(null);
+  useEffect(() => { adminRequest("/visitor-analytics", accessToken).then(setData).catch(() => setData({ error: true })); }, [accessToken]);
+  if (!data) return <section className="rounded-2xl bg-white p-6 shadow-sm"><LoadingIndicator label="Loading visitor analytics…" /></section>;
+  if (data.error) return <section className="rounded-2xl bg-white p-6 shadow-sm"><p role="alert" className="text-sm">Visitor analytics could not be loaded.</p></section>;
+  const peak = Math.max(1, ...data.hourly.map((item) => item.count));
+  return <section className="grid gap-5"><div className="rounded-2xl bg-[#071313] p-6 text-white"><p className="text-xs font-black tracking-[.16em] text-[#d9ff38] uppercase">Public website footfall</p><p className="mt-3 text-5xl font-black">{data.total_visits}</p><p className="mt-1 text-sm text-white/70">Page views recorded from public visitor sessions.</p></div><div className="grid gap-5 lg:grid-cols-[1.4fr_.6fr]"><article className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-black">Visits by hour (UTC)</h2><div className="mt-6 flex h-48 items-end gap-1" aria-label="Hourly visitor chart">{data.hourly.map((item) => <div key={item.hour} className="group flex h-full flex-1 items-end"><div title={`${item.hour}:00 — ${item.count} visits`} className="w-full rounded-t bg-[#9f3126]" style={{ height: `${Math.max(3, item.count / peak * 100)}%` }} /></div>)}</div><div className="mt-2 flex justify-between text-xs text-black/50"><span>00:00</span><span>12:00</span><span>23:00</span></div></article><article className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-black">Half-day split</h2>{data.half_day.map((item) => <p key={item.label} className="mt-5 flex justify-between border-b border-black/10 pb-3 text-sm"><span>{item.label}</span><b>{item.count}</b></p>)}<h2 className="mt-8 text-xl font-black">Visitor timezones</h2>{data.timezones.length ? data.timezones.map((item) => <p key={item.timezone} className="mt-3 flex justify-between text-sm"><span>{item.timezone}</span><b>{item.count}</b></p>) : <p className="mt-3 text-sm text-black/55">No timezone data yet.</p>}</article></div><article className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-black">Daily visits</h2><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{data.daily.map((item) => <p key={item.day} className="rounded-lg bg-[#f4f1e9] p-3 text-sm"><span className="block text-black/60">{item.day}</span><b className="text-lg">{item.count}</b></p>)}</div><p className="mt-5 text-xs leading-5 text-black/55">Privacy note: this dashboard records aggregate page views, timezone and browser locale. It does not request or store precise location, IP address, names, or contact details.</p></article></section>;
 }
 
 function Riders({ riders, adminKey, refresh }) {
@@ -1294,6 +1287,8 @@ function SiteSettingsPanel({ accessToken, onFeedback }) {
         event_location: settings.event_location,
         edition_label: settings.edition_label,
         registration_open: settings.registration_open,
+        partner_applications_open: settings.partner_applications_open,
+        vendor_applications_open: settings.vendor_applications_open,
         hero_images: settings.hero_images || [],
         feature_section: settings.feature_section || {},
         prize_pool: settings.prize_pool || {},
@@ -1360,15 +1355,35 @@ function SiteSettingsPanel({ accessToken, onFeedback }) {
           </label>
         </div>
 
-        <label className="flex items-center gap-3 text-sm font-bold text-[#071313]">
-          <input
-            type="checkbox"
-            checked={Boolean(settings.registration_open)}
-            onChange={(event) => updateField("registration_open", event.target.checked)}
-            className="h-4 w-4"
-          />
-          Registration is open
-        </label>
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center gap-3 text-sm font-bold text-[#071313]">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.registration_open)}
+              onChange={(event) => updateField("registration_open", event.target.checked)}
+              className="h-4 w-4"
+            />
+            Registration is open
+          </label>
+          <label className="flex items-center gap-3 text-sm font-bold text-[#071313]">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.partner_applications_open)}
+              onChange={(event) => updateField("partner_applications_open", event.target.checked)}
+              className="h-4 w-4"
+            />
+            Partner applications open
+          </label>
+          <label className="flex items-center gap-3 text-sm font-bold text-[#071313]">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.vendor_applications_open)}
+              onChange={(event) => updateField("vendor_applications_open", event.target.checked)}
+              className="h-4 w-4"
+            />
+            Vendor applications open
+          </label>
+        </div>
 
         <fieldset className="rounded-2xl border border-black/10 p-4">
           <legend className="px-2 text-xs font-black tracking-[.14em] text-[#071313]/70 uppercase">Hero images</legend>
@@ -1661,6 +1676,1113 @@ function VolunteerManagementPanel({ accessToken, onFeedback }) {
           </div>
         )}
       </section>
+    </section>
+  );
+}
+
+function PartnerApplicationsPanel({ accessToken, onFeedback }) {
+  const [subTab, setSubTab] = useState("applications"); // applications, approved, deliverables
+  const [apps, setApps] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [deliverablesApp, setDeliverablesApp] = useState(null);
+  const [deliverables, setDeliverables] = useState([]);
+  const [updatingDeliverable, setUpdatingDeliverable] = useState(false);
+  const [reviewModal, setReviewModal] = useState(null); // { id, status, notes }
+
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const fetchApps = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    listAdminPartnerApplications(accessToken, {
+      status: filter === "all" ? null : filter,
+      search: debouncedSearch,
+    })
+      .then((data) => {
+        if (!cancelled) {
+          setApps(data || []);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          onFeedback(error.message);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, filter, debouncedSearch, onFeedback]);
+
+  useEffect(() => {
+    return fetchApps();
+  }, [fetchApps]);
+
+  const handleUpdateStatus = async (id, status, notes) => {
+    try {
+      await reviewPartnerApplication(accessToken, id, { status, notes });
+      onFeedback(`Partner application marked as ${status}`);
+      setApps((current) =>
+        current.map((app) => (app.id === id ? { ...app, status, review_notes: notes } : app))
+      );
+      if (selectedApp && selectedApp.id === id) {
+        setSelectedApp((prev) => ({ ...prev, status, review_notes: notes }));
+      }
+      setReviewModal(null);
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const previewLogo = async (id) => {
+    try {
+      const blob = await getAdminPartnerLogo(accessToken, id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const openDeliverables = async (app) => {
+    setDeliverablesApp(app);
+    try {
+      const data = await getAdminPartnerDeliverables(accessToken, app.id);
+      setDeliverables(data || []);
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const toggleDeliverable = async (deliverableId, currentStatus) => {
+    const nextStatus = currentStatus === "COMPLETED" ? "PENDING" : "COMPLETED";
+    setUpdatingDeliverable(true);
+    try {
+      const updated = await updateAdminPartnerDeliverable(
+        accessToken,
+        deliverablesApp.id,
+        deliverableId,
+        { status: nextStatus }
+      );
+      setDeliverables((prev) =>
+        prev.map((d) => (d.id === deliverableId ? updated : d))
+      );
+      onFeedback(`Deliverable marked as ${nextStatus}`);
+    } catch (error) {
+      onFeedback(error.message);
+    } finally {
+      setUpdatingDeliverable(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const blob = await exportAdminPartnersCsv(accessToken);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nv_cyclothon_partners.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      onFeedback("Exported partners CSV successfully");
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const partnerStatuses = [
+    "all",
+    "SUBMITTED",
+    "UNDER_REVIEW",
+    "SHORTLISTED",
+    "NEGOTIATION",
+    "APPROVED",
+    "PAYMENT_PENDING",
+    "PAYMENT_VERIFIED",
+    "ASSETS_PENDING",
+    "ASSETS_APPROVED",
+    "EVENT_READY",
+    "COMPLETED",
+    "REJECTED",
+  ];
+
+  const approvedList = apps.filter(
+    (a) => a.status === "APPROVED" || a.status === "EVENT_READY" || a.status === "COMPLETED"
+  );
+
+  return (
+    <section className="space-y-6">
+      {/* Sub Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#071313]/10 bg-white p-4 shadow-sm">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSubTab("applications")}
+            className={`rounded-full px-5 py-2 text-xs font-bold uppercase transition ${
+              subTab === "applications"
+                ? "bg-[#071313] text-[#d9ff38]"
+                : "bg-black/5 text-[#071313] hover:bg-black/10"
+            }`}
+          >
+            Applications ({apps.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab("approved")}
+            className={`rounded-full px-5 py-2 text-xs font-bold uppercase transition ${
+              subTab === "approved"
+                ? "bg-[#071313] text-[#d9ff38]"
+                : "bg-black/5 text-[#071313] hover:bg-black/10"
+            }`}
+          >
+            Approved Roster ({approvedList.length})
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="rounded-full border border-black/20 bg-black/5 px-4 py-2 text-xs font-bold uppercase transition hover:bg-black/10"
+        >
+          Export CSV
+        </button>
+      </div>
+
+      {subTab === "applications" && (
+        <div className="rounded-3xl border border-[#071313]/10 bg-white p-6 shadow-sm">
+          {/* Controls bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 pb-6">
+            <div className="flex-1 min-w-[240px]">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by company, contact, email, or ref number..."
+                className="w-full rounded-full border border-black/15 bg-black/5 px-4 py-2 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 overflow-x-auto max-w-full pb-2">
+              {partnerStatuses.map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setFilter(st)}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase transition ${
+                    filter === st
+                      ? "bg-[#071313] text-[#d9ff38]"
+                      : "bg-black/5 text-[#071313] hover:bg-black/10"
+                  }`}
+                >
+                  {st.replace(/_/g, " ")}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table / List */}
+          <div className="mt-6">
+            {loading ? (
+              <LoadingIndicator label="Loading applications..." />
+            ) : apps.length === 0 ? (
+              <p className="text-sm text-black/60 py-6 text-center">No partner applications found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-black/10 text-black/50 uppercase font-black tracking-wider">
+                      <th className="py-3 px-3">Ref / Date</th>
+                      <th className="py-3 px-3">Company / Brand</th>
+                      <th className="py-3 px-3">Contact Person</th>
+                      <th className="py-3 px-3">Package & Type</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5">
+                    {apps.map((app) => (
+                      <tr key={app.id} className="hover:bg-black/[0.02] transition">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span className="font-bold text-[#071313]">
+                            {app.application_number || `NV-26-P-${app.id}`}
+                          </span>
+                          <div className="text-[10px] text-black/50">
+                            {new Date(app.created_at).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="font-black text-sm text-[#071313] block">
+                            {app.company_name}
+                          </span>
+                          {app.brand_name && app.brand_name !== app.company_name && (
+                            <span className="text-[11px] text-black/60">Brand: {app.brand_name}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-medium text-[#071313]">{app.contact_name}</div>
+                          <div className="text-[11px] text-black/60">{app.phone} &bull; {app.email}</div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-bold text-[#ff5f3d]">
+                            {app.package_name || app.tier_name || "Custom Partnership"}
+                          </div>
+                          <div className="text-[11px] text-black/60">{app.partnership_type}</div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span
+                            className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                              app.status === "APPROVED" || app.status === "EVENT_READY" || app.status === "COMPLETED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : app.status === "REJECTED"
+                                ? "bg-rose-100 text-rose-800"
+                                : app.status === "PAYMENT_VERIFIED"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right whitespace-nowrap">
+                          <div className="inline-flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedApp(app)}
+                              className="rounded-md bg-black/5 px-2.5 py-1 text-[11px] font-bold hover:bg-black/10"
+                            >
+                              Details
+                            </button>
+                            {app.logo_key && (
+                              <button
+                                type="button"
+                                onClick={() => previewLogo(app.id)}
+                                className="rounded-md bg-black/5 px-2.5 py-1 text-[11px] font-bold hover:bg-black/10"
+                              >
+                                Logo
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openDeliverables(app)}
+                              className="rounded-md bg-black/5 px-2.5 py-1 text-[11px] font-bold hover:bg-black/10"
+                            >
+                              Deliverables
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReviewModal({
+                                  id: app.id,
+                                  status: app.status,
+                                  notes: app.review_notes || "",
+                                })
+                              }
+                              className="rounded-md bg-[#071313] text-[#d9ff38] px-2.5 py-1 text-[11px] font-bold hover:opacity-90"
+                            >
+                              Status
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {subTab === "approved" && (
+        <div className="rounded-3xl border border-[#071313]/10 bg-white p-6 shadow-sm">
+          <h4 className="text-lg font-black uppercase text-[#071313] mb-4">
+            Approved Event Partners
+          </h4>
+          {approvedList.length === 0 ? (
+            <p className="text-sm text-black/60">No approved partners yet.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {approvedList.map((p) => (
+                <div key={p.id} className="rounded-2xl border border-black/10 bg-[#f4f1e9] p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black uppercase">
+                      {p.status}
+                    </span>
+                    <span className="text-xs font-black text-[#ff5f3d]">
+                      {p.package_name || p.tier_name || "Partner"}
+                    </span>
+                  </div>
+                  <h5 className="mt-3 font-display font-bold text-lg text-[#071313]">
+                    {p.brand_name || p.company_name}
+                  </h5>
+                  <p className="text-xs text-black/60 mt-1">
+                    Contact: {p.contact_name} ({p.phone})
+                  </p>
+                  <div className="mt-4 flex gap-2">
+                    {p.logo_key && (
+                      <button
+                        type="button"
+                        onClick={() => previewLogo(p.id)}
+                        className="rounded-lg bg-black/10 px-3 py-1.5 text-xs font-bold"
+                      >
+                        View Logo
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openDeliverables(p)}
+                      className="rounded-lg bg-[#071313] text-[#d9ff38] px-3 py-1.5 text-xs font-bold"
+                    >
+                      Track Deliverables
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Application Detail Modal */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/10 pb-4">
+              <div>
+                <span className="text-xs font-bold text-[#ff5f3d]">
+                  {selectedApp.application_number || `NV-26-P-${selectedApp.id}`}
+                </span>
+                <h4 className="font-display text-2xl font-black text-[#071313]">
+                  {selectedApp.company_name}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedApp(null)}
+                className="h-8 w-8 rounded-full bg-black/5 font-bold text-black/60 hover:bg-black/10"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4 rounded-xl bg-black/5 p-4">
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Contact Person</span>
+                  <p className="font-bold text-[#071313] text-sm mt-0.5">{selectedApp.contact_name}</p>
+                  <p className="text-black/60">{selectedApp.designation || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Phone & Email</span>
+                  <p className="font-bold text-[#071313] mt-0.5">{selectedApp.phone}</p>
+                  <p className="text-black/60">{selectedApp.email}</p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Business Type</span>
+                  <p className="font-bold text-[#071313] mt-0.5">{selectedApp.business_type || "Corporate"}</p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Website</span>
+                  <p className="font-bold text-[#071313] mt-0.5">{selectedApp.website || "—"}</p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">GST / PAN</span>
+                  <p className="font-bold text-[#071313] mt-0.5">
+                    GST: {selectedApp.gst_number || "N/A"} | PAN: {selectedApp.pan_number || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Location</span>
+                  <p className="font-bold text-[#071313] mt-0.5">
+                    {selectedApp.city || "—"}, {selectedApp.state || "—"} ({selectedApp.pincode || "—"})
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-black/10 p-4">
+                <span className="text-black/50 font-bold uppercase">Partnership Proposal</span>
+                <p className="font-bold text-sm text-[#ff5f3d] mt-1">
+                  {selectedApp.package_name || selectedApp.tier_name || "Custom"} ({selectedApp.partnership_type})
+                </p>
+                {selectedApp.proposed_value && (
+                  <p className="mt-1 text-black/80 font-medium">Proposed Value: {selectedApp.proposed_value}</p>
+                )}
+                {selectedApp.custom_description && (
+                  <p className="mt-1 text-black/70 italic">&ldquo;{selectedApp.custom_description}&rdquo;</p>
+                )}
+              </div>
+
+              {selectedApp.activation_description && (
+                <div className="rounded-xl border border-black/10 p-4">
+                  <span className="text-black/50 font-bold uppercase">Activation Intent</span>
+                  <p className="mt-1 text-black/80">{selectedApp.activation_description}</p>
+                </div>
+              )}
+
+              {selectedApp.review_notes && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-900">
+                  <span className="font-bold uppercase text-[10px]">Reviewer Notes</span>
+                  <p className="mt-1">{selectedApp.review_notes}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-black/10 pt-4">
+              {selectedApp.logo_key && (
+                <button
+                  type="button"
+                  onClick={() => previewLogo(selectedApp.id)}
+                  className="rounded-full bg-black/10 px-5 py-2 text-xs font-bold"
+                >
+                  Download Logo
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setReviewModal({
+                    id: selectedApp.id,
+                    status: selectedApp.status,
+                    notes: selectedApp.review_notes || "",
+                  });
+                }}
+                className="rounded-full bg-[#071313] text-[#d9ff38] px-5 py-2 text-xs font-bold"
+              >
+                Change Status / Notes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deliverables Checklist Modal */}
+      {deliverablesApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/10 pb-4">
+              <div>
+                <span className="text-xs font-bold text-[#ff5f3d]">Deliverable Tracking</span>
+                <h4 className="font-display text-xl font-black text-[#071313]">
+                  {deliverablesApp.company_name}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeliverablesApp(null)}
+                className="h-8 w-8 rounded-full bg-black/5 font-bold text-black/60 hover:bg-black/10"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {deliverables.length === 0 ? (
+                <p className="text-xs text-black/60">No specific deliverables logged yet.</p>
+              ) : (
+                deliverables.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-xl border border-black/10 p-3.5"
+                  >
+                    <div>
+                      <p className="font-bold text-xs text-[#071313]">{item.deliverable_type}</p>
+                      {item.completed_at && (
+                        <p className="text-[10px] text-emerald-600 font-semibold">
+                          Completed on {new Date(item.completed_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={updatingDeliverable}
+                      onClick={() => toggleDeliverable(item.id, item.status)}
+                      className={`rounded-full px-3 py-1 text-[11px] font-black uppercase transition ${
+                        item.status === "COMPLETED"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-black/5 text-[#071313] hover:bg-black/10"
+                      }`}
+                    >
+                      {item.status === "COMPLETED" ? "✓ Done" : "Mark Done"}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-black/10 pt-4 text-right">
+              <button
+                type="button"
+                onClick={() => setDeliverablesApp(null)}
+                className="rounded-full bg-[#071313] text-white px-5 py-2 text-xs font-bold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review & Status Transition Modal */}
+      {reviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <h4 className="font-display text-xl font-black text-[#071313]">
+              Update Application Status
+            </h4>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70">
+                  Select Workflow Status
+                </label>
+                <select
+                  value={reviewModal.status}
+                  onChange={(e) =>
+                    setReviewModal((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                  className="mt-1.5 w-full rounded-xl border border-black/20 bg-white px-4 py-2.5 text-xs font-bold text-[#071313] focus:border-[#071313] focus:outline-none"
+                >
+                  <option value="SUBMITTED">SUBMITTED</option>
+                  <option value="UNDER_REVIEW">UNDER REVIEW</option>
+                  <option value="SHORTLISTED">SHORTLISTED</option>
+                  <option value="NEGOTIATION">NEGOTIATION</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="PAYMENT_PENDING">PAYMENT PENDING</option>
+                  <option value="PAYMENT_VERIFIED">PAYMENT VERIFIED</option>
+                  <option value="ASSETS_PENDING">ASSETS PENDING</option>
+                  <option value="ASSETS_APPROVED">ASSETS APPROVED</option>
+                  <option value="EVENT_READY">EVENT READY</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                  <option value="REJECTED">REJECTED</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70">
+                  Internal Review Notes / Reason
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewModal.notes}
+                  onChange={(e) =>
+                    setReviewModal((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Record commercial discussion terms or feedback..."
+                  className="mt-1.5 w-full rounded-xl border border-black/20 bg-white p-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-black/10 pt-4">
+              <button
+                type="button"
+                onClick={() => setReviewModal(null)}
+                className="rounded-full bg-black/10 px-4 py-2 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleUpdateStatus(reviewModal.id, reviewModal.status, reviewModal.notes)
+                }
+                className="rounded-full bg-[#071313] text-[#d9ff38] px-5 py-2 text-xs font-black uppercase"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function VendorApplicationsPanel({ accessToken, onFeedback }) {
+  const [subTab, setSubTab] = useState("applications"); // applications, allocations
+  const [apps, setApps] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [reviewModal, setReviewModal] = useState(null);
+
+  const debouncedSearch = useDebouncedValue(search, 300);
+
+  const fetchVendors = useCallback(() => {
+    let cancelled = false;
+    setLoading(true);
+    listAdminVendorApplications(accessToken, {
+      status: filter === "all" ? null : filter,
+      search: debouncedSearch,
+    })
+      .then((data) => {
+        if (!cancelled) {
+          setApps(data || []);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          onFeedback(error.message);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, filter, debouncedSearch, onFeedback]);
+
+  useEffect(() => {
+    return fetchVendors();
+  }, [fetchVendors]);
+
+  const handleUpdateStatus = async (id, status, notes) => {
+    try {
+      await reviewVendorApplication(accessToken, id, { status, notes });
+      onFeedback(`Vendor application marked as ${status}`);
+      setApps((current) =>
+        current.map((app) => (app.id === id ? { ...app, status, review_notes: notes } : app))
+      );
+      if (selectedApp && selectedApp.id === id) {
+        setSelectedApp((prev) => ({ ...prev, status, review_notes: notes }));
+      }
+      setReviewModal(null);
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const previewDocument = async (id) => {
+    try {
+      const blob = await getAdminVendorDocument(accessToken, id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const blob = await exportAdminVendorsCsv(accessToken);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nv_cyclothon_vendors.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      onFeedback("Exported vendors CSV successfully");
+    } catch (error) {
+      onFeedback(error.message);
+    }
+  };
+
+  const vendorStatuses = ["all", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "EVENT_READY", "COMPLETED"];
+  const approvedVendors = apps.filter(
+    (a) => a.status === "APPROVED" || a.status === "EVENT_READY" || a.status === "COMPLETED"
+  );
+
+  return (
+    <section className="space-y-6">
+      {/* Sub Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#071313]/10 bg-white p-4 shadow-sm">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSubTab("applications")}
+            className={`rounded-full px-5 py-2 text-xs font-bold uppercase transition ${
+              subTab === "applications"
+                ? "bg-[#071313] text-[#d9ff38]"
+                : "bg-black/5 text-[#071313] hover:bg-black/10"
+            }`}
+          >
+            Applications ({apps.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab("allocations")}
+            className={`rounded-full px-5 py-2 text-xs font-bold uppercase transition ${
+              subTab === "allocations"
+                ? "bg-[#071313] text-[#d9ff38]"
+                : "bg-black/5 text-[#071313] hover:bg-black/10"
+            }`}
+          >
+            Stall Allocations ({approvedVendors.length})
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="rounded-full border border-black/20 bg-black/5 px-4 py-2 text-xs font-bold uppercase transition hover:bg-black/10"
+        >
+          Export CSV
+        </button>
+      </div>
+
+      {subTab === "applications" && (
+        <div className="rounded-3xl border border-[#071313]/10 bg-white p-6 shadow-sm">
+          {/* Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 pb-6">
+            <div className="flex-1 min-w-[240px]">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search vendor name, category, or contact..."
+                className="w-full rounded-full border border-black/15 bg-black/5 px-4 py-2 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 overflow-x-auto max-w-full pb-2">
+              {vendorStatuses.map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setFilter(st)}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold uppercase transition ${
+                    filter === st
+                      ? "bg-[#071313] text-[#d9ff38]"
+                      : "bg-black/5 text-[#071313] hover:bg-black/10"
+                  }`}
+                >
+                  {st.replace(/_/g, " ")}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="mt-6">
+            {loading ? (
+              <LoadingIndicator label="Loading applications..." />
+            ) : apps.length === 0 ? (
+              <p className="text-sm text-black/60 py-6 text-center">No vendor applications found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-black/10 text-black/50 uppercase font-black tracking-wider">
+                      <th className="py-3 px-3">Ref / Date</th>
+                      <th className="py-3 px-3">Business Name</th>
+                      <th className="py-3 px-3">Category</th>
+                      <th className="py-3 px-3">Representative</th>
+                      <th className="py-3 px-3">Requirements</th>
+                      <th className="py-3 px-3">Status</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5">
+                    {apps.map((app) => (
+                      <tr key={app.id} className="hover:bg-black/[0.02] transition">
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span className="font-bold text-[#071313]">
+                            {app.application_number || `NV-26-V-${app.id}`}
+                          </span>
+                          <div className="text-[10px] text-black/50">
+                            {new Date(app.created_at).toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="font-black text-sm text-[#071313] block">
+                            {app.business_name}
+                          </span>
+                          <span className="text-[11px] text-black/60 truncate block max-w-xs">
+                            {app.products_services}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="rounded-full bg-black/5 text-[#071313] font-bold px-2 py-0.5 text-[11px]">
+                            {app.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="font-medium text-[#071313]">
+                            {app.representative_name || app.contact_name}
+                          </div>
+                          <div className="text-[11px] text-black/60">{app.phone}</div>
+                        </td>
+                        <td className="py-3 px-3 text-[11px]">
+                          <div>Space: {app.space_requirement || "Standard"}</div>
+                          <div className="text-black/50">
+                            {[
+                              app.electricity_required && "⚡ Power",
+                              app.water_required && "💧 Water",
+                              app.furniture_required && "🪑 Furniture",
+                            ]
+                              .filter(Boolean)
+                              .join(" &bull; ") || "Basic setup"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span
+                            className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase ${
+                              app.status === "APPROVED" || app.status === "EVENT_READY" || app.status === "COMPLETED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : app.status === "REJECTED"
+                                ? "bg-rose-100 text-rose-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-right whitespace-nowrap">
+                          <div className="inline-flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedApp(app)}
+                              className="rounded-md bg-black/5 px-2.5 py-1 text-[11px] font-bold hover:bg-black/10"
+                            >
+                              Details
+                            </button>
+                            {app.document_key && (
+                              <button
+                                type="button"
+                                onClick={() => previewDocument(app.id)}
+                                className="rounded-md bg-black/5 px-2.5 py-1 text-[11px] font-bold hover:bg-black/10"
+                              >
+                                Doc
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReviewModal({
+                                  id: app.id,
+                                  status: app.status,
+                                  notes: app.review_notes || "",
+                                })
+                              }
+                              className="rounded-md bg-[#071313] text-[#d9ff38] px-2.5 py-1 text-[11px] font-bold hover:opacity-90"
+                            >
+                              Status
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {subTab === "allocations" && (
+        <div className="rounded-3xl border border-[#071313]/10 bg-white p-6 shadow-sm">
+          <h4 className="text-lg font-black uppercase text-[#071313] mb-4">
+            Stall Allocations & On-Ground Operations
+          </h4>
+          {approvedVendors.length === 0 ? (
+            <p className="text-sm text-black/60">No approved vendors to allocate stalls for.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {approvedVendors.map((v) => (
+                <div key={v.id} className="rounded-2xl border border-black/10 bg-[#f4f1e9] p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-[#071313]">
+                      {v.application_number || `NV-26-V-${v.id}`}
+                    </span>
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-black uppercase">
+                      {v.status}
+                    </span>
+                  </div>
+                  <h5 className="mt-2 font-display font-bold text-lg text-[#071313]">
+                    {v.business_name} ({v.category})
+                  </h5>
+                  <div className="mt-3 space-y-1 text-xs text-black/70">
+                    <p><strong>Space:</strong> {v.space_requirement || "To be allocated"}</p>
+                    <p><strong>Staff Count:</strong> {v.staff_count || 1} team members</p>
+                    <p><strong>Support:</strong> {v.electricity_required ? "Electricity required; " : ""}{v.water_required ? "Water supply required; " : ""}</p>
+                    {v.review_notes && (
+                      <p className="mt-2 rounded-lg bg-white p-2 text-black/80 font-medium">
+                        <strong>Allocation Notes:</strong> {v.review_notes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Vendor Detail Modal */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/10 pb-4">
+              <div>
+                <span className="text-xs font-bold text-[#d9ff38] bg-[#071313] px-2.5 py-0.5 rounded-full uppercase">
+                  {selectedApp.category}
+                </span>
+                <h4 className="font-display text-2xl font-black text-[#071313] mt-2">
+                  {selectedApp.business_name}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedApp(null)}
+                className="h-8 w-8 rounded-full bg-black/5 font-bold text-black/60 hover:bg-black/10"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4 rounded-xl bg-black/5 p-4">
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Representative</span>
+                  <p className="font-bold text-[#071313] text-sm mt-0.5">
+                    {selectedApp.representative_name || selectedApp.contact_name}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Phone & Email</span>
+                  <p className="font-bold text-[#071313] mt-0.5">{selectedApp.phone}</p>
+                  <p className="text-black/60">{selectedApp.email}</p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">GST / PAN</span>
+                  <p className="font-bold text-[#071313] mt-0.5">
+                    GST: {selectedApp.gst_number || "N/A"} | PAN: {selectedApp.pan_number || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-black/50 font-bold uppercase">Location</span>
+                  <p className="font-bold text-[#071313] mt-0.5">
+                    {selectedApp.address}, {selectedApp.city || "Rewa"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-black/10 p-4">
+                <span className="text-black/50 font-bold uppercase">Products & Services</span>
+                <p className="font-bold text-sm text-[#071313] mt-1">{selectedApp.products_services}</p>
+                <p className="mt-1 text-black/70">{selectedApp.description}</p>
+              </div>
+
+              <div className="rounded-xl border border-black/10 p-4">
+                <span className="text-black/50 font-bold uppercase">Requirements</span>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-black/80">
+                  <p>Space: {selectedApp.space_requirement || "Standard"}</p>
+                  <p>Staff: {selectedApp.staff_count || 1}</p>
+                  <p>Electricity: {selectedApp.electricity_required ? "Yes" : "No"}</p>
+                  <p>Water: {selectedApp.water_required ? "Yes" : "No"}</p>
+                  <p>Furniture: {selectedApp.furniture_required ? "Yes" : "No"}</p>
+                  <p>Vehicle Access: {selectedApp.vehicle_access_required ? "Yes" : "No"}</p>
+                </div>
+              </div>
+
+              {selectedApp.review_notes && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-900">
+                  <span className="font-bold uppercase text-[10px]">Stall Allocation / Notes</span>
+                  <p className="mt-1">{selectedApp.review_notes}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-black/10 pt-4">
+              {selectedApp.document_key && (
+                <button
+                  type="button"
+                  onClick={() => previewDocument(selectedApp.id)}
+                  className="rounded-full bg-black/10 px-5 py-2 text-xs font-bold"
+                >
+                  Download Document
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setReviewModal({
+                    id: selectedApp.id,
+                    status: selectedApp.status,
+                    notes: selectedApp.review_notes || "",
+                  });
+                }}
+                className="rounded-full bg-[#071313] text-[#d9ff38] px-5 py-2 text-xs font-bold"
+              >
+                Change Status / Allocation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Modal */}
+      {reviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <h4 className="font-display text-xl font-black text-[#071313]">
+              Update Vendor Status
+            </h4>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70">
+                  Status
+                </label>
+                <select
+                  value={reviewModal.status}
+                  onChange={(e) =>
+                    setReviewModal((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                  className="mt-1.5 w-full rounded-xl border border-black/20 bg-white px-4 py-2.5 text-xs font-bold text-[#071313] focus:border-[#071313] focus:outline-none"
+                >
+                  <option value="SUBMITTED">SUBMITTED</option>
+                  <option value="UNDER_REVIEW">UNDER REVIEW</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="EVENT_READY">EVENT READY</option>
+                  <option value="COMPLETED">COMPLETED</option>
+                  <option value="REJECTED">REJECTED</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70">
+                  Allocation / Operations Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={reviewModal.notes}
+                  onChange={(e) =>
+                    setReviewModal((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Record space allocation, power requirements, or review feedback..."
+                  className="mt-1.5 w-full rounded-xl border border-black/20 bg-white p-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-black/10 pt-4">
+              <button
+                type="button"
+                onClick={() => setReviewModal(null)}
+                className="rounded-full bg-black/10 px-4 py-2 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleUpdateStatus(reviewModal.id, reviewModal.status, reviewModal.notes)
+                }
+                className="rounded-full bg-[#071313] text-[#d9ff38] px-5 py-2 text-xs font-black uppercase"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

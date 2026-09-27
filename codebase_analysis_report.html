@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NV Cyclothon 2026 — Comprehensive Code Analysis, Architecture & Security Audit Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, sans-serif',
+      themeVariables: {
+        primaryColor: '#e0f2fe',
+        primaryTextColor: '#071313',
+        primaryBorderColor: '#0284c7',
+        lineColor: '#0369a1',
+        secondaryColor: '#fef3c7',
+        tertiaryColor: '#f1f5f9'
+      }
+    });
+  </script>
+  <style>
+    :root {
+      --bg: #0b1313;
+      --surface: #101c1c;
+      --surface-elevated: #162626;
+      --surface-card: #1c2e2e;
+      --border: #233a3a;
+      --border-accent: #325555;
+      --text-main: #f3f5f5;
+      --text-muted: #95a5a5;
+      --text-dim: #647474;
+      --coral: #ff5f3d;
+      --lime: #d9ff38;
+      --teal: #14b8a6;
+      --blue: #38bdf8;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --green: #4ade80;
+      --sidebar-width: 290px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 15px; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    #sidebar {
+      width: var(--sidebar-width);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      overflow-y: auto;
+      padding: 1.75rem 1.25rem;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .brand-box {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.25rem;
+    }
+    .brand-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--lime);
+      letter-spacing: -0.02em;
+    }
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
+    }
+    .nav-group-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--coral);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      display: block;
+      transition: all 0.15s ease;
+    }
+    .nav-links a:hover {
+      background: var(--surface-elevated);
+      color: var(--text-main);
+      transform: translateX(3px);
+    }
+    .nav-links a.active {
+      background: var(--border);
+      color: var(--lime);
+      font-weight: 600;
+    }
+
+    /* Main Container */
+    #main-wrapper {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 2.5rem 3.5rem;
+      max-width: 1440px;
+    }
+
+    /* Header Banner */
+    .header-banner {
+      background: linear-gradient(135deg, #071313 0%, #122828 60%, #1e3d3d 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: 18px;
+      padding: 2.5rem 3rem;
+      margin-bottom: 3rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.4);
+    }
+    .header-banner::before {
+      content: "";
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(217, 255, 56, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(217, 255, 56, 0.12);
+      border: 1px solid rgba(217, 255, 56, 0.3);
+      color: var(--lime);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.3rem 0.8rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .header-banner h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 1.25rem;
+    }
+    .meta-item strong { color: var(--text-main); }
+
+    /* Key Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 3.5rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      position: relative;
+    }
+    .stat-card::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: var(--accent-color, var(--teal));
+      border-radius: 12px 12px 0 0;
+    }
+    .stat-val {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Section Styles */
+    section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 2rem;
+    }
+    h2 {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+    h2 .section-num {
+      color: var(--lime);
+      font-size: 1.2rem;
+      font-family: 'Fira Code', monospace;
+    }
+    h3 {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem 0;
+    }
+    h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--lime);
+      margin: 1.5rem 0 0.75rem 0;
+    }
+    p {
+      color: var(--text-main);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      line-height: 1.65;
+    }
+
+    /* Diagrams Containers */
+    .diagram-box {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      margin: 1.5rem 0 2rem 0;
+      overflow-x: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .diagram-caption {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 0.75rem;
+      font-style: italic;
+    }
+
+    /* Data Tables */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin: 1.5rem 0;
+      background: var(--surface);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      text-align: left;
+    }
+    th {
+      background: var(--surface-elevated);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-elevated); }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      text-transform: uppercase;
+    }
+    .badge-get { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-post { background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.4); }
+    .badge-patch { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+    .badge-delete { background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); }
+    
+    .badge-auth-public { background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+    .badge-auth-volunteer { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.4); }
+    .badge-auth-admin { background: rgba(255, 95, 61, 0.15); color: #ff5f3d; border: 1px solid rgba(255, 95, 61, 0.4); }
+
+    .sev-critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+    .sev-high { background: rgba(249, 115, 22, 0.2); color: #fdba74; border: 1px solid #f97316; }
+    .sev-medium { background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid #eab308; }
+    .sev-low { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid #3b82f6; }
+    .sev-info { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid #94a3b8; }
+
+    /* Code Blocks */
+    code, pre {
+      font-family: 'Fira Code', monospace;
+    }
+    code {
+      background: var(--surface-card);
+      color: var(--lime);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+      border: 1px solid var(--border);
+    }
+    pre {
+      background: #060b0b;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      margin: 1rem 0;
+      line-height: 1.5;
+    }
+
+    /* Cards & Callouts */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .callout {
+      border-left: 4px solid var(--coral);
+      background: rgba(255, 95, 61, 0.08);
+      padding: 1.25rem 1.5rem;
+      border-radius: 0 10px 10px 0;
+      margin: 1.5rem 0;
+    }
+    .callout.tip {
+      border-left-color: var(--lime);
+      background: rgba(217, 255, 56, 0.06);
+    }
+    .callout.warning {
+      border-left-color: var(--yellow);
+      background: rgba(251, 191, 36, 0.08);
+    }
+    .callout-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.35rem;
+      color: #fff;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      #sidebar { display: none; }
+      #main-wrapper { margin-left: 0; padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="brand-box">
+      <div class="brand-title">NV CYCLOTHON</div>
+      <div class="brand-subtitle">Architectural & Code Audit</div>
+    </div>
+    <div class="nav-group-title">Navigation</div>
+    <ul class="nav-links">
+      <li><a href="#executive-summary">1. Executive Summary</a></li>
+      <li><a href="#system-architecture">2. High-Level Design (HLD)</a></li>
+      <li><a href="#low-level-design">3. Low-Level Design (LLD)</a></li>
+      <li><a href="#database-schema">4. Database & Entity Model</a></li>
+      <li><a href="#api-endpoints">5. Complete API Endpoints</a></li>
+      <li><a href="#frontend-architecture">6. Frontend Architecture</a></li>
+      <li><a href="#security-audit">7. Security & Risk Audit</a></li>
+      <li><a href="#remediation-plan">8. Remediation Action Plan</a></li>
+      <li><a href="#ops-performance">9. Performance & Operations</a></li>
+    </ul>
+    <div class="nav-group-title" style="margin-top:auto;">Meta</div>
+    <div style="font-size: 0.75rem; color: var(--text-dim);">
+      Target: 3rd Edition, 22 Nov 2026<br>
+      Audited: September 2026<br>
+      Status: Ready for Production Hardening
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main id="main-wrapper">
+
+    <!-- Header Banner -->
+    <header class="header-banner">
+      <div class="header-badge">Comprehensive Architectural Review & Security Audit</div>
+      <h1>NV Cyclothon 2026<br><span style="color: var(--lime);">Codebase Analysis & Technical Specification</span></h1>
+      <div class="header-meta">
+        <div class="meta-item">Application: <strong>NV Cyclothon (Rewa District Cycling Association)</strong></div>
+        <div class="meta-item">Event Date: <strong>22 November 2026, Rewa, MP</strong></div>
+        <div class="meta-item">Frontend: <strong>React 18 + Vite 8 + Tailwind CSS + Framer Motion</strong></div>
+        <div class="meta-item">Backend: <strong>Node.js + Express 5 + PostgreSQL 16 / Mock DB</strong></div>
+        <div class="meta-item">Report Type: <strong>Full HLD / LLD / API / Security Audit</strong></div>
+      </div>
+    </header>
+
+    <!-- Key Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card" style="--accent-color: var(--lime);">
+        <div class="stat-val">37</div>
+        <div class="stat-label">Total API Endpoints</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--teal);">
+        <div class="stat-val">25</div>
+        <div class="stat-label">PostgreSQL Database Tables</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--blue);">
+        <div class="stat-val">15 / 15</div>
+        <div class="stat-label">Automated Tests Passing</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--coral);">
+        <div class="stat-val">4</div>
+        <div class="stat-label">Security Vulnerabilities Found</div>
+      </div>
+      <div class="stat-card" style="--accent-color: var(--yellow);">
+        <div class="stat-val">2</div>
+        <div class="stat-label">SPA Entry Points (Public & Internal)</div>
+      </div>
+    </div>
+
+    <!-- 1. Executive Summary -->
+    <section id="executive-summary">
+      <h2><span class="section-num">01</span> Executive Summary</h2>
+      <p>
+        The <strong>NV Cyclothon</strong> web platform is a modern, high-performance event management and commercial sponsorship system built for the <strong>3rd Edition of NV Cyclothon</strong> scheduled for <strong>22 November 2026 in Rewa, Madhya Pradesh</strong>, organized by the Rewa District Cycling Association (RDCA).
+      </p>
+      <p>
+        The platform coordinates public outreach, multi-category participant registrations (60 KM Road, 30 KM MTB, 10 KM Green Ride, 2.5 KM Kid-o-Thon), Razorpay online payment integration, on-day QR code-based volunteer check-in, real-time community engagement walls, automated PDF pass and certificate generation, commercial partnership & vendor onboarding, and a centralized administrative workspace.
+      </p>
+
+      <div class="card">
+        <h4 style="margin-top:0; color:#fff;">Core System Capabilities</h4>
+        <ul style="margin-left: 1.5rem; color: var(--text-muted); line-height: 1.8;">
+          <li><strong>Participant Registration Engine</strong>: 500+ expected riders, tiered registration fees, automated ticket payload generation, waiver enforcement, and duplicate phone/email prevention.</li>
+          <li><strong>Financial Gateway Integration</strong>: Razorpay payment orders with cryptographically verified signatures (HMAC-SHA256) and webhook capture handling.</li>
+          <li><strong>Volunteer Race-Day Check-in Subsystem</strong>: Low-latency QR-code scanner and manual search supporting instant check-in verification with audit trails.</li>
+          <li><strong>Partners & Commercial Vendors Portal</strong>: Dedicated corporate sponsorship packages (Title Sponsor ₹5,00,000 down to Supporting Partners ₹50,000), 13 vendor categories, multi-step application forms with draft persistence, and deliverables tracking.</li>
+          <li><strong>Document Generation Service</strong>: In-memory dynamic PDF rendering for official Rider Passes (with QR code and bib styling) and Participation Certificates using <code>pdf-lib</code> and <code>pdfkit</code>.</li>
+          <li><strong>Dual Client Architecture</strong>: Clean separation of public visitor surface (<code>index.html</code>) and high-security administrative operations (<code>internal.html</code>).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 2. High-Level Design (HLD) -->
+    <section id="system-architecture">
+      <h2><span class="section-num">02</span> High-Level Design (HLD)</h2>
+      <p>
+        The platform utilizes a decoupled client-server architecture with an Express.js REST API backend backing dual single-page application (SPA) builds generated by Vite. The backend employs an abstract repository pattern supporting both production PostgreSQL and an in-memory Mock database for unit testing.
+      </p>
+
+      <div class="diagram-box">
+        <pre class="mermaid">
+flowchart TB
+    subgraph Clients["Frontend Clients (Vite 8 + React 18)"]
+        PublicApp["Public Web Portal<br/>(client/index.html & App.jsx)<br/>Routes: /, /register, /checkin, /partners, /vendors"]
+        AdminApp["Internal Admin Console<br/>(client/internal.html & InternalApp.jsx)<br/>Route: /admin"]
+    end
+
+    subgraph Edge["Gateway & Middleware Layer (Express 5.2)"]
+        Cors["Host Validation & Strict CORS"]
+        Helmet["Security Headers (Helmet & CSP)"]
+        RateLimit["In-Memory Rate Limiting Engine"]
+        AuthGuards["Auth Guards<br/>(requireAdmin, requireVolunteer)"]
+    end
+
+    subgraph APIRouters["API Routing Layer"]
+        CyclothonR["/api/cyclothon<br/>Registrations & Webhook"]
+        CheckinR["/api/checkin<br/>QR Scanner & Search"]
+        PartnersR["/api/partners & /partnerships<br/>Sponsor Tiers & Forms"]
+        VendorsR["/api/vendors<br/>Categories & Vendor Forms"]
+        CommunityR["/api/community<br/>Wall Posts & Moderated Media"]
+        ContentR["/api/content<br/>Site Settings & Visitor Stats"]
+        AdminR["/api/admin<br/>Management & Exports"]
+        UploadsR["/api/uploads<br/>Wholesale Documents"]
+        ProductsOrdersR["/api/products & /orders<br/>Catalog & Checkout"]
+    end
+
+    subgraph DomainServices["Core Service Layer"]
+        SecService["Security Service<br/>(HMAC Tokens & Bcrypt)"]
+        DocService["Event Document Engine<br/>(pdf-lib, pdfkit, QRCode)"]
+        MediaService["Media & Storage Service<br/>(Sharp, Multer, Magic-Bytes)"]
+        MailService["Email Service<br/>(Nodemailer + Templates)"]
+        RzpService["Razorpay Client<br/>(Orders & Signatures)"]
+    end
+
+    subgraph DataStorage["Data & Storage Persistence Layer"]
+        Repo["Abstract Repository Interface"]
+        PostgresDB[("PostgreSQL 16 Database<br/>(25 Relations, JSONB, Indexes)")]
+        MockDB[("Mock Repository<br/>(In-Memory Arrays for Tests)")]
+        LocalDisk[("File System Storage<br/>(uploads/profiles, community, docs)")]
+    end
+
+    subgraph ExternalSystems["External Third-Party Services"]
+        RazorpayAPI["Razorpay Payment Gateway"]
+        SMTPRelay["SMTP Mail Server (Gmail / Custom)"]
+    end
+
+    PublicApp -->|HTTPS / REST| Cors
+    AdminApp -->|HTTPS / REST| Cors
+    Cors --> Helmet --> RateLimit --> AuthGuards
+    AuthGuards --> APIRouters
+
+    APIRouters --> DomainServices
+    DomainServices --> Repo
+    Repo -->|DB_BACKEND=postgres| PostgresDB
+    Repo -->|DB_BACKEND=mock| MockDB
+    MediaService --> LocalDisk
+    DocService --> LocalDisk
+
+    DomainServices -->|Payments| RazorpayAPI
+    DomainServices -->|Notifications| SMTPRelay
+        </pre>
+        <div class="diagram-caption">Figure 1: High-Level System Architecture and Component Topology</div>
+      </div>
+
+      <h3>Architectural Tenets</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Architecture Pillar</th>
+              <th>Design Decision</th>
+              <th>Technical Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Dual Entry Build</strong></td>
+              <td>Separated <code>main.jsx</code> and <code>internal-main.jsx</code></td>
+              <td>Ensures internal administration code and sensitive parsing logic are not bundled into public visitor bundles, decreasing initial bundle size and surface attack area.</td>
+            </tr>
+            <tr>
+              <td><strong>Repository Pattern</strong></td>
+              <td><code>PostgresRepository</code> and <code>MockRepository</code> with identical interfaces</td>
+              <td>Allows unit tests (Vitest) to execute without requiring an external PostgreSQL instance, running 15 full E2E test suites in under 2 seconds.</td>
+            </tr>
+            <tr>
+              <td><strong>Direct-to-Buffer Storage</strong></td>
+              <td>Multer <code>memoryStorage</code> with Sharp transcoding</td>
+              <td>No temporary files touch disk before validation; images are re-encoded to WebP format, stripping malicious EXIF data and neutralizing polyglot attacks.</td>
+            </tr>
+            <tr>
+              <td><strong>Stateless Dual Scoped Tokens</strong></td>
+              <td>Custom HMAC-SHA256 signed bearer tokens</td>
+              <td>Separate token scopes (<code>admin</code> vs <code>volunteer_checkin</code>) with configurable TTLs (15 min admin, 8 hr volunteer) requiring no centralized session cache.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. Low-Level Design (LLD) -->
+    <section id="low-level-design">
+      <h2><span class="section-num">03</span> Low-Level Design (LLD)</h2>
+      <p>
+        The Low-Level Design specifies the interaction protocols, sequence lifecycles, and component-level mechanics across critical operational flows.
+      </p>
+
+      <h3>Sequence Diagram: Rider Registration & Payment Lifecycle</h3>
+      <div class="diagram-box">
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Rider as Rider / User
+    participant Browser as Client (RegisterPage)
+    participant API as Cyclothon Router (/api/cyclothon)
+    participant Rate as Rate Limiter
+    participant Zod as Validation (validation.js)
+    participant Repo as Postgres Repository
+    participant RZP as Razorpay Gateway
+    participant Mail as Email Service
+
+    Rider->>Browser: Fill Registration Form (Category, Emergency Contact, Waiver)
+    Browser->>API: POST /api/cyclothon/registrations (JSON)
+    API->>Rate: Check Rate Limit (5 / hour / IP)
+    Rate-->>API: Allowed
+    API->>Zod: parseSchema(registrationCreateSchema) + normalizeRegistrationInput
+    Zod-->>API: Validated Payload
+    API->>Repo: Check Duplicate (email, phone)
+    alt Already Registered with Paid / Confirmed
+        Repo-->>API: ConflictError ("A registration already exists...")
+        API-->>Browser: 409 Conflict
+    else Available
+        API->>RZP: Create Order (Paise amount, receipt)
+        RZP-->>API: Order ID (order_xyz)
+        API->>Repo: INSERT cyclothon_registrations (status='pending')
+        Repo-->>API: Registration Record
+        API-->>Browser: 201 Created + Razorpay Checkout Config
+    end
+
+    Browser->>Rider: Open Razorpay Checkout Modal
+    Rider->>RZP: Submit UPI / Card / Netbanking
+    RZP-->>Browser: Payment Success (order_id, payment_id, signature)
+
+    Browser->>API: POST /api/cyclothon/registrations/:id/payment/verify
+    API->>API: Calculate HMAC-SHA256(order_id + "|" + payment_id, secret)
+    alt Signature Matches
+        API->>Repo: verifyCyclothonPayment(id, payment_id, signature)
+        Repo-->>API: Updated Record (status='confirmed', payment_status='paid')
+        API->>Mail: sendRegistrationConfirmation (Async)
+        Mail-->>Rider: Dispatch HTML Email + QR Checkin Prefix
+        API-->>Browser: 200 OK + Registration Read Record
+        Browser->>Rider: Display Success Screen with Ticket Details
+    else Signature Invalid
+        API-->>Browser: 400 Validation Error ("Signature verification failed")
+    end
+        </pre>
+        <div class="diagram-caption">Figure 2: Complete Rider Registration and Cryptographic Payment Sequence</div>
+      </div>
+
+      <h3>Sequence Diagram: Race-Day QR Check-in Protocol</h3>
+      <div class="diagram-box">
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Volunteer as Race Volunteer
+    participant Scanner as Client (CheckinPage / Camera)
+    participant CheckinAPI as Checkin Router (/api/checkin)
+    participant Security as Security Service (requireVolunteer)
+    participant Repo as Postgres Repository
+    actor Rider as Rider at Booth
+
+    Volunteer->>Scanner: Login with Volunteer PIN
+    Scanner->>CheckinAPI: POST /api/checkin/session
+    CheckinAPI->>Repo: Validate PIN against volunteer_accounts (Bcrypt)
+    CheckinAPI-->>Scanner: 200 OK + Bearer Token (volunteer_checkin scope)
+
+    Rider->>Volunteer: Presents Digital Pass or Email QR Code
+    Scanner->>Scanner: Camera decodes "nvcyclothon-checkin:TOKEN_STRING"
+    Scanner->>CheckinAPI: POST /api/checkin/participants/scan {scan_value: ...}
+    CheckinAPI->>Security: Verify Bearer Token
+    Security-->>CheckinAPI: Token Valid (volunteer_name)
+    CheckinAPI->>CheckinAPI: Extract and Validate Token Pattern
+    CheckinAPI->>Repo: checkInByToken(token, volunteerName, method='qr')
+    alt Not Checked In Yet
+        Repo->>Repo: UPDATE cyclothon_registrations SET status='checked_in', checked_in_at=NOW()
+        Repo->>Repo: INSERT volunteer_checkin_logs (outcome='success')
+        Repo-->>CheckinAPI: Participant Record (already_checked_in=false)
+        CheckinAPI-->>Scanner: 200 OK + Participant Details
+        Scanner->>Volunteer: Green Flash + Audio Beep + Bib Assignment
+    else Already Checked In Earlier
+        Repo->>Repo: INSERT volunteer_checkin_logs (outcome='duplicate')
+        Repo-->>CheckinAPI: Participant Record (already_checked_in=true)
+        CheckinAPI-->>Scanner: 200 OK (already_checked_in=true)
+        Scanner->>Volunteer: Yellow Warning ("Already checked in at HH:MM by Volunteer X")
+    end
+        </pre>
+        <div class="diagram-caption">Figure 3: High-Speed Race-Day Check-in and Audit Flow</div>
+      </div>
+    </section>
+
+    <!-- 4. Database Schema & Entity Model -->
+    <section id="database-schema">
+      <h2><span class="section-num">04</span> Database & Entity Model</h2>
+      <p>
+        The persistence tier contains <strong>25 normalized relational tables</strong> with foreign-key cascades, unique constraints, and optimized B-tree indexes for high-frequency queries.
+      </p>
+
+      <div class="diagram-box">
+        <pre class="mermaid">
+erDiagram
+    cyclothon_registrations ||--o| rider_passes : "generates"
+    cyclothon_registrations ||--o| participation_certificates : "receives"
+    cyclothon_registrations ||--o{ registration_email_deliveries : "logs"
+    cyclothon_registrations ||--o{ volunteer_checkin_logs : "records"
+
+    customers ||--o{ orders : "places"
+    orders ||--|{ order_items : "contains"
+    products ||--o{ order_items : "references"
+
+    sponsorship_tiers ||--o{ partner_applications : "classified_under"
+    partner_applications ||--o{ partner_brand_assets : "owns"
+    partner_applications ||--o{ partner_deliverables : "tracks"
+    partner_applications ||--o{ partner_payments : "billed_via"
+
+    cyclothon_registrations {
+        int id PK
+        varchar full_name
+        varchar email UK
+        varchar phone
+        int age
+        varchar city
+        varchar ride_category
+        varchar status
+        int registration_fee_paise
+        varchar razorpay_order_id UK
+        varchar razorpay_payment_id UK
+        varchar checkin_token
+        timestamp checked_in_at
+        varchar checked_in_by
+    }
+
+    volunteer_checkin_logs {
+        int id PK
+        int registration_id FK
+        varchar volunteer_name
+        varchar method
+        varchar outcome
+        timestamp scanned_at
+    }
+
+    partner_applications {
+        int id PK
+        varchar application_number UK
+        varchar company_name
+        varchar email
+        varchar phone
+        int sponsorship_tier_id FK
+        varchar package_name
+        varchar status
+        varchar payment_status
+        jsonb activation_options
+        jsonb visibility_interests
+    }
+
+    partner_deliverables {
+        int id PK
+        int partner_id FK
+        varchar deliverable_type
+        varchar status
+        timestamp completed_at
+    }
+
+    vendor_applications {
+        int id PK
+        varchar application_number UK
+        varchar business_name
+        varchar email
+        varchar phone
+        varchar category
+        boolean electricity_required
+        boolean water_required
+        varchar status
+    }
+
+    volunteer_accounts {
+        int id PK
+        varchar volunteer_id UK
+        varchar display_name
+        varchar password_hash
+        boolean active
+    }
+
+    admin_users {
+        int id PK
+        varchar username UK
+        varchar password_hash
+        boolean active
+    }
+
+    community_posts {
+        int id PK
+        varchar name
+        text message
+        varchar image_key
+        varchar status
+        varchar submitted_ip
+        timestamp created_at
+    }
+        </pre>
+        <div class="diagram-caption">Figure 4: Core Entity-Relationship Diagram (ERD)</div>
+      </div>
+
+      <h3>Database Schema Details</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Table Name</th>
+              <th>Purpose & Lifecycle</th>
+              <th>Key Indexes & Constraints</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>cyclothon_registrations</code></td>
+              <td>Core participant table tracking rider details, category, emergency contact, waiver, payment IDs, and race-day check-in status.</td>
+              <td><code>uq_cyclothon_registrations_email_normalized</code>, <code>uq_cyclothon_razorpay_order</code>, <code>status, created_at DESC</code></td>
+            </tr>
+            <tr>
+              <td><code>partner_applications</code></td>
+              <td>Corporate sponsorship applications with GSTIN, PAN, brand guidelines, activation options, review statuses, and assigned package.</td>
+              <td><code>application_number UNIQUE</code>, <code>status, created_at DESC</code>, <code>lower(email)</code></td>
+            </tr>
+            <tr>
+              <td><code>partner_deliverables</code></td>
+              <td>Itemized contractual deliverables (e.g. Jersey Logo, Finish Gantry, Expo Booth) checked off by admins during fulfillment.</td>
+              <td><code>partner_id FK -> partner_applications(id) ON DELETE CASCADE</code></td>
+            </tr>
+            <tr>
+              <td><code>vendor_applications</code></td>
+              <td>Event vendor stall requests with operational requirements (electricity, water, security) and catalog attachments.</td>
+              <td><code>application_number UNIQUE</code>, <code>category</code>, <code>status, created_at DESC</code></td>
+            </tr>
+            <tr>
+              <td><code>volunteer_checkin_logs</code></td>
+              <td>Append-only immutable audit log of every scan or manual check-in attempt with device info and outcome.</td>
+              <td><code>registration_id FK -> cyclothon_registrations(id) ON DELETE CASCADE</code></td>
+            </tr>
+            <tr>
+              <td><code>volunteer_accounts</code></td>
+              <td>Dedicated credentials for event-day volunteers with bcrypt-hashed PINs and active/inactive state switches.</td>
+              <td><code>volunteer_id UNIQUE</code></td>
+            </tr>
+            <tr>
+              <td><code>admin_users</code></td>
+              <td>Administrator accounts with bcrypt password hashes used for dashboard authentication.</td>
+              <td><code>username UNIQUE</code></td>
+            </tr>
+            <tr>
+              <td><code>community_posts</code></td>
+              <td>Public fan messages and rider testimonials with moderation statuses (<code>pending</code>, <code>approved</code>, <code>rejected</code>).</td>
+              <td><code>status, created_at DESC</code>, <code>submitted_ip, created_at DESC</code></td>
+            </tr>
+            <tr>
+              <td><code>site_settings</code></td>
+              <td>Singleton table (<code>id = 1</code>) storing dynamic site configuration in JSONB (dates, prices, open/closed flags).</td>
+              <td><code>CHECK (id = 1)</code></td>
+            </tr>
+            <tr>
+              <td><code>page_visits</code></td>
+              <td>Privacy-preserving visitor telemetry tracking path, timezone, and locale without collecting PII.</td>
+              <td><code>ix_page_visits_created_at</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. Complete API Endpoints Catalog -->
+    <section id="api-endpoints">
+      <h2><span class="section-num">05</span> Complete API Endpoints Catalog</h2>
+      <p>
+        The backend exposes <strong>37 distinct REST endpoints</strong> across 10 functional modules. Below is the exhaustive reference catalog:
+      </p>
+
+      <h3>Public Endpoints (No Authentication Required)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Path</th>
+              <th>Rate Limit</th>
+              <th>Payload Summary</th>
+              <th>Success Response</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/health</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 { status: "ok", service: "..." }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/content/settings</code></td>
+              <td>None (Cache 30s)</td>
+              <td>None</td>
+              <td><code>200 { registration_open: bool, event_date: "..." }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/content/visits</code></td>
+              <td>None</td>
+              <td><code>{ path: str, timezone: str, locale: str }</code></td>
+              <td><code>204 No Content</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/content/offers</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ { title, description, code } ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/content/chief-guests</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ { name, designation, bio, image_url } ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/content/organizing-members</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ { name, role, message, image_url } ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/content/sponsorship-tiers</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ { name, amount_paise, benefits } ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/content/profile-media/:key</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 Image (image/webp)</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/cyclothon/registrations</code></td>
+              <td>5 / hr / IP</td>
+              <td><code>{ full_name, email, phone, age, city, ride_category, emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted }</code></td>
+              <td><code>201 { id, full_name, ride_category, checkout: {...} }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/cyclothon/registrations/:id/payment/verify</code></td>
+              <td>None</td>
+              <td><code>{ razorpay_order_id, razorpay_payment_id, razorpay_signature }</code></td>
+              <td><code>200 { id, status: "confirmed", ... }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/cyclothon/webhook/razorpay</code></td>
+              <td>None</td>
+              <td>Webhook payload + <code>x-razorpay-signature</code></td>
+              <td><code>204 No Content</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/partners/tiers</code> / <code>/packages</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ { id, name, amount_paise, availability } ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/partners/approved</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ { company_name, package_name, logo_url } ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/partners/applications</code></td>
+              <td>10 / hr / IP</td>
+              <td><code>multipart/form-data</code> (5-step form fields + optional <code>logo</code> file &le; 5MB)</td>
+              <td><code>201 { success: true, reference_number: "NV-26-P-XXXXX" }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/partners/applications/:ref</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 { application_number, company_name, status }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/vendors/categories</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 [ "Cycling & Sports", "Food & Nutrition", ... ]</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/vendors/applications</code></td>
+              <td>10 / hr / IP</td>
+              <td><code>multipart/form-data</code> (Vendor details + optional <code>document</code> file &le; 10MB)</td>
+              <td><code>201 { success: true, reference_number: "NV-26-V-XXXXX" }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/vendors/applications/:ref</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 { application_number, business_name, status }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/community/posts</code></td>
+              <td>None (Cache 30s)</td>
+              <td>None</td>
+              <td><code>200 { enabled: true, items: [ { name, message, image_url } ] }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/community/posts</code></td>
+              <td>3 / day / IP</td>
+              <td><code>multipart/form-data</code> (name, message, consent_accepted + optional <code>image</code> &le; 5MB)</td>
+              <td><code>201 { id, status: "pending", message: "..." }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/community/media/:key</code></td>
+              <td>None (Cache 1hr)</td>
+              <td>None</td>
+              <td><code>200 Image (image/webp)</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/session</code></td>
+              <td>10 / 15m / IP</td>
+              <td><code>{ admin_username, admin_key }</code></td>
+              <td><code>200 { access_token, token_type: "bearer", expires_in: 900 }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/checkin/session</code></td>
+              <td>20 / 15m / IP</td>
+              <td><code>{ volunteer_name, volunteer_pin }</code></td>
+              <td><code>200 { access_token, token_type: "bearer", expires_in: 28800 }</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Volunteer Check-in Endpoints (Requires <code>volunteer_checkin</code> Bearer Token)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Path</th>
+              <th>Rate Limit</th>
+              <th>Payload Summary</th>
+              <th>Success Response</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/checkin/status</code></td>
+              <td>None</td>
+              <td>None</td>
+              <td><code>200 { enabled: true }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/checkin/participants/search</code></td>
+              <td>90 / min / User</td>
+              <td>Query param: <code>?q=phone_or_name</code></td>
+              <td><code>200 { count: N, items: [ participantSummary ] }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/checkin/participants/scan</code></td>
+              <td>None</td>
+              <td><code>{ scan_value: "nvcyclothon-checkin:TOKEN", source_device: "..." }</code></td>
+              <td><code>200 { already_checked_in: bool, participant: {...} }</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/checkin/participants/manual-checkin</code></td>
+              <td>None</td>
+              <td><code>{ registration_id: int, source_device: "..." }</code></td>
+              <td><code>200 { already_checked_in: bool, participant: {...} }</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Administrator Endpoints (Requires <code>admin</code> Bearer Token)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Path</th>
+              <th>Payload / Query Summary</th>
+              <th>Description & Response</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/analytics</code></td>
+              <td>None</td>
+              <td>Aggregate totals: registrations, revenue, checked-in count, categories.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/visitor-analytics</code></td>
+              <td>None</td>
+              <td>Daily unique visitor aggregates, page breakdown, and top referrers.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/settings</code></td>
+              <td>None</td>
+              <td>Returns full raw site configuration JSONB.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-patch">PATCH</span></td>
+              <td><code>/api/admin/settings</code></td>
+              <td><code>siteSettingsPatchSchema</code></td>
+              <td>Updates runtime site settings (open/close registration, toggle forms).</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/registrations</code></td>
+              <td>None</td>
+              <td>Returns full list of all registrations with payment details.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/registrations/bulk-status</code></td>
+              <td><code>{ registration_ids: [int], status: str }</code></td>
+              <td>Bulk update participant statuses (e.g. <code>confirmed</code>, <code>cancelled</code>).</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/registrations/roster-match</code></td>
+              <td><code>multipart/form-data</code> (CSV/XLSX file)</td>
+              <td>Matches uploaded roster spreadsheet against registered riders.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/registrations/certificates/generate</code></td>
+              <td><code>{ registration_ids: [int] }</code></td>
+              <td>Generates participation certificates in bulk using PDF templates.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/registrations/:id/certificate-preview</code></td>
+              <td>None</td>
+              <td>Streams generated certificate PDF directly to browser.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/registrations/rider-passes/generate</code></td>
+              <td><code>{ registration_ids: [int] }</code></td>
+              <td>Generates official rider pass PDFs with QR code and bib details.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/registrations/:id/rider-pass-preview</code></td>
+              <td>None</td>
+              <td>Streams generated rider pass PDF directly to browser.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/event-updates/email</code></td>
+              <td><code>{ subject: str, html_body: str, target_category: str }</code></td>
+              <td>Broadcasts transactional email update to registered participants.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/partner-applications</code></td>
+              <td><code>?status=...&search=...</code></td>
+              <td>Lists partner applications with status filters and search matching.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/partner-applications/export</code></td>
+              <td>None</td>
+              <td>Downloads complete partner applications list as formatted CSV.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/partner-applications/:id/review</code></td>
+              <td><code>{ status: str, notes: str }</code></td>
+              <td>Updates partner status and triggers automated approval/rejection emails.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/partner-applications/:id/deliverables</code></td>
+              <td>None</td>
+              <td>Retrieves partner deliverables checklist and completion statuses.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-patch">PATCH</span></td>
+              <td><code>/api/admin/partner-applications/:id/deliverables/:delId</code></td>
+              <td><code>{ status: str, notes: str }</code></td>
+              <td>Updates specific partner deliverable fulfillment state.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/partner-applications/:id/logo</code></td>
+              <td>None</td>
+              <td>Streams uploaded partner logo file securely to admin.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/vendor-applications</code></td>
+              <td><code>?status=...&search=...</code></td>
+              <td>Lists vendor applications with category filtering and text search.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/vendor-applications/export</code></td>
+              <td>None</td>
+              <td>Downloads all vendor applications and power/water specs as CSV.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/vendor-applications/:id/review</code></td>
+              <td><code>{ status: str, notes: str }</code></td>
+              <td>Updates vendor review status with audit notes and triggers emails.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/vendor-applications/:id/document</code></td>
+              <td>None</td>
+              <td>Streams uploaded vendor catalog or FSSAI license PDF/image.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span> / <span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/volunteers</code></td>
+              <td><code>{ volunteer_id, display_name, password }</code></td>
+              <td>Lists active volunteer accounts or registers new race-day volunteers.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-patch">PATCH</span></td>
+              <td><code>/api/admin/volunteers/:volunteerId</code></td>
+              <td><code>{ active: bool, password: str }</code></td>
+              <td>Activates, deactivates, or resets credentials for a volunteer account.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-get">GET</span></td>
+              <td><code>/api/admin/community/posts</code></td>
+              <td><code>?status=pending|approved|rejected</code></td>
+              <td>Lists submitted community posts for moderation queue.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/admin/community/posts/:id/moderate</code></td>
+              <td><code>{ status: "approved"|"rejected", reason: str }</code></td>
+              <td>Moderates community post; approved posts become visible on homepage wall.</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-post">POST</span></td>
+              <td><code>/api/uploads</code></td>
+              <td><code>multipart/form-data</code> (<code>files</code> &le; 25MB each)</td>
+              <td>Wholesale file upload endpoint verifying file magic bytes and extensions.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. Frontend Architecture -->
+    <section id="frontend-architecture">
+      <h2><span class="section-num">06</span> Frontend Architecture & UI Engine</h2>
+      <p>
+        The frontend is constructed using <strong>React 18.3</strong> with <strong>Vite 8</strong> and <strong>Tailwind CSS 3.4</strong>, following a domain-driven feature folder structure.
+      </p>
+
+      <div class="card">
+        <h4 style="margin-top:0; color:#fff;">Design System & Color Tokens</h4>
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:0.75rem;">
+          <div style="background:#071313; border:1px solid #334; padding:0.6rem 1rem; border-radius:8px; font-size:0.8rem;">
+            <div style="font-weight:700; color:#fff;">Dark Ink (#071313)</div>
+            <div style="color:var(--text-muted);">Primary Brand Surface</div>
+          </div>
+          <div style="background:#f4f1e9; color:#071313; border:1px solid #ddd; padding:0.6rem 1rem; border-radius:8px; font-size:0.8rem;">
+            <div style="font-weight:700;">Cream Sand (#f4f1e9)</div>
+            <div>Secondary Light Surface</div>
+          </div>
+          <div style="background:#ff5f3d; color:#fff; padding:0.6rem 1rem; border-radius:8px; font-size:0.8rem;">
+            <div style="font-weight:700;">Coral Flame (#ff5f3d)</div>
+            <div>Energy & Accent CTA</div>
+          </div>
+          <div style="background:#d9ff38; color:#071313; padding:0.6rem 1rem; border-radius:8px; font-size:0.8rem;">
+            <div style="font-weight:700;">Acid Lime (#d9ff38)</div>
+            <div>Vibrant High-Visibility</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Frontend Component Structure</h3>
+      <div class="diagram-box">
+        <pre class="mermaid">
+graph TD
+    App["App.jsx (Public Router & Providers)"]
+    App --> SiteSettingsProvider["SiteSettingsContext (Cache & Flags)"]
+    SiteSettingsProvider --> Seo["Dynamic SEO Head Manager"]
+    SiteSettingsProvider --> PublicRoutes["Public Page Routes"]
+
+    subgraph Pages["Public Pages (Lazy Loaded)"]
+        PublicRoutes --> HomeP["HomePage.jsx"]
+        PublicRoutes --> RegP["RegisterPage.jsx"]
+        PublicRoutes --> CheckinP["CheckinPage.jsx"]
+        PublicRoutes --> PartnerP["PartnerPage.jsx"]
+        PublicRoutes --> VendorP["VendorPage.jsx"]
+    end
+
+    subgraph HomeComponents["HomePage Feature Modules"]
+        HomeP --> BicycleHero["BicycleHero.jsx (Hero Animation)"]
+        HomeP --> EventExp["EventExperience.jsx (Causes & Atmosphere)"]
+        HomeP --> RouteNav["RouteNavigator.jsx (4 Interactive Elevation Maps)"]
+        HomeP --> RideCards["RideCards.jsx (60KM, 30KM, 10KM, 2.5KM)"]
+        HomeP --> RiderBen["RiderBenefits.jsx (Jersey, Medal, Food, Pass)"]
+        HomeP --> EventStory["EventStory.jsx (Leadership & History)"]
+        HomeP --> OurPartners["OurPartners.jsx (Approved Sponsor Grid)"]
+        HomeP --> CommWall["CommunityWall.jsx (Moderated Messages)"]
+    end
+
+    subgraph PartnerComponents["Partner Feature Modules"]
+        PartnerP --> PartnerHero["PartnerHero.jsx (Dual CTAs)"]
+        PartnerP --> WhyPartner["WhyPartner.jsx (6 Strategic Value Props)"]
+        PartnerP --> SponPkg["SponsorshipPackages.jsx (6 Packages)"]
+        PartnerP --> SponComp["SponsorshipComparison.jsx (Matrix)"]
+        PartnerP --> BrandVis["BrandVisibility.jsx (12 Touchpoints)"]
+        PartnerP --> PartForm["PartnerApplicationForm.jsx (5-Step Form)"]
+    end
+
+    subgraph VendorComponents["Vendor Feature Modules"]
+        VendorP --> VendorSec["VendorSection.jsx (13 Categories)"]
+        VendorP --> VendorForm["VendorApplicationForm.jsx (Stall Form)"]
+    end
+
+    subgraph InternalAppGraph["Internal Admin Console (internal.html)"]
+        InternalApp["InternalApp.jsx"] --> AdminPage["AdminPage.jsx (Master Dashboard)"]
+        AdminPage --> SubPanels["10 Domain Panels (Registrations, Passes, Partners, etc.)"]
+    end
+        </pre>
+        <div class="diagram-caption">Figure 5: Frontend Component Hierarchy and Code Splitting Architecture</div>
+      </div>
+    </section>
+
+    <!-- 7. Security & Risk Audit -->
+    <section id="security-audit">
+      <h2><span class="section-num">07</span> Security & Risk Audit</h2>
+      <p>
+        An exhaustive security analysis of the backend and frontend code revealed several key defensive strengths, alongside <strong>four critical-to-medium security findings</strong> that must be remediated prior to high-traffic public launch.
+      </p>
+
+      <div class="callout warning">
+        <div class="callout-title">Summary of Security Posture</div>
+        The application demonstrates excellent defensive coding practices in SQL parameterization, input schema validation (Zod), and image transcoding (Sharp). However, an access control bypass exists on legacy product endpoints, and token revocation is not supported.
+      </div>
+
+      <h3>Detailed Vulnerability Findings</h3>
+
+      <!-- Finding 1 -->
+      <div class="card" style="border-left: 4px solid var(--red);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <h4 style="margin:0; color:#fff;">1. Unauthenticated Product Modification & Deletion (Broken Access Control)</h4>
+          <span class="badge sev-critical">CRITICAL (CVSS 8.5)</span>
+        </div>
+        <p><strong>File Affected:</strong> <code>backend/src/app.js</code> (lines 174–180) and <code>backend/src/routes/products.js</code></p>
+        <p>
+          <strong>Vulnerability Description:</strong> The products router is mounted at <code>app.use("/api/products", createProductsRouter({ ... }))</code> without any authentication middleware. Within <code>products.js</code>, the routes <code>POST /</code>, <code>PATCH /:slug</code>, and <code>DELETE /:slug</code> are defined without checking for an administrative token.
+        </p>
+        <p>
+          <strong>Exploit Scenario:</strong> Any anonymous attacker on the internet can craft a <code>DELETE /api/products/saffron-gold</code> or <code>POST /api/products</code> request to delete catalog items or insert arbitrary spam records into the database.
+        </p>
+        <p><strong>Remediation:</strong> Apply <code>requireAdmin(config)</code> to all mutating HTTP methods (<code>POST</code>, <code>PATCH</code>, <code>PUT</code>, <code>DELETE</code>) on the products router.</p>
+        <pre><code>// In backend/src/routes/products.js:
+const { requireAdmin } = require("../services/security");
+
+router.post("/", requireAdmin(config), async (req, res) => { ... });
+router.patch("/:slug", requireAdmin(config), async (req, res) => { ... });
+router.delete("/:slug", requireAdmin(config), async (req, res) => { ... });</code></pre>
+      </div>
+
+      <!-- Finding 2 -->
+      <div class="card" style="border-left: 4px solid var(--coral);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <h4 style="margin:0; color:#fff;">2. Non-Standard Token Implementation with No Revocation (Replay Window)</h4>
+          <span class="badge sev-high">HIGH (CVSS 7.2)</span>
+        </div>
+        <p><strong>File Affected:</strong> <code>backend/src/services/security.js</code></p>
+        <p>
+          <strong>Vulnerability Description:</strong> The system implements a custom token signing algorithm (<code>issueScopedToken</code>: <code>base64url(payload).hmac_sha256(secret)</code>). While cryptographically sound using <code>crypto.timingSafeEqual</code>, tokens are completely stateless without token revocation or rotation. Volunteer tokens are configured with an 8-hour lifetime (<code>VOLUNTEER_SESSION_TTL_SECONDS = 28800</code>).
+        </p>
+        <p>
+          <strong>Exploit Scenario:</strong> If an event volunteer's device is compromised or a token is intercepted on an insecure network, an attacker can perform check-ins and extract rider data for up to 8 hours, even if the admin resets or deactivates the volunteer's account in the database.
+        </p>
+        <p><strong>Remediation:</strong> Validate that the volunteer account is still active on each authenticated request by querying the database in <code>requireVolunteer</code>, or store a token issue timestamp in <code>volunteer_accounts</code> and invalidate tokens issued prior to account updates.</p>
+      </div>
+
+      <!-- Finding 3 -->
+      <div class="card" style="border-left: 4px solid var(--yellow);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <h4 style="margin:0; color:#fff;">3. In-Memory Rate Limiter in Multi-Process / Cluster Deployments</h4>
+          <span class="badge sev-medium">MEDIUM (CVSS 5.3)</span>
+        </div>
+        <p><strong>File Affected:</strong> <code>backend/src/middleware/rateLimit.js</code></p>
+        <p>
+          <strong>Vulnerability Description:</strong> The rate limiter keeps hits in an in-memory <code>Map</code>. If the application is deployed behind a load balancer with multiple Node.js worker processes (e.g. PM2 cluster or Kubernetes pods), each process maintains its own memory table. An attacker can distribute requests across processes, effectively multiplying the allowed threshold.
+        </p>
+        <p><strong>Remediation:</strong> For distributed production deployments, swap the in-memory rate limiter with a Redis-backed token bucket (e.g. <code>ioredis</code> or <code>rate-limiter-flexible</code>).</p>
+      </div>
+
+      <!-- Finding 4 -->
+      <div class="card" style="border-left: 4px solid var(--blue);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <h4 style="margin:0; color:#fff;">4. Missing CSRF Defense on Same-Site Cookie Scenarios (Defense in Depth)</h4>
+          <span class="badge sev-low">LOW (CVSS 3.1)</span>
+        </div>
+        <p><strong>File Affected:</strong> <code>backend/src/app.js</code></p>
+        <p>
+          <strong>Vulnerability Description:</strong> While the application currently uses <code>Authorization: Bearer &lt;token&gt;</code> (which is immune to standard cross-site request forgery), if session handling is ever extended to cookies without anti-CSRF tokens, cross-origin mutations could occur.
+        </p>
+        <p><strong>Remediation:</strong> Continue using Authorization header tokens exclusively and do not transition to ambient session cookies without pairing with <code>SameSite=Strict</code> and CSRF double-submit cookies.</p>
+      </div>
+
+      <h3>Defensive Security Strengths Identified</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Security Domain</th>
+              <th>Implementation Mechanism</th>
+              <th>Evaluation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SQL Injection</strong></td>
+              <td>100% Parameterized queries using <code>pg.Pool.query($1, $2)</code></td>
+              <td><span class="badge badge-post">Robust</span> No string concatenation detected in SQL statements.</td>
+            </tr>
+            <tr>
+              <td><strong>Image File Uploads</strong></td>
+              <td>Sharp pipeline re-encodes image buffers to WebP format</td>
+              <td><span class="badge badge-post">Robust</span> Strips executable EXIF metadata, preventing image webshell and polyglot uploads.</td>
+            </tr>
+            <tr>
+              <td><strong>Document Magic Bytes</strong></td>
+              <td>Validates <code>%PDF-</code> and ZIP header <code>0x50 0x4B 0x03 0x04</code></td>
+              <td><span class="badge badge-post">Robust</span> Enforces genuine file format inspection beyond simple MIME type headers.</td>
+            </tr>
+            <tr>
+              <td><strong>Payment Webhook Verification</strong></td>
+              <td><code>crypto.timingSafeEqual</code> with HMAC-SHA256 signature</td>
+              <td><span class="badge badge-post">Robust</span> Prevents timing attacks on Razorpay webhook verification.</td>
+            </tr>
+            <tr>
+              <td><strong>Password Storage</strong></td>
+              <td>Bcrypt with standard cost factor 10</td>
+              <td><span class="badge badge-post">Robust</span> Passwords are salted and hashed; no plain text secrets stored in database.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 8. Remediation Action Plan -->
+    <section id="remediation-plan">
+      <h2><span class="section-num">08</span> Remediation Action Plan</h2>
+      <p>
+        The following prioritized steps provide a clear engineering roadmap to transition the codebase into an enterprise-grade, hardened production state:
+      </p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Task</th>
+              <th>Target File</th>
+              <th>Estimated Effort</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge sev-critical">P0</span></td>
+              <td>Protect <code>POST /api/products</code>, <code>PATCH</code>, and <code>DELETE</code> with <code>requireAdmin(config)</code>.</td>
+              <td><code>backend/src/routes/products.js</code></td>
+              <td>15 mins</td>
+            </tr>
+            <tr>
+              <td><span class="badge sev-high">P1</span></td>
+              <td>Add live active account verification inside <code>requireVolunteer</code> middleware to enforce immediate revocation.</td>
+              <td><code>backend/src/services/security.js</code></td>
+              <td>30 mins</td>
+            </tr>
+            <tr>
+              <td><span class="badge sev-medium">P2</span></td>
+              <td>Migrate in-memory rate limiting to Redis for multi-instance horizontal scaling.</td>
+              <td><code>backend/src/middleware/rateLimit.js</code></td>
+              <td>2 hours</td>
+            </tr>
+            <tr>
+              <td><span class="badge sev-low">P3</span></td>
+              <td>Implement database connection pool error listeners (<code>pool.on('error')</code>) to prevent unhandled process termination during network blips.</td>
+              <td><code>backend/src/db/postgresRepository.js</code></td>
+              <td>20 mins</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 9. Performance & Operations -->
+    <section id="ops-performance">
+      <h2><span class="section-num">09</span> Performance, Operations & Deployment</h2>
+      <p>
+        The NV Cyclothon infrastructure is optimized for both cost efficiency and race-day high concurrency.
+      </p>
+
+      <div class="card">
+        <h4 style="margin-top:0; color:#fff;">Production Deployment Architecture</h4>
+        <ul style="margin-left: 1.5rem; color: var(--text-muted); line-height: 1.8;">
+          <li><strong>Containerization</strong>: Docker and docker-compose configurations are ready for deployment on any standard VPS or cloud container service (e.g. AWS ECS, GCP Cloud Run, or DigitalOcean).</li>
+          <li><strong>Database Optimization</strong>: Connection pooling is pre-tuned. <code>cyclothon_registrations</code> features compound indexes on <code>(status, created_at DESC)</code> and case-insensitive unique indexes on <code>lower(email)</code> for fast lookups.</li>
+          <li><strong>Static Asset Delivery</strong>: Vite bundles are code-split into distinct chunks (e.g. <code>VendorPage</code> at 20 KB, <code>PartnerPage</code> at 51 KB). Re-usable assets are configured with long-term immutable caching headers.</li>
+          <li><strong>Document Generation Caching</strong>: Generated Rider Passes and Participation Certificates are cached on disk as static PDFs using a content-hash key (<code>rider-pass-2026-approved-v2-{id}.pdf</code>). Repeated downloads do not incur PDF rendering overhead.</li>
+        </ul>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-title">Audit Verification Sign-Off</div>
+        The full test suite (<code>npm test</code>) passes 15/15 tests across API routers, auth layers, and mock persistence. The frontend build (<code>npm run build</code>) completes cleanly in 805ms with 524 modules transformed.
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Smooth navigation active state tracker
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (pageYOffset >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${current}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

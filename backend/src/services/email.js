@@ -94,6 +94,119 @@ function createEmailService(config, logger = console) {
     }
   }
 
+  async function sendPartnerApplicationConfirmation(application) {
+    const banner = await bannerAttachment();
+    const refNum = application.application_number || `NV-26-P-${application.id}`;
+    const body = `<p style="font-size:16px;line-height:1.55">Thank you for your interest in partnering with NV Cyclothon 2026!</p>
+      <p style="font-size:16px;line-height:1.55">We have received your partner application for <strong>${escapeHtml(application.company_name)}</strong>. Our partnership team will review your application and contact you regarding availability and next steps.</p>
+      <p style="font-size:15px;line-height:1.55;color:#666">Reference Number: <strong>${escapeHtml(refNum)}</strong></p>
+      <p style="font-size:14px;line-height:1.55;color:#888;margin-top:20px;border-top:1px solid #eee;padding-top:15px">
+        Event: NV Cyclothon — 3rd Edition<br/>
+        Date: 22 November 2026 • Rewa, Madhya Pradesh<br/>
+        Contact: Aman Mishra, Joint Secretary, RDCA (+91 88395 03099 | nvcyclothon@gmail.com)
+      </p>`;
+    return send({
+      recipient: application.email,
+      subject: `Partner Application Received [${refNum}] — NV Cyclothon 2026`,
+      text: `Thank you for your partner application for ${application.company_name}. Reference Number: ${refNum}. Our partnership team will review your application and contact you shortly. Contact: Aman Mishra, RDCA (+91 88395 03099).`,
+      html: emailShell({ title: "You're in the Ride.", greeting: application.contact_name, body, banner: !!banner }),
+      attachments: banner ? [banner] : [],
+    });
+  }
+
+  async function sendPartnerApprovalNotification(application) {
+    const banner = await bannerAttachment();
+    const refNum = application.application_number || `NV-26-P-${application.id}`;
+    const body = `<p style="font-size:16px;line-height:1.55">We are delighted to inform you that your partner application for <strong>${escapeHtml(application.company_name)}</strong> has been <span style="color:#22c55e;font-weight:bold">approved</span>!</p>
+      <p style="font-size:16px;line-height:1.55">Welcome aboard as an official partner for NV Cyclothon 2026. Our team will reach out with next steps regarding branding deliverables, artwork collection, and event coordination.</p>
+      <p style="font-size:15px;line-height:1.55;color:#666">Reference Number: <strong>${escapeHtml(refNum)}</strong></p>
+      <p style="font-size:14px;line-height:1.55;color:#888;margin-top:20px;border-top:1px solid #eee;padding-top:15px">
+        Event: NV Cyclothon — 3rd Edition<br/>
+        Date: 22 November 2026 • Rewa, Madhya Pradesh<br/>
+        Contact: Aman Mishra, Joint Secretary, RDCA (+91 88395 03099)
+      </p>`;
+    return send({
+      recipient: application.email,
+      subject: `Partner Application Approved [${refNum}] — NV Cyclothon 2026`,
+      text: `Your partner application for ${application.company_name} has been approved! Reference Number: ${refNum}. Our team will contact you with next steps.`,
+      html: emailShell({ title: 'Welcome, Partner!', greeting: application.contact_name, body, banner: !!banner }),
+      attachments: banner ? [banner] : [],
+    });
+  }
+
+  async function sendPartnerRejectionNotification(application) {
+    const banner = await bannerAttachment();
+    const refNum = application.application_number || `NV-26-P-${application.id}`;
+    const notes = application.review_notes ? `<p style="font-size:15px;line-height:1.55;color:#666">Feedback / Reason: ${escapeHtml(application.review_notes)}</p>` : '';
+    const body = `<p style="font-size:16px;line-height:1.55">Thank you for your interest in partnering with NV Cyclothon 2026. After careful review, we are unable to accommodate your application for <strong>${escapeHtml(application.company_name)}</strong> at this time.</p>${notes}
+      <p style="font-size:16px;line-height:1.55">We appreciate your support and encourage you to connect with us for future editions and collaborations.</p>
+      <p style="font-size:15px;line-height:1.55;color:#666">Reference Number: <strong>${escapeHtml(refNum)}</strong></p>`;
+    return send({
+      recipient: application.email,
+      subject: `Partner Application Update [${refNum}] — NV Cyclothon 2026`,
+      text: `Your partner application for ${application.company_name} could not be accommodated at this time. Reference Number: ${refNum}. ${application.review_notes || ''}`,
+      html: emailShell({ title: 'Application Update', greeting: application.contact_name, body, banner: !!banner }),
+      attachments: banner ? [banner] : [],
+    });
+  }
+
+  async function sendVendorApplicationConfirmation(application) {
+    const banner = await bannerAttachment();
+    const refNum = application.application_number || `NV-26-V-${application.id}`;
+    const body = `<p style="font-size:16px;line-height:1.55">Thank you for applying as an event vendor for NV Cyclothon 2026!</p>
+      <p style="font-size:16px;line-height:1.55">We have received your vendor application for <strong>${escapeHtml(application.business_name)}</strong> in the <strong>${escapeHtml(application.category)}</strong> category.</p>
+      <p style="font-size:15px;line-height:1.55;color:#666">Reference Number: <strong>${escapeHtml(refNum)}</strong></p>
+      <p style="font-size:14px;line-height:1.55;color:#555">Vendor requirements, space allocation and commercial terms will be discussed during application review.</p>
+      <p style="font-size:14px;line-height:1.55;color:#888;margin-top:20px;border-top:1px solid #eee;padding-top:15px">
+        Event: NV Cyclothon — 3rd Edition<br/>
+        Date: 22 November 2026 • Rewa, Madhya Pradesh<br/>
+        Contact: Aman Mishra, Joint Secretary, RDCA (+91 88395 03099 | nvcyclothon@gmail.com)
+      </p>`;
+    return send({
+      recipient: application.email,
+      subject: `Vendor Application Received [${refNum}] — NV Cyclothon 2026`,
+      text: `Thank you for your vendor application for ${application.business_name}. Reference Number: ${refNum}. Vendor requirements and terms will be discussed during review.`,
+      html: emailShell({ title: 'Application Received', greeting: application.representative_name || application.contact_name, body, banner: !!banner }),
+      attachments: banner ? [banner] : [],
+    });
+  }
+
+  async function sendVendorApprovalNotification(application) {
+    const banner = await bannerAttachment();
+    const refNum = application.application_number || `NV-26-V-${application.id}`;
+    const body = `<p style="font-size:16px;line-height:1.55">We are pleased to inform you that your vendor application for <strong>${escapeHtml(application.business_name)}</strong> has been <span style="color:#22c55e;font-weight:bold">approved</span>!</p>
+      <p style="font-size:16px;line-height:1.55">Welcome to NV Cyclothon 2026. Our operations team will contact you regarding space allocation, setup schedule, and event-day guidelines.</p>
+      <p style="font-size:15px;line-height:1.55;color:#666">Reference Number: <strong>${escapeHtml(refNum)}</strong></p>
+      <p style="font-size:14px;line-height:1.55;color:#888;margin-top:20px;border-top:1px solid #eee;padding-top:15px">
+        Event: NV Cyclothon — 3rd Edition<br/>
+        Date: 22 November 2026 • Rewa, Madhya Pradesh<br/>
+        Contact: Aman Mishra, Joint Secretary, RDCA (+91 88395 03099)
+      </p>`;
+    return send({
+      recipient: application.email,
+      subject: `Vendor Application Approved [${refNum}] — NV Cyclothon 2026`,
+      text: `Your vendor application for ${application.business_name} has been approved! Reference Number: ${refNum}. Our team will contact you regarding stall allocation.`,
+      html: emailShell({ title: 'Welcome, Vendor!', greeting: application.representative_name || application.contact_name, body, banner: !!banner }),
+      attachments: banner ? [banner] : [],
+    });
+  }
+
+  async function sendVendorRejectionNotification(application) {
+    const banner = await bannerAttachment();
+    const refNum = application.application_number || `NV-26-V-${application.id}`;
+    const notes = application.review_notes ? `<p style="font-size:15px;line-height:1.55;color:#666">Feedback / Reason: ${escapeHtml(application.review_notes)}</p>` : '';
+    const body = `<p style="font-size:16px;line-height:1.55">Thank you for your interest in joining NV Cyclothon 2026 as an event vendor. After careful review, we are unable to accommodate your application for <strong>${escapeHtml(application.business_name)}</strong> at this time.</p>${notes}
+      <p style="font-size:16px;line-height:1.55">We appreciate your interest and hope to work with you in future editions.</p>
+      <p style="font-size:15px;line-height:1.55;color:#666">Reference Number: <strong>${escapeHtml(refNum)}</strong></p>`;
+    return send({
+      recipient: application.email,
+      subject: `Vendor Application Update [${refNum}] — NV Cyclothon 2026`,
+      text: `Your vendor application for ${application.business_name} could not be accommodated at this time. Reference Number: ${refNum}. ${application.review_notes || ''}`,
+      html: emailShell({ title: 'Application Update', greeting: application.representative_name || application.contact_name, body, banner: !!banner }),
+      attachments: banner ? [banner] : [],
+    });
+  }
+
   return {
     async sendRegistrationConfirmation({ recipient, registration, checkinQrPrefix = "", eventDate = "2026-11-22", eventLocation = "Rewa, Madhya Pradesh", eventStartTime = "5:30 AM" }) {
       const passRiderId = riderId(registration);
@@ -174,6 +287,13 @@ function createEmailService(config, logger = console) {
         }],
       });
     },
+
+    sendPartnerApplicationConfirmation,
+    sendPartnerApprovalNotification,
+    sendPartnerRejectionNotification,
+    sendVendorApplicationConfirmation,
+    sendVendorApprovalNotification,
+    sendVendorRejectionNotification,
   };
 }
 

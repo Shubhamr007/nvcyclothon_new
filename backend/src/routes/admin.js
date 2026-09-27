@@ -31,10 +31,12 @@ const {
   normalizeChiefGuestInput,
   normalizeOrganizingMemberInput,
   normalizeDelegationInput,
+  partnerVendorReviewSchema,
 } = require("../services/validation");
 const { deleteCommunityImage } = require("../services/communityMedia");
 const { getOrCreatePdf } = require("../services/documentStorage");
 const { storeProfileImage } = require("../services/profileMedia");
+const { createPartnerVendorMediaService } = require("../services/partnerVendorMedia");
 
 const EMAIL_REGEX = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 
@@ -316,7 +318,11 @@ function createAdminRouter({ config, repository, emailService }) {
 
   router.get("/analytics", async (_req, res) => {
     const analytics = await repository.getAnalytics();
-    res.json(analytics);
+    const pvAnalytics = await repository.getPartnerVendorAnalytics();
+    res.json({ ...analytics, ...pvAnalytics });
+  });
+  router.get("/visitor-analytics", async (_req, res) => {
+    res.json(await repository.getVisitorAnalytics());
   });
 
   router.post("/profile-images", async (req, res) => {
@@ -777,6 +783,170 @@ function createAdminRouter({ config, repository, emailService }) {
   router.post("/delegations", delegationCrud.create);
   router.put("/delegations/:itemId", delegationCrud.update);
   router.delete("/delegations/:itemId", delegationCrud.remove);
+
+  // --- Partner Applications ---
+  router.get('/partner-applications', async (req, res) => {
+    const status = req.query.status || null;
+    const search = req.query.search || null;
+    const items = await repository.listPartnerApplications({ status, search });
+    res.json(items);
+  });
+
+  router.get('/partner-applications/export', async (req, res) => {
+    const items = await repository.listPartnerApplications();
+    const headers = [
+      'Ref Number', 'Company Name', 'Contact Name', 'Email', 'Phone',
+      'Package', 'Partnership Type', 'Status', 'Payment Status', 'Created At'
+    ];
+    const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+    const rows = items.map(item => [
+      escapeCsv(item.application_number || `NV-26-P-${item.id}`),
+      escapeCsv(item.company_name),
+      escapeCsv(item.contact_name),
+      escapeCsv(item.email),
+      escapeCsv(item.phone),
+      escapeCsv(item.package_name || item.tier_name || 'Custom'),
+      escapeCsv(item.partnership_type),
+      escapeCsv(item.status),
+      escapeCsv(item.payment_status),
+      escapeCsv(item.created_at),
+    ].join(','));
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="nv_cyclothon_partners.csv"');
+    res.send(csvContent);
+  });
+
+  router.get('/partner-applications/:id', async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const item = await repository.getPartnerApplicationById(id);
+    if (!item) throw new NotFoundError('Partner application not found');
+    res.json(item);
+  });
+
+  router.post(['/partner-applications/:id/review', '/partner-applications/:id/status'], async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const payload = parseSchema(partnerVendorReviewSchema, req.body);
+    const existing = await repository.getPartnerApplicationById(id);
+    if (!existing) throw new NotFoundError('Partner application not found');
+    const updated = await repository.updatePartnerApplicationStatus(id, {
+      status: payload.status,
+      reviewer: 'admin',
+      notes: payload.notes,
+    });
+    // Send email notification on approval or rejection
+    try {
+      const normalizedStatus = String(payload.status).toLowerCase();
+      if (normalizedStatus === 'approved') {
+        await emailService.sendPartnerApprovalNotification(updated);
+      } else if (normalizedStatus === 'rejected') {
+        await emailService.sendPartnerRejectionNotification(updated);
+      }
+    } catch (emailErr) {
+      console.error('Partner review email failed:', emailErr);
+    }
+    res.json(updated);
+  });
+
+  router.get('/partner-applications/:id/deliverables', async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const deliverables = await repository.listPartnerDeliverables(id);
+    res.json(deliverables);
+  });
+
+  router.patch('/partner-applications/:id/deliverables/:deliverableId', async (req, res) => {
+    const deliverableId = parsePositiveInt(req.params.deliverableId, 'deliverable id');
+    const updated = await repository.updatePartnerDeliverable(deliverableId, {
+      status: req.body.status || 'COMPLETED',
+      notes: req.body.notes,
+    });
+    if (!updated) throw new NotFoundError('Deliverable not found');
+    res.json(updated);
+  });
+
+  router.get('/partner-applications/:id/logo', async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const item = await repository.getPartnerApplicationById(id);
+    if (!item || !item.logo_key) throw new NotFoundError('Logo not found');
+    const mediaService = createPartnerVendorMediaService(config);
+    const filePath = mediaService.getFilePath(item.logo_key);
+    res.setHeader('Content-Type', item.logo_content_type || 'image/webp');
+    res.sendFile(filePath);
+  });
+
+  // --- Vendor Applications ---
+  router.get('/vendor-applications', async (req, res) => {
+    const status = req.query.status || null;
+    const search = req.query.search || null;
+    const items = await repository.listVendorApplications({ status, search });
+    res.json(items);
+  });
+
+  router.get('/vendor-applications/export', async (req, res) => {
+    const items = await repository.listVendorApplications();
+    const headers = [
+      'Ref Number', 'Business Name', 'Representative', 'Email', 'Phone',
+      'Category', 'Status', 'Electricity', 'Water', 'Staff Count', 'Created At'
+    ];
+    const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+    const rows = items.map(item => [
+      escapeCsv(item.application_number || `NV-26-V-${item.id}`),
+      escapeCsv(item.business_name),
+      escapeCsv(item.representative_name || item.contact_name),
+      escapeCsv(item.email),
+      escapeCsv(item.phone),
+      escapeCsv(item.category),
+      escapeCsv(item.status),
+      escapeCsv(item.electricity_required ? 'Yes' : 'No'),
+      escapeCsv(item.water_required ? 'Yes' : 'No'),
+      escapeCsv(item.staff_count || 1),
+      escapeCsv(item.created_at),
+    ].join(','));
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="nv_cyclothon_vendors.csv"');
+    res.send(csvContent);
+  });
+
+  router.get('/vendor-applications/:id', async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const item = await repository.getVendorApplicationById(id);
+    if (!item) throw new NotFoundError('Vendor application not found');
+    res.json(item);
+  });
+
+  router.post(['/vendor-applications/:id/review', '/vendor-applications/:id/status'], async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const payload = parseSchema(partnerVendorReviewSchema, req.body);
+    const existing = await repository.getVendorApplicationById(id);
+    if (!existing) throw new NotFoundError('Vendor application not found');
+    const updated = await repository.updateVendorApplicationStatus(id, {
+      status: payload.status,
+      reviewer: 'admin',
+      notes: payload.notes,
+    });
+    try {
+      const normalizedStatus = String(payload.status).toLowerCase();
+      if (normalizedStatus === 'approved') {
+        await emailService.sendVendorApprovalNotification(updated);
+      } else if (normalizedStatus === 'rejected') {
+        await emailService.sendVendorRejectionNotification(updated);
+      }
+    } catch (emailErr) {
+      console.error('Vendor review email failed:', emailErr);
+    }
+    res.json(updated);
+  });
+
+  router.get('/vendor-applications/:id/document', async (req, res) => {
+    const id = parsePositiveInt(req.params.id, 'application id');
+    const item = await repository.getVendorApplicationById(id);
+    if (!item || !item.document_key) throw new NotFoundError('Document not found');
+    const mediaService = createPartnerVendorMediaService(config);
+    const filePath = mediaService.getFilePath(item.document_key);
+    res.setHeader('Content-Type', item.document_content_type || 'application/pdf');
+    res.sendFile(filePath);
+  });
 
   return router;
 }

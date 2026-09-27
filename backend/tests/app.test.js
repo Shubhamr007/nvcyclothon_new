@@ -444,4 +444,97 @@ describe("NV Cyclothon Node backend", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ sections: { community: true } });
   });
+
+  it("submits partner application, verifies reference number format, and allows admin review", async () => {
+    // 1. Check public packages
+    const packagesRes = await request(runtime.app).get("/api/partnerships/packages");
+    expect(packagesRes.statusCode).toBe(200);
+
+    // 2. Submit partner application
+    const submitRes = await request(runtime.app)
+      .post("/api/partnerships/applications")
+      .field("company_name", "Rewa Cycles Private Limited")
+      .field("business_type", "Corporate")
+      .field("contact_name", "Rajesh Sharma")
+      .field("designation", "Marketing Director")
+      .field("email", "rajesh@rewacycles.com")
+      .field("phone", "+91 9876543210")
+      .field("address", "Civil Lines, Rewa")
+      .field("city", "Rewa")
+      .field("state", "Madhya Pradesh")
+      .field("pincode", "486001")
+      .field("selected_package", "Title Sponsor")
+      .field("partnership_type", "Cash Sponsorship");
+
+    expect(submitRes.statusCode).toBe(201);
+    expect(submitRes.body.success).toBe(true);
+    expect(submitRes.body.reference_number).toMatch(/^NV-26-P-\d+$/);
+    const partnerId = submitRes.body.application.id;
+
+    // 3. Admin review flow
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    const listRes = await request(runtime.app)
+      .get("/api/admin/partner-applications?status=SUBMITTED")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(listRes.statusCode).toBe(200);
+    expect(listRes.body.some((p) => p.id === partnerId)).toBe(true);
+
+    const approveRes = await request(runtime.app)
+      .post(`/api/admin/partner-applications/${partnerId}/review`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "APPROVED", notes: "Approved by committee" });
+    expect(approveRes.statusCode).toBe(200);
+    expect(approveRes.body.status).toBe("APPROVED");
+
+    // 4. Public approved partners check
+    const approvedRes = await request(runtime.app).get("/api/partnerships/approved");
+    expect(approvedRes.statusCode).toBe(200);
+    expect(approvedRes.body.some((p) => p.id === partnerId)).toBe(true);
+  });
+
+  it("submits vendor application, verifies reference number format, and retrieves categories", async () => {
+    // 1. Get official categories
+    const catRes = await request(runtime.app).get("/api/vendors/categories");
+    expect(catRes.statusCode).toBe(200);
+    expect(catRes.body).toContain("Cycling & Sports");
+    expect(catRes.body).toContain("Food & Nutrition");
+
+    // 2. Submit vendor application
+    const submitRes = await request(runtime.app)
+      .post("/api/vendors/applications")
+      .field("business_name", "Vindhya Fresh Juices")
+      .field("representative_name", "Sunil Patel")
+      .field("phone", "+91 9123456780")
+      .field("email", "sunil@vindhyafresh.com")
+      .field("category", "Hydration")
+      .field("address", "Station Road, Rewa")
+      .field("products_services", "Cold-pressed fresh orange and sugarcane juice")
+      .field("description", "Supplying natural energy drinks and hydration for endurance athletes.")
+      .field("space_requirement", "10x10 ft stall")
+      .field("electricity_required", "true")
+      .field("water_required", "true")
+      .field("staff_count", "3");
+
+    expect(submitRes.statusCode).toBe(201);
+    expect(submitRes.body.success).toBe(true);
+    expect(submitRes.body.reference_number).toMatch(/^NV-26-V-\d+$/);
+    const vendorId = submitRes.body.application.id;
+
+    // 3. Admin review
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    const reviewRes = await request(runtime.app)
+      .post(`/api/admin/vendor-applications/${vendorId}/review`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "APPROVED", notes: "Stall allocated near water station 1" });
+    expect(reviewRes.statusCode).toBe(200);
+    expect(reviewRes.body.status).toBe("APPROVED");
+  });
 });

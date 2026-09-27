@@ -182,6 +182,7 @@ const eventUpdateEmailSchema = z.object({
   subject: z.string().trim().min(3).max(160),
   message: z.string().trim().min(3).max(5000),
 });
+const visitorEventSchema = z.object({ path: z.string().trim().min(1).max(160), timezone: z.string().trim().max(80).optional(), locale: z.string().trim().max(40).optional() });
 
 const siteSectionsPatchSchema = z
   .object({
@@ -194,6 +195,8 @@ const siteSectionsPatchSchema = z
     contact: z.boolean().optional(),
     sponsors: z.boolean().optional(),
     community: z.boolean().optional(),
+    partners: z.boolean().optional(),
+    vendors: z.boolean().optional(),
   })
   .partial();
 
@@ -204,6 +207,8 @@ const siteSettingsPatchSchema = z
     event_location: z.string().trim().min(2).max(160).optional(),
     edition_label: z.string().trim().min(2).max(60).optional(),
     registration_open: z.boolean().optional(),
+    partner_applications_open: z.boolean().optional(),
+    vendor_applications_open: z.boolean().optional(),
     hero_images: z.array(z.string().url().startsWith("https://")).max(5).optional(),
     feature_section: z.object({
       enabled: z.boolean().optional(),
@@ -351,6 +356,155 @@ function parseSchema(schema, payload) {
   return parsed.data;
 }
 
+const VENDOR_CATEGORIES = [
+  'Cycling & Sports',
+  'Food & Nutrition',
+  'Hydration',
+  'Healthcare',
+  'Apparel',
+  'Photography',
+  'Media',
+  'Equipment',
+  'Logistics',
+  'Printing',
+  'Merchandise',
+  'Technology',
+  'Other',
+];
+
+const PARTNER_STATUSES = [
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'SHORTLISTED',
+  'NEGOTIATION',
+  'APPROVED',
+  'PAYMENT_PENDING',
+  'PAYMENT_VERIFIED',
+  'ASSETS_PENDING',
+  'ASSETS_APPROVED',
+  'EVENT_READY',
+  'COMPLETED',
+  'REJECTED',
+];
+
+const VENDOR_STATUSES = [
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'REJECTED',
+  'EVENT_READY',
+  'COMPLETED',
+];
+
+const partnerApplicationSchema = z.object({
+  company_name: z.string().trim().min(2).max(200),
+  business_type: z.string().trim().min(2).max(100).optional().default('Corporate'),
+  contact_name: z.string().trim().min(2).max(160),
+  designation: z.string().trim().max(120).optional().default(''),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().regex(/^(?:\+91[ -]?)?[6-9]\d{9}$/),
+  website: z.union([z.string().url(), z.literal('')]).nullable().optional(),
+  gst_number: z.string().trim().max(32).nullable().optional(),
+  pan_number: z.string().trim().max(32).nullable().optional(),
+  address: z.string().trim().max(500).optional().default(''),
+  city: z.string().trim().max(100).optional().default(''),
+  state: z.string().trim().max(100).optional().default(''),
+  pincode: z.string().trim().max(20).optional().default(''),
+  sponsorship_tier_id: z.coerce.number().int().positive().nullable().optional(),
+  selected_package: z.string().trim().max(120).optional().default(''),
+  partnership_type: z.string().trim().max(100).optional().default('Cash Sponsorship'),
+  proposed_value: z.string().trim().max(100).nullable().optional(),
+  custom_description: z.string().trim().max(3000).nullable().optional(),
+  brand_name: z.string().trim().max(200).nullable().optional(),
+  brand_tagline: z.string().trim().max(255).nullable().optional(),
+  brand_description: z.string().trim().max(3000).nullable().optional(),
+  industry: z.string().trim().max(120).nullable().optional(),
+  social_links: z.union([z.record(z.string()), z.string()]).optional().default({}),
+  activation_options: z.union([z.array(z.string()), z.string()]).optional().default([]),
+  activation_description: z.string().trim().max(3000).nullable().optional(),
+  visibility_interests: z.union([z.array(z.string()), z.string()]).optional().default([]),
+  accurate_info_consent: z.union([z.boolean(), z.string(), z.number()]).optional().default(true),
+  contact_consent: z.union([z.boolean(), z.string(), z.number()]).optional().default(true),
+  message: z.string().trim().max(3000).nullable().optional(),
+});
+
+const vendorApplicationSchema = z.object({
+  business_name: z.string().trim().min(2).max(200),
+  representative_name: z.string().trim().min(2).max(160),
+  contact_name: z.string().trim().max(160).optional(),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().regex(/^(?:\+91[ -]?)?[6-9]\d{9}$/),
+  category: z.enum(VENDOR_CATEGORIES),
+  gst_number: z.string().trim().max(32).nullable().optional(),
+  pan_number: z.string().trim().max(32).nullable().optional(),
+  address: z.string().trim().min(2).max(500),
+  city: z.string().trim().max(100).optional().default(''),
+  state: z.string().trim().max(100).optional().default(''),
+  pincode: z.string().trim().max(20).optional().default(''),
+  products_services: z.string().trim().min(5).max(3000),
+  description: z.string().trim().min(10).max(3000),
+  space_requirement: z.string().trim().max(120).nullable().optional(),
+  electricity_required: z.union([z.boolean(), z.string()]).optional().default(false).transform(v => v === true || v === 'true' || v === '1'),
+  water_required: z.union([z.boolean(), z.string()]).optional().default(false).transform(v => v === true || v === 'true' || v === '1'),
+  furniture_required: z.union([z.boolean(), z.string()]).optional().default(false).transform(v => v === true || v === 'true' || v === '1'),
+  branding_support_required: z.union([z.boolean(), z.string()]).optional().default(false).transform(v => v === true || v === 'true' || v === '1'),
+  vehicle_access_required: z.union([z.boolean(), z.string()]).optional().default(false).transform(v => v === true || v === 'true' || v === '1'),
+  staff_count: z.coerce.number().int().min(1).max(100).optional().default(1),
+  accurate_info_consent: z.union([z.boolean(), z.string(), z.number()]).optional().default(true),
+});
+
+const partnerVendorReviewSchema = z.object({
+  status: z.string().trim().min(2).max(64),
+  notes: z.string().trim().max(2000).optional(),
+});
+
+function normalizePartnerApplicationInput(payload) {
+  let parsedSocial = payload.social_links;
+  if (typeof parsedSocial === 'string') {
+    try { parsedSocial = JSON.parse(parsedSocial); } catch { parsedSocial = {}; }
+  }
+  let parsedActivation = payload.activation_options;
+  if (typeof parsedActivation === 'string') {
+    try { parsedActivation = JSON.parse(parsedActivation); } catch { parsedActivation = [parsedActivation].filter(Boolean); }
+  }
+  let parsedVisibility = payload.visibility_interests;
+  if (typeof parsedVisibility === 'string') {
+    try { parsedVisibility = JSON.parse(parsedVisibility); } catch { parsedVisibility = [parsedVisibility].filter(Boolean); }
+  }
+
+  return {
+    ...payload,
+    email: normalizeEmail(payload.email),
+    phone: normalizeIndianMobile(payload.phone),
+    website: payload.website || null,
+    sponsorship_tier_id: payload.sponsorship_tier_id || null,
+    social_links: parsedSocial || {},
+    activation_options: parsedActivation || [],
+    visibility_interests: parsedVisibility || [],
+    gst_number: payload.gst_number || null,
+    pan_number: payload.pan_number || null,
+    brand_name: payload.brand_name || payload.company_name,
+    brand_tagline: payload.brand_tagline || null,
+    brand_description: payload.brand_description || null,
+    industry: payload.industry || null,
+    custom_description: payload.custom_description || payload.message || null,
+    proposed_value: payload.proposed_value || null,
+  };
+}
+
+function normalizeVendorApplicationInput(payload) {
+  return {
+    ...payload,
+    representative_name: payload.representative_name || payload.contact_name || '',
+    contact_name: payload.contact_name || payload.representative_name || '',
+    email: normalizeEmail(payload.email),
+    phone: normalizeIndianMobile(payload.phone),
+    gst_number: payload.gst_number || null,
+    pan_number: payload.pan_number || null,
+    space_requirement: payload.space_requirement || null,
+  };
+}
+
 module.exports = {
   normalizeIndianMobile,
   normalizeEmail,
@@ -372,11 +526,15 @@ module.exports = {
   checkinScanSchema,
   checkinManualSchema,
   eventUpdateEmailSchema,
+  visitorEventSchema,
   siteSettingsPatchSchema,
   communityPostSchema,
   communityModerationSchema,
   volunteerAccountCreateSchema,
   volunteerAccountUpdateSchema,
+  partnerApplicationSchema,
+  vendorApplicationSchema,
+  partnerVendorReviewSchema,
   normalizeProductInput,
   normalizeProductUpdateInput,
   normalizeOrderInput,
@@ -385,4 +543,9 @@ module.exports = {
   normalizeChiefGuestInput,
   normalizeOrganizingMemberInput,
   normalizeDelegationInput,
+  normalizePartnerApplicationInput,
+  normalizeVendorApplicationInput,
+  VENDOR_CATEGORIES,
+  PARTNER_STATUSES,
+  VENDOR_STATUSES,
 };

@@ -4,7 +4,8 @@ import detailedHeroImage from "../../../../assets/detailed_hero_image.png";
 import nvCyclothonHero from "../../../assets/nv-cyclothon-hero.webp";
 import { EDITIONS, EVENT } from "../constants";
 import { Reveal } from "../../../components/Reveal";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { request } from "../../../api/http";
 
 const gallery = [
@@ -180,12 +181,33 @@ export function WhySport() {
 
 export function OrganizingMembers() {
   const [members, setMembers] = useState([]);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const openerRef = useRef(null);
 
   useEffect(() => {
     request("/content/organizing-members")
       .then(setMembers)
       .catch(() => setMembers([]));
   }, []);
+
+  useEffect(() => {
+    if (!selectedMember) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") closeProfile();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedMember]);
+
+  function openProfile(member, opener) {
+    openerRef.current = opener;
+    setSelectedMember(member);
+  }
+
+  function closeProfile() {
+    setSelectedMember(null);
+    window.setTimeout(() => openerRef.current?.focus(), 0);
+  }
 
   if (!members.length) return null;
   return (
@@ -195,23 +217,54 @@ export function OrganizingMembers() {
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {members.map((member, index) => (
             <Reveal key={member.id} delay={index * 0.06}>
-              <article className="group h-full overflow-hidden rounded-3xl border-2 border-[#071313] bg-white shadow-[6px_6px_0_#d9ff38]">
+              <article className="member-profile-card group relative h-full overflow-hidden rounded-3xl bg-[#071313] shadow-[6px_6px_0_#d9ff38]">
                 {member.image_url ? (
                   <img src={member.image_url} alt={`Portrait of ${member.name}`} className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
                 ) : (
                   <div className="grid aspect-[4/5] w-full place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-label={`Profile image unavailable for ${member.name}`}>{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
                 )}
-                <div className="border-t-2 border-[#071313] p-6">
+                <div className="member-profile-card__glass pointer-events-none absolute inset-x-3 bottom-3 z-10 rounded-2xl p-5 text-white">
                   <h3 className="text-2xl font-black leading-tight">{member.name}</h3>
-                  <p className="mt-1 text-xs font-black tracking-[.12em] text-[#9f3126] uppercase">{member.role}</p>
-                  <p className="mt-5 text-sm leading-6 text-[#071313]/70">“{member.message}”</p>
+                  <p className="mt-1 text-xs font-black tracking-[.12em] text-[#d9ff38] uppercase">{member.role}</p>
+                  <span className="mt-4 inline-flex rounded-full border border-white/50 px-4 py-2 text-xs font-black">View profile</span>
                 </div>
+                <button type="button" onClick={(event) => openProfile(member, event.currentTarget)} className="absolute inset-0 z-20 rounded-3xl focus:outline-none focus:ring-4 focus:ring-[#d9ff38]" aria-label={`View profile for ${member.name}`} />
               </article>
             </Reveal>
           ))}
         </div>
       </div>
+      <MemberProfileDialog member={selectedMember} onClose={closeProfile} />
     </section>
+  );
+}
+
+function MemberProfileDialog({ member, onClose }) {
+  const closeButtonRef = useRef(null);
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, [member]);
+
+  return (
+    <AnimatePresence>
+      {member && (
+        <motion.div className="fixed inset-0 z-50 grid place-items-center bg-[#071313]/75 px-5 py-8 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+          <motion.section role="dialog" aria-modal="true" aria-labelledby="member-profile-title" aria-describedby="member-profile-message" className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/30 bg-white/10 text-white shadow-[0_28px_100px_rgba(0,0,0,.5)] backdrop-blur-2xl" initial={{ opacity: 0, rotateX: -12, y: 36, scale: 0.94 }} animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }} exit={{ opacity: 0, rotateX: 8, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 260, damping: 22 }} style={{ transformPerspective: 1200 }}>
+            <div className="grid md:grid-cols-[.8fr_1.2fr]">
+              {member.image_url ? <img src={member.image_url} alt={`Portrait of ${member.name}`} className="h-64 w-full object-cover md:h-full" /> : <div className="grid min-h-64 place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-hidden="true">{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}
+              <div className="relative p-7 md:p-9">
+                <button ref={closeButtonRef} type="button" onClick={onClose} className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full border border-white/25 text-xl font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-4 focus:ring-[#d9ff38]" aria-label="Close profile">×</button>
+                <p className="pr-12 text-xs font-black tracking-[.14em] text-[#d9ff38] uppercase">Organising team</p>
+                <h3 id="member-profile-title" className="mt-4 text-4xl font-black leading-none tracking-[-.06em]">{member.name}</h3>
+                <p className="mt-2 text-sm font-black tracking-[.1em] text-[#d9ff38] uppercase">{member.role}</p>
+                <p id="member-profile-message" className="mt-7 text-base leading-7 text-white/80">{member.message}</p>
+              </div>
+            </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 const sponsorOpportunities = [

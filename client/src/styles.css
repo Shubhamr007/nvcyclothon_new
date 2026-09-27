@@ -49,6 +49,43 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offs
 h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
 .accessible-light-surface .text-\[\#ff5f3d\] { color: #9f3126; }
 .hero-label { background: #071313; }
+.member-profile-card__glass {
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(7, 19, 19, .72);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+.admin-shell { background: #edf1f0; }
+.admin-topbar {
+  background: linear-gradient(100deg, #071313 0%, #0d2929 62%, #133535 100%);
+  box-shadow: 0 8px 24px rgba(7, 19, 19, .18);
+}
+.admin-commandbar {
+  background: linear-gradient(120deg, #071313 0%, #102d2d 100%);
+  border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: 0 16px 34px rgba(7, 19, 19, .14);
+}
+.admin-tabs::-webkit-scrollbar { height: 6px; }
+.admin-tabs::-webkit-scrollbar-thumb { background: rgba(7, 19, 19, .24); border-radius: 999px; }
+.admin-shell section.bg-white,
+.admin-shell article.bg-white,
+.admin-shell form.bg-white {
+  border-color: rgba(7, 19, 19, .12);
+  box-shadow: 0 8px 22px rgba(7, 19, 19, .06);
+}
+.admin-shell input:not([type="checkbox"]):not([type="radio"]),
+.admin-shell select,
+.admin-shell textarea {
+  border-color: rgba(7, 19, 19, .2);
+  box-shadow: inset 0 1px 2px rgba(7, 19, 19, .03);
+}
+.admin-shell input:not([type="checkbox"]):not([type="radio"]):focus,
+.admin-shell select:focus,
+.admin-shell textarea:focus {
+  border-color: #9f3126;
+  box-shadow: 0 0 0 3px rgba(159, 49, 38, .16);
+}
 /* Legacy microcopy utilities resolve to the smallest approved, readable size. */
 .text-\[9px\], .text-\[10px\], .text-\[11px\] { font-size: .75rem; line-height: 1rem; }
 .skip-link {

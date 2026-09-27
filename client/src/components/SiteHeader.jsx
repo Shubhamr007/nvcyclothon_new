@@ -27,6 +27,8 @@ export function SiteHeader({ theme, onToggleTheme }) {
           <a href="/#routes">Routes</a>
           <a href="/#about">Impact</a>
           <a href="/#sponsors">Sponsors</a>
+          <a href="/partners">Partners</a>
+          <a href="/vendors">Vendors</a>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <button type="button" onClick={onToggleTheme} className="grid h-10 w-10 place-items-center rounded-full border border-white/30 text-white transition hover:bg-white/15 focus:outline-none focus:ring-4 focus:ring-[#d9ff38]" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>

@@ -27,6 +27,8 @@ const { createUploadsRouter } = require("./routes/uploads");
 const { createAdminRouter } = require("./routes/admin");
 const { createContentRouter } = require("./routes/content");
 const { createCommunityRouter } = require("./routes/community");
+const { createPartnersRouter } = require("./routes/partners");
+const { createVendorsRouter } = require("./routes/vendors");
 const { resolveProfileImage } = require("./services/profileMedia");
 
 const LOOPBACK_IPS = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -100,7 +102,10 @@ function createApp({ config, repository, emailService, razorpayService, logger =
       req.path.startsWith("/api/uploads") ||
       req.path === "/upload" ||
       req.path === "/api/admin/registrations/roster-match" ||
-      req.path === "/api/admin/registrations/certificates";
+      req.path === "/api/admin/registrations/certificates" ||
+      req.path === "/api/partners/applications" ||
+      req.path === "/api/partnerships/applications" ||
+      req.path === "/api/vendors/applications";
     if (!isUpload && Number.isInteger(contentLength) && contentLength > 1_048_576) {
       next(new ApiError(413, "Request body is too large"));
       return;
@@ -186,6 +191,27 @@ function createApp({ config, repository, emailService, razorpayService, logger =
   app.use(
     "/api/cyclothon",
     createCyclothonRouter({
+      config,
+      repository,
+      emailService,
+      razorpayService,
+      rateLimiter,
+    })
+  );
+
+  const partnersRouter = createPartnersRouter({
+    config,
+    repository,
+    emailService,
+    razorpayService,
+    rateLimiter,
+  });
+  app.use("/api/partners", partnersRouter);
+  app.use("/api/partnerships", partnersRouter);
+
+  app.use(
+    "/api/vendors",
+    createVendorsRouter({
       config,
       repository,
       emailService,

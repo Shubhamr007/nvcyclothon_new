@@ -19,6 +19,8 @@ const DEFAULT_SETTINGS = {
   event_location: "Rewa, Madhya Pradesh",
   edition_label: "3rd Edition",
   registration_open: false,
+  partner_applications_open: false,
+  vendor_applications_open: false,
   hero_images: [],
   feature_section: { enabled: false, eyebrow: "", title: "", body: "", image_url: "" },
   prize_pool: { enabled: false, eyebrow: "Prize pool", title: "Ride for the podium.", body: "", total: "", prizes: [], terms: "" },
@@ -93,6 +95,14 @@ function mergeWithDefaults(raw) {
       typeof raw?.registration_open === "boolean"
         ? raw.registration_open
         : DEFAULT_SETTINGS.registration_open,
+    partner_applications_open:
+      typeof raw?.partner_applications_open === "boolean"
+        ? raw.partner_applications_open
+        : DEFAULT_SETTINGS.partner_applications_open,
+    vendor_applications_open:
+      typeof raw?.vendor_applications_open === "boolean"
+        ? raw.vendor_applications_open
+        : DEFAULT_SETTINGS.vendor_applications_open,
       hero_images: Array.isArray(raw?.hero_images) ? raw.hero_images : [],
       feature_section: { ...DEFAULT_SETTINGS.feature_section, ...(raw?.feature_section || {}) },
       prize_pool: { ...DEFAULT_SETTINGS.prize_pool, ...(raw?.prize_pool || {}) },
