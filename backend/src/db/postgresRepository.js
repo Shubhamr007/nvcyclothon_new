@@ -19,6 +19,11 @@ class PostgresRepository {
     this.pool = new Pool({
       connectionString: config.databaseUrl,
     });
+    this.pool.on("error", (error) => {
+      // Idle PostgreSQL client failures otherwise emit an unhandled EventEmitter
+      // error, which can terminate the API process during a transient network blip.
+      console.error("Unexpected PostgreSQL pool error", error);
+    });
   }
 
   async init() {

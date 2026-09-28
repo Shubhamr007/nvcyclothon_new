@@ -12,52 +12,74 @@ const PartnerPage = lazy(() => import('./pages/PartnerPage').then((module) => ({
 const VendorPage = lazy(() => import('./pages/VendorPage').then((module) => ({ default: module.VendorPage })));
 const PageFallback = () => <main className="grid min-h-screen place-items-center bg-[#071313] text-white"><LoadingIndicator label="Loading page…" /></main>;
 
+const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://nvcyclothon.in").replace(/\/$/, "");
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1502744688674-c619d1586c9e?auto=format&fit=crop&w=1200&q=85";
 const metadata = {
-  "/": [
-    "NV Cyclothon 2026 | Own the Road",
-    "Rewa's bicycle-only community ride. Choose the 60 Km Road Challenge, 30 Km MTB Challenge, 10 Km Green Ride, or Kid-o-thon.",
-  ],
-  "/register": [
-    "Register | NV Cyclothon 2026",
-    "Reserve a place in the NV Cyclothon bicycle event.",
-  ],
-  "/checkin": [
-    "Volunteer Check-in | NV Cyclothon 2026",
-    "Race-day volunteer workspace for scanning QR codes and checking in riders.",
-  ],
-  "/partners": [
-    "NV Cyclothon Partners & Sponsors | Ride for Vindhya",
-    "Partner with NV Cyclothon 2026 in Rewa, Madhya Pradesh. Explore sponsorship and event partnership opportunities for the 3rd Edition of NV Cyclothon.",
-  ],
-  "/partners/apply": [
-    "NV Cyclothon Partners & Sponsors | Ride for Vindhya",
-    "Partner with NV Cyclothon 2026 in Rewa, Madhya Pradesh. Explore sponsorship and event partnership opportunities for the 3rd Edition of NV Cyclothon.",
-  ],
-  "/vendors": [
-    "Official Event Vendors | NV Cyclothon 2026",
-    "Apply to become an official event vendor for NV Cyclothon 2026 in Rewa, Madhya Pradesh. Showcase your products and services to participants and visitors.",
-  ],
-  "/vendors/apply": [
-    "Official Event Vendors | NV Cyclothon 2026",
-    "Apply to become an official event vendor for NV Cyclothon 2026 in Rewa, Madhya Pradesh. Showcase your products and services to participants and visitors.",
-  ],
+  "/": {
+    title: "NV Cyclothon 2026 | Cycling Event in Rewa, Madhya Pradesh",
+    description: "Join NV Cyclothon 2026 in Rewa: 60 Km Road Challenge, 30 Km MTB Challenge, 10 Km Green Ride, Senior Masters and Kid-o-thon.",
+  },
+  "/register": {
+    title: "Register for NV Cyclothon 2026 | Rewa Cycling Event",
+    description: "Register for NV Cyclothon 2026 in Rewa and choose the cycling route that fits your ride.",
+  },
+  "/partners": {
+    title: "Partner with NV Cyclothon 2026 | Rewa, Madhya Pradesh",
+    description: "Explore sponsorship and partnership opportunities with NV Cyclothon 2026, Rewa's community cycling event.",
+  },
+  "/vendors": {
+    title: "Become an Official Vendor | NV Cyclothon 2026",
+    description: "Apply to showcase your products and services as an official vendor at NV Cyclothon 2026 in Rewa.",
+  },
+  "/checkin": {
+    title: "Volunteer Check-in | NV Cyclothon 2026",
+    description: "Race-day volunteer workspace for scanning QR codes and checking in riders.",
+  },
 };
+
+const canonicalPaths = {
+  "/partners/apply": "/partners",
+  "/vendors/apply": "/vendors",
+};
+
+function setMeta(selector, attribute, content) {
+  let element = document.head.querySelector(selector);
+  if (!element) {
+    element = document.createElement("meta");
+    const [name, value] = selector.match(/\[([^=]+)=\"([^\"]+)\"\]/)?.slice(1) || [];
+    if (name && value) element.setAttribute(name, value);
+    document.head.appendChild(element);
+  }
+  element.setAttribute(attribute, content);
+}
+
 function Seo() {
   const { pathname } = useLocation();
   useEffect(() => {
-    const [title, description] = metadata[pathname] || metadata["/"];
-    document.title = title;
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute("content", description);
+    const canonicalPath = canonicalPaths[pathname] || pathname;
+    const page = metadata[canonicalPath] || metadata["/"];
+    const canonicalUrl = `${SITE_URL}${canonicalPath}`;
     const shouldNoIndex = pathname.startsWith("/checkin");
-    let robotsTag = document.querySelector('meta[name="robots"]');
-    if (!robotsTag) {
-      robotsTag = document.createElement("meta");
-      robotsTag.setAttribute("name", "robots");
-      document.head.appendChild(robotsTag);
+    const title = page.title;
+    const description = page.description;
+    document.title = title;
+    setMeta('meta[name="description"]', "content", description);
+    setMeta('meta[name="robots"]', "content", shouldNoIndex ? "noindex, nofollow" : "index, follow");
+    setMeta('meta[property="og:title"]', "content", title);
+    setMeta('meta[property="og:description"]', "content", description);
+    setMeta('meta[property="og:url"]', "content", canonicalUrl);
+    setMeta('meta[property="og:image"]', "content", DEFAULT_IMAGE);
+    setMeta('meta[name="twitter:title"]', "content", title);
+    setMeta('meta[name="twitter:description"]', "content", description);
+    setMeta('meta[name="twitter:image"]', "content", DEFAULT_IMAGE);
+
+    let canonical = document.head.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
     }
-    robotsTag.setAttribute("content", shouldNoIndex ? "noindex, nofollow" : "index, follow");
+    canonical.setAttribute("href", canonicalUrl);
   }, [pathname]);
   return null;
 }

@@ -1,5 +1,6 @@
 const express = require("express");
 const { NotFoundError } = require("../errors");
+const { requireAdmin } = require("../services/security");
 const {
   parseSchema,
   productCreateSchema,
@@ -24,13 +25,13 @@ function createProductsRouter({ config, repository }) {
     res.json(product);
   });
 
-  router.post("/", async (req, res) => {
+  router.post("/", requireAdmin(config), async (req, res) => {
     const payload = normalizeProductInput(parseSchema(productCreateSchema, req.body));
     const product = await repository.createProduct(payload);
     res.status(201).json(product);
   });
 
-  router.patch("/:slug", async (req, res) => {
+  router.patch("/:slug", requireAdmin(config), async (req, res) => {
     const patch = normalizeProductUpdateInput(parseSchema(productUpdateSchema, req.body));
     const product = await repository.updateProductBySlug(req.params.slug, patch);
     if (!product) {
@@ -39,7 +40,7 @@ function createProductsRouter({ config, repository }) {
     res.json(product);
   });
 
-  router.delete("/:slug", async (req, res) => {
+  router.delete("/:slug", requireAdmin(config), async (req, res) => {
     const deleted = await repository.deleteProductBySlug(req.params.slug);
     if (!deleted) {
       throw new NotFoundError("Product not found");

@@ -6,6 +6,8 @@ import { useReducedMotion } from "framer-motion";
 import { request } from "../../../api/http";
 import { openRazorpayCheckout } from "../../../api/razorpay";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 import { EVENT, RIDE_OPTIONS } from "../constants";
 import { useSiteSettings } from "../../../state/SiteSettingsContext";
 
@@ -450,16 +452,18 @@ export function RegistrationForm({ initialRoute }) {
         manage this event and send essential rider updates.
       </ConsentCheckbox>
 
-      <button
+      <Button
+        type="submit"
+        size="lg"
         disabled={status.state === "loading"}
-        className="mt-7 w-full rounded-full bg-[#071313] px-5 py-4 text-sm font-black tracking-wider text-white transition focus:outline-none focus:ring-4 focus:ring-[#ff5f3d] hover:bg-[#ff5f3d] disabled:cursor-wait disabled:opacity-60"
+        className="mt-7 w-full disabled:cursor-wait"
       >
         {status.state === "loading" ? (
           <LoadingIndicator label="OPENING PAYMENT…" className="text-white" />
         ) : (
           "CONTINUE TO PAYMENT →"
         )}
-      </button>
+      </Button>
 
       <p
         aria-live="polite"
@@ -516,15 +520,13 @@ const Field = forwardRef(function Field({ label, error, wrapperClassName = "", .
   return (
     <label htmlFor={id} className={`block text-xs font-black tracking-[.1em] uppercase ${wrapperClassName}`}>
       {label}
-      <input
+      <Input
         id={id}
         ref={ref}
         {...props}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`mt-2 w-full border-b-2 bg-transparent py-3 text-base font-medium normal-case outline-none transition focus:border-[#ff5f3d] ${
-          error ? "border-red-600" : "border-[#071313]/25"
-        }`}
+        className={error ? "border-red-600" : undefined}
       />
       {error && <FieldError id={`${id}-error`} message={error.message} />}
     </label>

@@ -12,15 +12,19 @@
     "preview:internal": "vite preview --config vite.internal.config.js --port 4174"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.3.3",
     "@react-spring/web": "^10.1.2",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@splinetool/react-spline": "^4.1.0",
     "@tsparticles/react": "^4.3.2",
     "@tsparticles/slim": "^4.3.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "framer-motion": "^12.42.2",
     "gsap": "^3.15.0",
     "lenis": "^1.3.25",
+    "lucide-react": "^1.48.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-confetti": "^6.4.0",
@@ -32,7 +36,8 @@
     "react-parallax-tilt": "^1.7.335",
     "react-router-dom": "^7.18.2",
     "react-toastify": "^11.1.0",
-    "swiper": "^14.0.6"
+    "swiper": "^14.0.6",
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^4.3.3",

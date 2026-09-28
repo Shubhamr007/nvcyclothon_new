@@ -93,7 +93,10 @@ function createCheckinRouter({ config, repository, rateLimiter }) {
       }
       const volunteerName = account.display_name;
       res.json({
-        access_token: issueVolunteerToken(config, volunteerName),
+        access_token: issueVolunteerToken(config, {
+          volunteerId: account.volunteer_id,
+          volunteerName,
+        }),
         token_type: "bearer",
         expires_in: config.volunteerSessionTtlSeconds,
         volunteer_name: volunteerName,
@@ -120,14 +123,14 @@ function createCheckinRouter({ config, repository, rateLimiter }) {
 
     const volunteerName = payload.volunteer_name;
     res.json({
-      access_token: issueVolunteerToken(config, volunteerName),
+      access_token: issueVolunteerToken(config, { volunteerName }),
       token_type: "bearer",
       expires_in: config.volunteerSessionTtlSeconds,
       volunteer_name: volunteerName,
     });
   });
 
-  router.use(requireVolunteer(config));
+  router.use(requireVolunteer(config, repository));
 
   router.get("/participants/search", async (req, res) => {
     const query = String(req.query.q || "").trim();

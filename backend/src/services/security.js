@@ -78,7 +78,7 @@ function verifyAdminToken(token, config) {
   });
 }
 
-function issueVolunteerToken(config, volunteerName) {
+function issueVolunteerToken(config, { volunteerId = null, volunteerName }) {
   const resolvedName = String(volunteerName || "Volunteer").trim() || "Volunteer";
   return issueScopedToken({
     scope: "volunteer_checkin",
@@ -86,6 +86,7 @@ function issueVolunteerToken(config, volunteerName) {
     secret: config.volunteerTokenSecret,
     claims: {
       volunteer_name: resolvedName,
+      ...(volunteerId ? { volunteer_id: String(volunteerId).trim().toLowerCase() } : {}),
     },
   });
 }
@@ -114,8 +115,8 @@ function requireAdmin(config) {
   };
 }
 
-function requireVolunteer(config) {
-  return (req, _res, next) => {
+function requireVolunteer(config, repository) {
+  return async (req, _res, next) => {
     try {
       const authorization = req.header("authorization") || "";
       const [scheme, token] = authorization.split(" ");
@@ -123,6 +124,16 @@ function requireVolunteer(config) {
         throw new UnauthorizedError("Volunteer authentication is required");
       }
       const payload = verifyVolunteerToken(token, config);
+      // Tokens issued for administrator-managed volunteers carry their stable
+      // volunteer ID. Confirming the account is still active lets an admin
+      // revoke an already-issued race-day token immediately.
+      if (payload.volunteer_id) {
+        const account = await repository.getVolunteerAccount(payload.volunteer_id);
+        if (!account || !account.active) {
+          throw new UnauthorizedError("Volunteer session is no longer active");
+        }
+        payload.volunteer_name = account.display_name;
+      }
       req.volunteerSession = payload;
       next();
     } catch (error) {

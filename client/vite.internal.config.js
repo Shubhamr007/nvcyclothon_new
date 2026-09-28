@@ -21,6 +21,7 @@ export default defineConfig({
   plugins: [react(), internalEntryPlugin],
   resolve: {
     alias: {
+      '@': resolveFromRoot('./src'),
       react: resolveFromRoot('./node_modules/react'),
       'react-dom': resolveFromRoot('./node_modules/react-dom'),
     },

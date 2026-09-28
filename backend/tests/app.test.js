@@ -101,6 +101,27 @@ describe("NV Cyclothon Node backend", () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it("requires an admin session to modify products", async () => {
+    const product = {
+      slug: "secure-test-product",
+      name: "Secure Test Product",
+      origin: "Rewa",
+      price_paise: 50000,
+      inventory: 3,
+    };
+    const anonymous = await request(runtime.app).post("/api/products").send(product);
+    expect(anonymous.statusCode).toBe(401);
+
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const created = await request(runtime.app)
+      .post("/api/products")
+      .set("Authorization", `Bearer ${login.body.access_token}`)
+      .send(product);
+    expect(created.statusCode).toBe(201);
+  });
+
   it("allows volunteer check-in with manual and QR flows", async () => {
     const manualPayload = {
       full_name: "Manual Rider",
@@ -364,11 +385,22 @@ describe("NV Cyclothon Node backend", () => {
     expect(session.statusCode).toBe(200);
     expect(session.body.volunteer_name).toBe("Registration Desk 1");
 
+    const validToken = session.body.access_token;
+    const activeSession = await request(runtime.app)
+      .get("/api/checkin/participants/search?q=ri")
+      .set("Authorization", `Bearer ${validToken}`);
+    expect(activeSession.statusCode).toBe(200);
+
     const disabled = await request(runtime.app)
       .patch(`/api/admin/volunteers/${created.body.id}`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ active: false });
     expect(disabled.statusCode).toBe(200);
+
+    const revokedToken = await request(runtime.app)
+      .get("/api/checkin/participants/search?q=ri")
+      .set("Authorization", `Bearer ${validToken}`);
+    expect(revokedToken.statusCode).toBe(401);
 
     const rejected = await request(runtime.app)
       .post("/api/checkin/session")
