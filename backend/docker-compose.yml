@@ -1,3 +1,5 @@
+name: nv-cyclothon
+
 services:
   postgres:
     image: postgres:16-alpine

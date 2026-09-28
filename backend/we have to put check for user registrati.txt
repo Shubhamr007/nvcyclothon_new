@@ -1,0 +1,2 @@
+we have to put check for user registration if payment was not successfull tha do not register user
+until the payment was not successfull we need to put a check

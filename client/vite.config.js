@@ -19,16 +19,33 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-dom/client'],
   },
   optimizeDeps: {
-    // Explicitly include framer-motion with React in the same first-pass
-    // pre-bundle so they share one React instance. Without this, Vite can
-    // run a second optimisation pass later (triggered by @react-three/fiber
-    // or @splinetool/react-spline discovery) that creates a split React copy,
-    // which breaks all hooks inside framer-motion components.
     include: [
       'react',
+      'react/jsx-runtime',
       'react-dom',
+      'react-dom/client',
       'react-router-dom',
       'framer-motion',
+      'gsap',
+      'swiper',
+      'swiper/react',
+      'swiper/modules',
+      'react-countup',
+      'react-intersection-observer',
+      'react-icons/fa6',
+      'react-icons/md',
+      'lucide-react',
+      'lenis',
+      'clsx',
+      'tailwind-merge',
+      'qrcode.react',
+      'react-confetti',
+      'react-hook-form',
+      'react-toastify',
+      'class-variance-authority',
+      '@radix-ui/react-slot',
+      '@tsparticles/react',
+      '@tsparticles/slim',
     ],
   },
   // Keep HMR socket deterministic to avoid localhost/undefined fallback URLs.
