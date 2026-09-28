@@ -96,7 +96,7 @@ const registrationCreateSchema = z
     ride_category: z.enum(Object.keys(RACE_CATEGORIES)),
     organization_type: z.enum(["School/College", "Corporate", "Cycling Club", "Individual"]).optional().nullable(),
     organization_name: z.string().trim().max(200).optional().nullable(),
-    emergency_contact: z.string().trim().min(5).max(160),
+    emergency_contact: z.string().trim().min(5).max(160).optional().nullable(),
     t_shirt_size: z.enum(["XS", "S", "M", "L", "XL", "XXL", "N/A"]),
     waiver_accepted: z.boolean(),
     privacy_accepted: z.boolean(),
@@ -111,6 +111,19 @@ const registrationCreateSchema = z
     {
       message: "Senior Masters Challenge is reserved for riders aged 50 and above",
       path: ["age"],
+    }
+  )
+  .refine(
+    (data) => {
+      return (
+        !data.organization_type ||
+        data.organization_type === "Individual" ||
+        Boolean(data.organization_name?.trim())
+      );
+    },
+    {
+      message: "Enter your organization or institute name",
+      path: ["organization_name"],
     }
   );
 
@@ -327,7 +340,10 @@ function normalizeRegistrationInput(payload) {
     ...payload,
     email: normalizeEmail(payload.email),
     phone: normalizeIndianMobile(payload.phone),
-    emergency_contact: normalizeIndianMobile(payload.emergency_contact),
+    // Older administrative views expect this column to be populated. When a
+    // rider does not provide a separate emergency contact, use their verified
+    // registration phone as the operational fallback.
+    emergency_contact: normalizeIndianMobile(payload.emergency_contact || payload.phone),
     organization_type: payload.organization_type || "Individual",
     organization_name: payload.organization_name ? payload.organization_name.trim() : null,
   };

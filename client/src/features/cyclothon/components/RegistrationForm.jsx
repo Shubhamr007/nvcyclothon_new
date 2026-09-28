@@ -27,7 +27,6 @@ const initialValues = (route) => ({
   full_name: "",
   email: "",
   phone_raw: "",
-  emergency_raw: "",
   age: "",
   city: "",
   gender: "",
@@ -39,6 +38,13 @@ const initialValues = (route) => ({
   privacy_accepted: false,
 });
 
+const AFFILIATION_OPTIONS = [
+  { value: "Individual", label: "Independent", description: "I am registering on my own" },
+  { value: "School/College", label: "School / College", description: "Student or institution team" },
+  { value: "Corporate", label: "Corporate", description: "Company or workplace team" },
+  { value: "Cycling Club", label: "Cycling club", description: "Club or sports group" },
+];
+
 export function RegistrationForm({ initialRoute }) {
   const {
     register,
@@ -49,7 +55,6 @@ export function RegistrationForm({ initialRoute }) {
   } = useForm({ defaultValues: initialValues(initialRoute) });
 
   const [phoneCountryCode, setPhoneCountryCode] = useState("+91");
-  const [emergencyCountryCode, setEmergencyCountryCode] = useState("+91");
 
   const reduceMotion = useReducedMotion();
   const { settings, loading: settingsLoading } = useSiteSettings();
@@ -73,7 +78,6 @@ export function RegistrationForm({ initialRoute }) {
     }
 
     const cleanPhone = String(form.phone_raw || "").trim().replace(/\D+/g, "");
-    const cleanEmergency = String(form.emergency_raw || "").trim().replace(/\D+/g, "");
 
     if (phoneCountryCode === "+91" && !/^[6-9]\d{9}$/.test(cleanPhone)) {
       setError("phone_raw", {
@@ -82,28 +86,22 @@ export function RegistrationForm({ initialRoute }) {
       });
       return;
     }
-    if (emergencyCountryCode === "+91" && !/^[6-9]\d{9}$/.test(cleanEmergency)) {
-      setError("emergency_raw", {
-        type: "manual",
-        message: "Enter a valid 10-digit emergency contact mobile number",
-      });
-      return;
-    }
-
     const fullPhone = `${phoneCountryCode}${cleanPhone}`;
-    const fullEmergency = `${emergencyCountryCode}${cleanEmergency}`;
 
     const payload = {
       full_name: form.full_name,
       email: form.email,
       phone: fullPhone,
-      emergency_contact: fullEmergency,
+      // The API retains this as a safe fallback for existing event operations.
+      // A separate emergency number is intentionally no longer required at signup.
+      emergency_contact: fullPhone,
       age: ageNum,
       city: form.city,
       gender: form.gender,
       ride_category: form.ride_category,
       organization_type: form.organization_type || "Individual",
-      organization_name: form.organization_name ? form.organization_name.trim() : null,
+      organization_name:
+        form.organization_type === "Individual" ? null : form.organization_name?.trim() || null,
       t_shirt_size: form.t_shirt_size || "N/A",
       waiver_accepted: Boolean(form.waiver_accepted),
       privacy_accepted: Boolean(form.privacy_accepted),
@@ -175,7 +173,7 @@ export function RegistrationForm({ initialRoute }) {
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit(submit)}>
+    <form noValidate onSubmit={handleSubmit(submit)} className="mx-auto max-w-3xl">
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
@@ -192,7 +190,7 @@ export function RegistrationForm({ initialRoute }) {
       </div>
 
       {/* Rider Personal Information */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2">
         <Field
           label="Full name"
           name="full_name"
@@ -285,54 +283,46 @@ export function RegistrationForm({ initialRoute }) {
           {errors.gender && <FieldError id="field-gender-error" message={errors.gender.message} />}
         </label>
 
-        <div className="sm:col-span-2">
-          <PhoneField
-            id="field-emergency_raw"
-            label="Emergency contact number"
-            countryCode={emergencyCountryCode}
-            onCountryCodeChange={setEmergencyCountryCode}
-            {...register("emergency_raw", {
-              required: "Enter an emergency contact number",
-              minLength: { value: 7, message: "Emergency number is too short" },
-              maxLength: { value: 14, message: "Emergency number is too long" },
-            })}
-            error={errors.emergency_raw}
-            inputMode="tel"
-            autoComplete="tel-national"
-            placeholder={emergencyCountryCode === "+91" ? "98765 43210" : "Emergency contact number"}
-          />
-        </div>
       </div>
 
       {/* Organization / Affiliation Section */}
-      <div className="mt-8 rounded-xl border border-[#071313]/15 bg-white/40 p-4 sm:p-5">
+      <fieldset className="mt-7 rounded-2xl border border-[#071313]/15 bg-white/55 p-4 sm:mt-8 sm:p-5">
+        <legend className="sr-only">Affiliation and representation</legend>
         <p className="text-xs font-black tracking-[.15em] text-[#ff5f3d] uppercase">
-          Affiliation & Representation
+          Ride together, if you want
         </p>
         <h3 className="mt-1 text-base font-black tracking-tight sm:text-lg">
-          Organization / Institution
+          Are you representing a group?
         </h3>
         <p className="mt-1 text-xs leading-5 text-[#071313]/70">
-          Riding with a school, college, corporate team, or cycling club? Choose your affiliation or ride as an Independent rider.
+          This is optional. Pick Independent if you are not riding for a school, company, or club.
         </p>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <label className="text-xs font-black tracking-[.1em] uppercase">
-            Affiliation Type
-            <select
-              {...register("organization_type")}
-              className="mt-2 w-full border-b-2 border-[#071313]/25 bg-transparent py-3 text-base font-medium normal-case outline-none transition focus:border-[#ff5f3d]"
-            >
-              <option value="Individual">Individual / Independent Rider</option>
-              <option value="School/College">School / College / University</option>
-              <option value="Corporate">Corporate / Company / Business</option>
-              <option value="Cycling Club">Cycling Club / Sports Group</option>
-            </select>
-          </label>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {AFFILIATION_OPTIONS.map((option) => {
+            const selected = orgType === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#ff5f3d] ${
+                  selected
+                    ? "border-[#071313] bg-[#d9ff38] shadow-[2px_2px_0_#071313]"
+                    : "border-[#071313]/15 bg-white hover:border-[#071313]/45"
+                }`}
+              >
+                <input className="sr-only" type="radio" value={option.value} {...register("organization_type")} />
+                <span className="block text-xs font-black leading-4">{option.label}</span>
+                <span className="mt-1 block text-[10px] leading-4 text-[#071313]/65">{option.description}</span>
+              </label>
+            );
+          })}
+        </div>
 
+        {orgType !== "Individual" && (
           <Field
-            label={orgType === "Individual" ? "Organization / Institute Name (Optional)" : "Organization / Institute Name *"}
+            label="Organization / Institute name"
             name="organization_name"
+            wrapperClassName="mt-4"
             placeholder={
               orgType === "School/College"
                 ? "e.g. Rewa Engineering College / Model Science College"
@@ -351,9 +341,10 @@ export function RegistrationForm({ initialRoute }) {
             })}
             error={errors.organization_name}
             maxLength="200"
+            autoComplete="organization"
           />
-        </div>
-      </div>
+        )}
+      </fieldset>
 
       {/* Race Category Selection */}
       <fieldset
@@ -497,7 +488,7 @@ const PhoneField = forwardRef(function PhoneField(
           value={countryCode}
           onChange={(e) => onCountryCodeChange(e.target.value)}
           aria-label="Country calling code"
-          className="shrink-0 cursor-pointer bg-transparent py-3 pr-2 text-sm font-bold text-[#071313] outline-none"
+          className="w-20 shrink-0 cursor-pointer truncate bg-transparent py-3 pr-1 text-sm font-bold text-[#071313] outline-none sm:w-24"
         >
           {COUNTRY_CODES.map((c) => (
             <option key={c.code} value={c.code} className="bg-white py-1 text-[#071313]">
@@ -520,10 +511,10 @@ const PhoneField = forwardRef(function PhoneField(
   );
 });
 
-const Field = forwardRef(function Field({ label, error, ...props }, ref) {
+const Field = forwardRef(function Field({ label, error, wrapperClassName = "", ...props }, ref) {
   const id = `field-${props.name}`;
   return (
-    <label htmlFor={id} className="text-xs font-black tracking-[.1em] uppercase">
+    <label htmlFor={id} className={`block text-xs font-black tracking-[.1em] uppercase ${wrapperClassName}`}>
       {label}
       <input
         id={id}
@@ -582,7 +573,6 @@ function ErrorSummary({ errors }) {
     full_name: "Full name",
     email: "Email address",
     phone_raw: "Phone number",
-    emergency_raw: "Emergency contact",
     age: "Age",
     city: "City",
     gender: "Gender",
@@ -594,7 +584,6 @@ function ErrorSummary({ errors }) {
   const targets = {
     ride_category: "ride-category",
     phone_raw: "field-phone_raw",
-    emergency_raw: "field-emergency_raw",
     waiver_accepted: "field-waiver_accepted",
     privacy_accepted: "field-privacy_accepted",
   };
