@@ -80,6 +80,48 @@ export async function updateVolunteer(accessToken, id, payload) {
   });
 }
 
+export async function downloadVolunteerTemplate(accessToken) {
+  const blob = await adminDownload("/volunteers/template", accessToken);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "nv-cyclothon-volunteer-template.xlsx";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function bulkUploadVolunteers(accessToken, formData) {
+  const authHeader = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  const response = await fetch(`${API_BASE}/admin/volunteers/bulk-upload`, {
+    method: "POST",
+    headers: authHeader,
+    body: formData,
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.message || "Failed to bulk upload volunteers");
+  }
+  return response.json();
+}
+
+export async function sendVolunteerCredentials(accessToken, id) {
+  return adminRequest(`/volunteers/${id}/send-credentials`, accessToken, {
+    method: "POST",
+  });
+}
+
+export async function previewVolunteerCertificate(accessToken, id) {
+  return adminDownload(`/volunteers/${id}/certificate-preview`, accessToken);
+}
+
+export async function sendVolunteerCertificate(accessToken, id) {
+  return adminRequest(`/volunteers/${id}/certificate-send`, accessToken, {
+    method: "POST",
+  });
+}
+
 export async function getCommunityPosts() {
   return request("/community/posts");
 }

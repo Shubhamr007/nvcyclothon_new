@@ -288,16 +288,26 @@ const communityModerationSchema = z.object({
 });
 
 const volunteerAccountCreateSchema = z.object({
-  volunteer_id: z.string().trim().min(3).max(80).regex(/^[a-zA-Z0-9._-]+$/),
+  volunteer_id: z.string().trim().min(2).max(80).regex(/^[a-zA-Z0-9._-]+$/).optional().or(z.literal("")),
   display_name: z.string().trim().min(2).max(120),
-  password: z.string().min(8).max(128),
+  email: z.string().trim().email().optional().or(z.literal("")),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  role: z.string().trim().max(100).optional().or(z.literal("")),
+  organization: z.string().trim().max(150).optional().or(z.literal("")),
+  password: z.string().min(6).max(128).optional().or(z.literal("")),
+  send_email: z.boolean().optional(),
 });
 
 const volunteerAccountUpdateSchema = z
   .object({
     display_name: z.string().trim().min(2).max(120).optional(),
-    password: z.string().min(8).max(128).optional(),
+    email: z.string().trim().email().optional().or(z.literal("")),
+    phone: z.string().trim().max(40).optional().or(z.literal("")),
+    role: z.string().trim().max(100).optional().or(z.literal("")),
+    organization: z.string().trim().max(150).optional().or(z.literal("")),
+    password: z.string().min(6).max(128).optional(),
     active: z.boolean().optional(),
+    certificate_status: z.string().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Provide at least one volunteer change",

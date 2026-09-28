@@ -1076,6 +1076,12 @@ class MockRepository {
     );
   }
 
+  async getVolunteerAccountById(id) {
+    return this.clone(
+      this.tables.volunteer_accounts.find((account) => account.id === Number(id)) || null
+    );
+  }
+
   async hasActiveVolunteerAccounts() {
     return this.tables.volunteer_accounts.some((account) => account.active);
   }
@@ -1090,6 +1096,13 @@ class MockRepository {
       volunteer_id: volunteerId,
       display_name: payload.display_name,
       password_hash: payload.password_hash,
+      email: payload.email || null,
+      phone: payload.phone || null,
+      role: payload.role || "Check-in Desk",
+      organization: payload.organization || null,
+      certificate_status: payload.certificate_status || "not_issued",
+      certificate_sent_at: payload.certificate_sent_at || null,
+      credentials_sent_at: payload.credentials_sent_at || null,
       active: true,
       created_at: this.now().toISOString(),
       updated_at: this.now().toISOString(),
@@ -1104,6 +1117,13 @@ class MockRepository {
     if (patch.display_name !== undefined) account.display_name = patch.display_name;
     if (patch.password_hash !== undefined) account.password_hash = patch.password_hash;
     if (patch.active !== undefined) account.active = Boolean(patch.active);
+    if (patch.email !== undefined) account.email = patch.email;
+    if (patch.phone !== undefined) account.phone = patch.phone;
+    if (patch.role !== undefined) account.role = patch.role;
+    if (patch.organization !== undefined) account.organization = patch.organization;
+    if (patch.certificate_status !== undefined) account.certificate_status = patch.certificate_status;
+    if (patch.certificate_sent_at !== undefined) account.certificate_sent_at = patch.certificate_sent_at;
+    if (patch.credentials_sent_at !== undefined) account.credentials_sent_at = patch.credentials_sent_at;
     account.updated_at = this.now().toISOString();
     return this.clone(account);
   }

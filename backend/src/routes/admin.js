@@ -1,11 +1,12 @@
 const crypto = require("crypto");
+const path = require("path");
 const bcrypt = require("bcryptjs");
 const express = require("express");
 const multer = require("multer");
 const { parse: parseCsv } = require("csv-parse/sync");
 const ExcelJS = require("exceljs");
 const pdfParse = require("pdf-parse");
-const { generateParticipationCertificate, generateRiderPassPdf, riderId } = require("../services/eventDocuments");
+const { generateParticipationCertificate, generateRiderPassPdf, generateVolunteerCertificatePdf, riderId } = require("../services/eventDocuments");
 const {
   ValidationError,
   NotFoundError,
@@ -102,10 +103,39 @@ function toVolunteerAccountRead(account) {
     id: account.id,
     volunteer_id: account.volunteer_id,
     display_name: account.display_name,
+    email: account.email || null,
+    phone: account.phone || null,
+    role: account.role || "Check-in Desk",
+    organization: account.organization || null,
+    certificate_status: account.certificate_status || "not_issued",
+    certificate_sent_at: account.certificate_sent_at || null,
+    credentials_sent_at: account.credentials_sent_at || null,
     active: account.active,
     created_at: account.created_at,
     updated_at: account.updated_at,
   };
+}
+
+function generateVolunteerId(name, existingIds) {
+  const base = String(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 10);
+  const prefix = base.length >= 2 ? `vol-${base}` : "vol";
+  let candidate = prefix;
+  let counter = 1;
+  while (existingIds.has(candidate)) {
+    counter += 1;
+    candidate = `${prefix}-${counter}`;
+  }
+  return candidate;
+}
+
+const FRIENDLY_WORDS = ["Rewa", "Cyclo", "Ride", "Sprint", "Pedal", "Champion", "Hero", "Velox"];
+function generateFriendlyPassword() {
+  const word = FRIENDLY_WORDS[Math.floor(Math.random() * FRIENDLY_WORDS.length)];
+  const num = Math.floor(100 + Math.random() * 900);
+  return `${word}@${num}`;
 }
 
 function runMulter(upload, req, res) {
@@ -347,14 +377,243 @@ function createAdminRouter({ config, repository, emailService }) {
     res.json(accounts.map(toVolunteerAccountRead));
   });
 
+  router.get("/volunteers/template", async (_req, res) => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "NV Cyclothon 2026";
+    const sheet = workbook.addWorksheet("Volunteers", {
+      views: [{ showGridLines: true }],
+    });
+
+    sheet.columns = [
+      { header: "Full Name *", key: "full_name", width: 26 },
+      { header: "Email *", key: "email", width: 28 },
+      { header: "Phone", key: "phone", width: 18 },
+      { header: "Assigned Role", key: "role", width: 22 },
+      { header: "College / Organization", key: "organization", width: 28 },
+      { header: "Custom Volunteer ID (Optional)", key: "volunteer_id", width: 25 },
+      { header: "Custom Password (Optional)", key: "password", width: 25 },
+    ];
+
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF071313" },
+    };
+    headerRow.alignment = { vertical: "middle", horizontal: "center" };
+    headerRow.height = 28;
+
+    sheet.addRow({
+      full_name: "Aarav Sharma",
+      email: "aarav.sharma@example.com",
+      phone: "9876543210",
+      role: "Check-in Desk",
+      organization: "Rewa Engineering College",
+      volunteer_id: "",
+      password: "",
+    });
+    sheet.addRow({
+      full_name: "Priya Patel",
+      email: "priya.patel@example.com",
+      phone: "9876543211",
+      role: "Bib Distribution",
+      organization: "TRS College Rewa",
+      volunteer_id: "",
+      password: "",
+    });
+    sheet.addRow({
+      full_name: "Vikram Singh",
+      email: "vikram.singh@example.com",
+      phone: "9876543212",
+      role: "Route Marshal",
+      organization: "Rewa Cycling Club",
+      volunteer_id: "",
+      password: "",
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=\"nv-cyclothon-volunteer-template.xlsx\""
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  });
+
   router.post("/volunteers", async (req, res) => {
     const payload = parseSchema(volunteerAccountCreateSchema, req.body || {});
+    const existing = await repository.listVolunteerAccounts();
+    const existingIds = new Set(existing.map((a) => String(a.volunteer_id).toLowerCase()));
+
+    const volunteerId = payload.volunteer_id && String(payload.volunteer_id).trim()
+      ? String(payload.volunteer_id).trim().toLowerCase()
+      : generateVolunteerId(payload.display_name, existingIds);
+
+    const plainPassword = payload.password && String(payload.password).trim().length >= 6
+      ? String(payload.password).trim()
+      : generateFriendlyPassword();
+
     const account = await repository.createVolunteerAccount({
-      volunteer_id: payload.volunteer_id,
+      volunteer_id: volunteerId,
       display_name: payload.display_name,
-      password_hash: await bcrypt.hash(payload.password, 12),
+      email: payload.email || null,
+      phone: payload.phone || null,
+      role: payload.role || "Check-in Desk",
+      organization: payload.organization || null,
+      password_hash: await bcrypt.hash(plainPassword, 10),
     });
-    res.status(201).json(toVolunteerAccountRead(account));
+
+    let emailSent = false;
+    if (payload.send_email !== false && payload.email) {
+      try {
+        emailSent = await emailService.sendVolunteerCredentials({
+          recipient: payload.email,
+          name: payload.display_name,
+          volunteerId,
+          password: plainPassword,
+          role: payload.role || "Check-in Desk",
+        });
+        if (emailSent) {
+          await repository.updateVolunteerAccount(account.id, {
+            credentials_sent_at: new Date().toISOString(),
+          });
+        }
+      } catch (_) {
+        // Non-fatal, credentials still returned
+      }
+    }
+
+    const responseData = toVolunteerAccountRead(account);
+    responseData.generated_password = plainPassword;
+    responseData.email_sent = emailSent;
+    res.status(201).json(responseData);
+  });
+
+  const volunteerUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  }).single("file");
+
+  router.post("/volunteers/bulk-upload", async (req, res) => {
+    await runMulter(volunteerUpload, req, res);
+
+    let rows = [];
+    if (req.file) {
+      const ext = path.extname(req.file.originalname || "").toLowerCase();
+      if (ext === ".csv") {
+        rows = parseCsv(req.file.buffer, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+        });
+      } else {
+        rows = await parseXlsxRows(req.file.buffer);
+      }
+    } else if (Array.isArray(req.body)) {
+      rows = req.body;
+    } else if (Array.isArray(req.body?.volunteers)) {
+      rows = req.body.volunteers;
+    } else {
+      throw new ValidationError("Upload an Excel/CSV file or pass volunteers array");
+    }
+
+    if (!rows.length) {
+      throw new ValidationError("No data rows found in the uploaded file");
+    }
+
+    const sendEmailOption = req.query.send_email !== "false" && req.body?.send_email !== false;
+    const existing = await repository.listVolunteerAccounts();
+    const existingIds = new Set(existing.map((a) => String(a.volunteer_id).toLowerCase()));
+
+    const imported = [];
+    const skipped = [];
+
+    for (const rawRow of rows) {
+      const row = {};
+      for (const [k, v] of Object.entries(rawRow || {})) {
+        row[String(k).trim().toLowerCase().replace(/[^a-z0-9]/g, "")] = v;
+      }
+
+      const name = String(row.fullname || row.name || row.displayname || "").trim();
+      const email = String(row.email || row.emailaddress || "").trim().toLowerCase();
+      const phone = String(row.phone || row.mobile || row.contact || "").trim();
+      const role = String(row.assignedrole || row.role || row.station || "Check-in Desk").trim();
+      const organization = String(row.collegeorganization || row.college || row.organization || "").trim();
+      let customId = String(row.customvolunteerid || row.volunteerid || row.id || "").trim().toLowerCase();
+      let customPass = String(row.custompassword || row.password || "").trim();
+
+      if (!name) {
+        skipped.push({ row: rawRow, reason: "Missing volunteer name" });
+        continue;
+      }
+
+      const volunteerId = customId && /^[a-zA-Z0-9._-]+$/.test(customId) && !existingIds.has(customId)
+        ? customId
+        : generateVolunteerId(name, existingIds);
+
+      existingIds.add(volunteerId);
+
+      const plainPassword = customPass.length >= 6
+        ? customPass
+        : generateFriendlyPassword();
+
+      try {
+        const account = await repository.createVolunteerAccount({
+          volunteer_id: volunteerId,
+          display_name: name,
+          email: email || null,
+          phone: phone || null,
+          role: role || "Check-in Desk",
+          organization: organization || null,
+          password_hash: await bcrypt.hash(plainPassword, 10),
+        });
+
+        let emailSent = false;
+        if (sendEmailOption && email) {
+          try {
+            emailSent = await emailService.sendVolunteerCredentials({
+              recipient: email,
+              name,
+              volunteerId,
+              password: plainPassword,
+              role,
+            });
+            if (emailSent) {
+              await repository.updateVolunteerAccount(account.id, {
+                credentials_sent_at: new Date().toISOString(),
+              });
+            }
+          } catch (_) {
+            // Non-fatal
+          }
+        }
+
+        imported.push({
+          id: account.id,
+          volunteer_id: volunteerId,
+          display_name: name,
+          email: email || null,
+          phone: phone || null,
+          role,
+          organization: organization || null,
+          generated_password: plainPassword,
+          email_sent: emailSent,
+        });
+      } catch (err) {
+        skipped.push({ row: rawRow, reason: err.message });
+      }
+    }
+
+    res.status(201).json({
+      imported_count: imported.length,
+      skipped_count: skipped.length,
+      imported,
+      skipped,
+    });
   });
 
   router.patch("/volunteers/:volunteerId", async (req, res) => {
@@ -362,11 +621,104 @@ function createAdminRouter({ config, repository, emailService }) {
     const payload = parseSchema(volunteerAccountUpdateSchema, req.body || {});
     const account = await repository.updateVolunteerAccount(id, {
       display_name: payload.display_name,
+      email: payload.email,
+      phone: payload.phone,
+      role: payload.role,
+      organization: payload.organization,
       active: payload.active,
-      password_hash: payload.password ? await bcrypt.hash(payload.password, 12) : undefined,
+      certificate_status: payload.certificate_status,
+      password_hash: payload.password ? await bcrypt.hash(payload.password, 10) : undefined,
     });
     if (!account) throw new NotFoundError("Volunteer account not found");
     res.json(toVolunteerAccountRead(account));
+  });
+
+  router.post("/volunteers/:volunteerId/send-credentials", async (req, res) => {
+    const id = parsePositiveInt(req.params.volunteerId, "volunteer id");
+    const account = await repository.getVolunteerAccountById(id);
+    if (!account) throw new NotFoundError("Volunteer account not found");
+    if (!account.email) {
+      throw new ValidationError("This volunteer does not have an email address configured");
+    }
+
+    const newPassword = generateFriendlyPassword();
+    await repository.updateVolunteerAccount(id, {
+      password_hash: await bcrypt.hash(newPassword, 10),
+      credentials_sent_at: new Date().toISOString(),
+    });
+
+    const emailSent = await emailService.sendVolunteerCredentials({
+      recipient: account.email,
+      name: account.display_name,
+      volunteerId: account.volunteer_id,
+      password: newPassword,
+      role: account.role || "Check-in Desk",
+    });
+
+    res.json({
+      success: true,
+      email_sent: emailSent,
+      generated_password: newPassword,
+      volunteer_id: account.volunteer_id,
+    });
+  });
+
+  router.get("/volunteers/:volunteerId/certificate-preview", async (req, res) => {
+    const id = parsePositiveInt(req.params.volunteerId, "volunteer id");
+    const account = await repository.getVolunteerAccountById(id);
+    if (!account) throw new NotFoundError("Volunteer account not found");
+
+    const settings = await repository.getSiteSettings();
+    const certPdf = await generateVolunteerCertificatePdf({
+      name: account.display_name,
+      role: account.role || "Event Operations",
+      eventDate: settings.event_date,
+      venue: settings.event_location,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=\"nv-cyclothon-volunteer-certificate-${account.volunteer_id}.pdf\"`
+    );
+    res.send(certPdf);
+  });
+
+  router.post("/volunteers/:volunteerId/certificate-send", async (req, res) => {
+    const id = parsePositiveInt(req.params.volunteerId, "volunteer id");
+    const account = await repository.getVolunteerAccountById(id);
+    if (!account) throw new NotFoundError("Volunteer account not found");
+    if (!account.email) {
+      throw new ValidationError("This volunteer does not have an email address configured");
+    }
+
+    const settings = await repository.getSiteSettings();
+    const certPdf = await generateVolunteerCertificatePdf({
+      name: account.display_name,
+      role: account.role || "Event Operations",
+      eventDate: settings.event_date,
+      venue: settings.event_location,
+    });
+
+    const sent = await emailService.sendVolunteerCertificate({
+      recipient: account.email,
+      name: account.display_name,
+      role: account.role || "Event Operations",
+      certificatePdf: certPdf,
+    });
+
+    if (sent) {
+      await repository.updateVolunteerAccount(id, {
+        certificate_status: "issued",
+        certificate_sent_at: new Date().toISOString(),
+      });
+    }
+
+    res.json({
+      success: true,
+      sent,
+      certificate_status: sent ? "issued" : account.certificate_status,
+    });
   });
 
   router.get("/community/posts", async (req, res) => {

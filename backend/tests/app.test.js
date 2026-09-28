@@ -408,6 +408,94 @@ describe("NV Cyclothon Node backend", () => {
     expect(rejected.statusCode).toBe(401);
   });
 
+  it("supports volunteer template download, auto-credentialing, bulk import, and certificates", async () => {
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    // 1. Download Excel template
+    const templateRes = await request(runtime.app)
+      .get("/api/admin/volunteers/template")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(templateRes.statusCode).toBe(200);
+    expect(templateRes.headers["content-type"]).toContain("spreadsheetml");
+
+    // 2. Create single volunteer with auto-generated ID & password
+    const autoCreated = await request(runtime.app)
+      .post("/api/admin/volunteers")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        display_name: "Siddharth Verma",
+        email: "siddharth@example.com",
+        phone: "9876543219",
+        role: "Bib Distribution",
+        organization: "Government Engineering College Rewa",
+      });
+    expect(autoCreated.statusCode).toBe(201);
+    expect(autoCreated.body.volunteer_id).toMatch(/^vol-siddhart/);
+    expect(autoCreated.body.generated_password).toBeTruthy();
+    expect(autoCreated.body.role).toBe("Bib Distribution");
+
+    // 3. Login using the auto-generated credentials
+    const autoLogin = await request(runtime.app)
+      .post("/api/checkin/session")
+      .send({
+        volunteer_name: autoCreated.body.volunteer_id,
+        volunteer_pin: autoCreated.body.generated_password,
+      });
+    expect(autoLogin.statusCode).toBe(200);
+    expect(autoLogin.body.access_token).toBeTruthy();
+
+    // 4. Send/reset credentials
+    const credRes = await request(runtime.app)
+      .post(`/api/admin/volunteers/${autoCreated.body.id}/send-credentials`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(credRes.statusCode).toBe(200);
+    expect(credRes.body.success).toBe(true);
+    expect(credRes.body.generated_password).toBeTruthy();
+
+    // 5. Preview volunteer certificate
+    const certPreview = await request(runtime.app)
+      .get(`/api/admin/volunteers/${autoCreated.body.id}/certificate-preview`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(certPreview.statusCode).toBe(200);
+    expect(certPreview.headers["content-type"]).toBe("application/pdf");
+
+    // 6. Send volunteer certificate
+    const certSend = await request(runtime.app)
+      .post(`/api/admin/volunteers/${autoCreated.body.id}/certificate-send`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(certSend.statusCode).toBe(200);
+    expect(certSend.body.success).toBe(true);
+
+    // 7. Bulk import via array
+    const bulkRes = await request(runtime.app)
+      .post("/api/admin/volunteers/bulk-upload")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        volunteers: [
+          {
+            full_name: "Kavita Rao",
+            email: "kavita@example.com",
+            phone: "9876543220",
+            role: "Hydration Point",
+            organization: "Rewa Youth Club",
+          },
+          {
+            full_name: "Manish Tiwari",
+            email: "manish@example.com",
+            phone: "9876543221",
+            role: "Route Marshal",
+            organization: "Rewa Runners",
+          },
+        ],
+      });
+    expect(bulkRes.statusCode).toBe(201);
+    expect(bulkRes.body.imported_count).toBe(2);
+    expect(bulkRes.body.imported[0].generated_password).toBeTruthy();
+  });
+
   it("supports community wall submissions with moderation and status toggling", async () => {
     const submission = await request(runtime.app)
       .post("/api/community/posts")

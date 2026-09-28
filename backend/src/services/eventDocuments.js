@@ -54,8 +54,24 @@ async function generateParticipationCertificate({ templatePath, registration, ev
   );
 }
 
+async function generateVolunteerCertificatePdf({ name, role, eventDate, venue }) {
+  return generateCertificatePdf(
+    {
+      id: "VOLUNTEER",
+      name: name || "Event Volunteer",
+      position: "Volunteer Team",
+      category: role || "Event Operations",
+    },
+    {
+      eventDate: eventDate || "2026-11-22",
+      venue: venue || "Rewa, Madhya Pradesh",
+    }
+  );
+}
+
 module.exports = {
   generateRiderPassPdf,
   generateParticipationCertificate,
+  generateVolunteerCertificatePdf,
   riderId,
 };

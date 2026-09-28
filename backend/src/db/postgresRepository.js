@@ -235,6 +235,13 @@ class PostgresRepository {
         volunteer_id VARCHAR(80) UNIQUE NOT NULL,
         display_name VARCHAR(120) NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
+        email VARCHAR(150),
+        phone VARCHAR(40),
+        role VARCHAR(100) DEFAULT 'Check-in Desk',
+        organization VARCHAR(150),
+        certificate_status VARCHAR(50) DEFAULT 'not_issued',
+        certificate_sent_at TIMESTAMPTZ,
+        credentials_sent_at TIMESTAMPTZ,
         active BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -582,6 +589,27 @@ class PostgresRepository {
     );
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS checkin_device VARCHAR(200)"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS email VARCHAR(150)"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS phone VARCHAR(40)"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS role VARCHAR(100) DEFAULT 'Check-in Desk'"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS organization VARCHAR(150)"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS certificate_status VARCHAR(50) DEFAULT 'not_issued'"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS certificate_sent_at TIMESTAMPTZ"
+    );
+    await this.pool.query(
+      "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS credentials_sent_at TIMESTAMPTZ"
     );
     await this.pool.query(
       "CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_razorpay_order_partial ON cyclothon_registrations (razorpay_order_id) WHERE razorpay_order_id IS NOT NULL"
@@ -1915,7 +1943,7 @@ class PostgresRepository {
 
   async listVolunteerAccounts() {
     const result = await this.pool.query(
-      `SELECT id, volunteer_id, display_name, active, created_at, updated_at
+      `SELECT id, volunteer_id, display_name, email, phone, role, organization, certificate_status, certificate_sent_at, credentials_sent_at, active, created_at, updated_at
        FROM volunteer_accounts
        ORDER BY volunteer_id ASC`
     );
@@ -1924,11 +1952,22 @@ class PostgresRepository {
 
   async getVolunteerAccount(volunteerId) {
     const result = await this.pool.query(
-      `SELECT id, volunteer_id, display_name, password_hash, active, created_at, updated_at
+      `SELECT id, volunteer_id, display_name, email, phone, role, organization, certificate_status, certificate_sent_at, credentials_sent_at, password_hash, active, created_at, updated_at
        FROM volunteer_accounts
        WHERE volunteer_id = lower($1)
        LIMIT 1`,
       [String(volunteerId || "").trim()]
+    );
+    return result.rows[0] || null;
+  }
+
+  async getVolunteerAccountById(id) {
+    const result = await this.pool.query(
+      `SELECT id, volunteer_id, display_name, email, phone, role, organization, certificate_status, certificate_sent_at, credentials_sent_at, password_hash, active, created_at, updated_at
+       FROM volunteer_accounts
+       WHERE id = $1
+       LIMIT 1`,
+      [Number(id)]
     );
     return result.rows[0] || null;
   }
@@ -1943,10 +1982,18 @@ class PostgresRepository {
   async createVolunteerAccount(payload) {
     try {
       const result = await this.pool.query(
-        `INSERT INTO volunteer_accounts (volunteer_id, display_name, password_hash)
-         VALUES (lower($1), $2, $3)
-         RETURNING id, volunteer_id, display_name, active, created_at, updated_at`,
-        [payload.volunteer_id, payload.display_name, payload.password_hash]
+        `INSERT INTO volunteer_accounts (volunteer_id, display_name, password_hash, email, phone, role, organization)
+         VALUES (lower($1), $2, $3, $4, $5, $6, $7)
+         RETURNING id, volunteer_id, display_name, email, phone, role, organization, certificate_status, certificate_sent_at, credentials_sent_at, active, created_at, updated_at`,
+        [
+          payload.volunteer_id,
+          payload.display_name,
+          payload.password_hash,
+          payload.email || null,
+          payload.phone || null,
+          payload.role || "Check-in Desk",
+          payload.organization || null,
+        ]
       );
       return result.rows[0];
     } catch (error) {
@@ -1961,10 +2008,29 @@ class PostgresRepository {
        SET display_name = COALESCE($2, display_name),
            password_hash = COALESCE($3, password_hash),
            active = COALESCE($4, active),
+           email = COALESCE($5, email),
+           phone = COALESCE($6, phone),
+           role = COALESCE($7, role),
+           organization = COALESCE($8, organization),
+           certificate_status = COALESCE($9, certificate_status),
+           certificate_sent_at = COALESCE($10, certificate_sent_at),
+           credentials_sent_at = COALESCE($11, credentials_sent_at),
            updated_at = NOW()
        WHERE id = $1
-       RETURNING id, volunteer_id, display_name, active, created_at, updated_at`,
-      [id, patch.display_name ?? null, patch.password_hash ?? null, patch.active ?? null]
+       RETURNING id, volunteer_id, display_name, email, phone, role, organization, certificate_status, certificate_sent_at, credentials_sent_at, active, created_at, updated_at`,
+      [
+        id,
+        patch.display_name ?? null,
+        patch.password_hash ?? null,
+        patch.active ?? null,
+        patch.email ?? null,
+        patch.phone ?? null,
+        patch.role ?? null,
+        patch.organization ?? null,
+        patch.certificate_status ?? null,
+        patch.certificate_sent_at ?? null,
+        patch.credentials_sent_at ?? null,
+      ]
     );
     return result.rows[0] || null;
   }

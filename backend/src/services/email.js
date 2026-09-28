@@ -293,6 +293,55 @@ function createEmailService(config, logger = console) {
       });
     },
 
+    async sendVolunteerCredentials({ recipient, name, volunteerId, password, role, checkinUrl }) {
+      const banner = await bannerAttachment();
+      const portalUrl = checkinUrl || `${config.appBaseUrl || "https://nvcyclothon.com"}/checkin`;
+      const subject = "Your NV Cyclothon 2026 Volunteer Login Credentials";
+      const text = `Hi ${name},\n\nThank you for volunteering for NV Cyclothon 2026!\n\nHere are your event-day login credentials:\nVolunteer ID: ${volunteerId}\nPassword: ${password}\nAssigned Role: ${role || "Check-in Desk"}\n\nLogin Portal: ${portalUrl}\n\nPlease keep these credentials safe and carry your smartphone on event day to log in and scan rider passes.\n\nWarm regards,\nNV Cyclothon Organizing Committee`;
+      const html = emailShell({
+        title: "Volunteer Team Access",
+        greeting: name,
+        banner,
+        body: `<p>Thank you for stepping up to power <strong>NV Cyclothon 2026</strong>! Your dedication and hard work make this grand athletic event possible.</p>
+        <div style="background:#f4f6f8;border-left:4px solid #071313;padding:16px;margin:20px 0;border-radius:8px;">
+          <p style="margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#555;font-weight:bold;">Your Event-Day Credentials</p>
+          <p style="margin:4px 0;font-size:15px;"><strong>Volunteer ID:</strong> <code style="background:#fff;padding:2px 6px;border-radius:4px;border:1px solid #ddd;font-weight:bold;color:#071313;">${escapeHtml(volunteerId)}</code></p>
+          <p style="margin:4px 0;font-size:15px;"><strong>Password:</strong> <code style="background:#fff;padding:2px 6px;border-radius:4px;border:1px solid #ddd;font-weight:bold;color:#ff5f3d;">${escapeHtml(password)}</code></p>
+          <p style="margin:4px 0;font-size:14px;color:#333;"><strong>Assigned Role / Station:</strong> ${escapeHtml(role || "Check-in Desk")}</p>
+        </div>
+        <p style="margin-top:16px;">
+          <a href="${escapeHtml(portalUrl)}" style="background:#071313;color:#d9ff38;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">Open Volunteer Check-In Portal</a>
+        </p>
+        <p style="font-size:12px;color:#666;margin-top:20px;">Please carry your smartphone on race day to scan participant passes and assist riders.</p>`,
+      });
+      return send({ recipient, subject, text, html, attachments: banner ? [banner] : [] });
+    },
+
+    async sendVolunteerCertificate({ recipient, name, role, certificatePdf }) {
+      const banner = await bannerAttachment();
+      const subject = "Certificate of Appreciation - NV Cyclothon 2026 Volunteer Team";
+      const text = `Dear ${name},\n\nThank you for your tireless contribution and outstanding service as a volunteer for NV Cyclothon 2026. Your official Certificate of Appreciation is attached to this email.\n\nWith immense gratitude,\nNV Cyclothon Organizing Committee`;
+      const html = emailShell({
+        title: "Certificate of Appreciation",
+        greeting: name,
+        banner,
+        body: `<p>On behalf of the entire organizing committee and riders, we extend our deepest gratitude for your selfless contribution and support during <strong>NV Cyclothon 2026</strong>.</p>
+        <p>Your official <strong>Certificate of Appreciation</strong> is attached to this email in recognition of your dedicated service in the role of <strong>${escapeHtml(role || "Event Operations")}</strong>.</p>
+        <p>We are proud to have had you on the team!</p>`,
+      });
+      return send({
+        recipient,
+        subject,
+        text,
+        html,
+        attachments: [...(banner ? [banner] : []), {
+          filename: `nv-cyclothon-volunteer-certificate-${String(name).toLowerCase().replace(/[^a-z0-9]/g, "-")}.pdf`,
+          content: certificatePdf,
+          contentType: "application/pdf",
+        }],
+      });
+    },
+
     sendPartnerApplicationConfirmation,
     sendPartnerApprovalNotification,
     sendPartnerRejectionNotification,
