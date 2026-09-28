@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { FaArrowRight, FaCalendarDay, FaCheck, FaPeopleGroup, FaTags, FaUsers } from "react-icons/fa6";
 import { adminDownload, adminRequest, createAdminSession, getAdminSettings, updateSiteSettings, listAdminCommunityPosts, moderateCommunityPost, getAdminCommunityMedia, createVolunteer, listVolunteers, updateVolunteer, uploadAdminProfileImage, listAdminPartnerApplications, reviewPartnerApplication, getAdminPartnerLogo, getAdminPartnerDeliverables, updateAdminPartnerDeliverable, exportAdminPartnersCsv, listAdminVendorApplications, reviewVendorApplication, getAdminVendorDocument, exportAdminVendorsCsv } from "../api/http";
-import { LoadingIndicator } from "../components/LoadingIndicator";
+import { LoadingIndicator, LoadingScreen } from "../components/LoadingIndicator";
 import { useDebouncedValue } from "../components/useDebouncedValue";
 import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
 
@@ -168,16 +168,7 @@ export function AdminPage() {
   }
 
   if (!data.analytics && loading) {
-    return (
-      <main className="min-h-screen bg-[#f4f1e9] px-5 pb-16 pt-28 text-[#071313]">
-        <div className="mx-auto max-w-[1240px] rounded-3xl bg-[#071313] p-10 text-center text-white">
-          <LoadingIndicator
-            label="Loading admin workspace..."
-            className="justify-center text-sm font-bold"
-          />
-        </div>
-      </main>
-    );
+    return <LoadingScreen label="Loading admin workspace…" />;
   }
 
   if (!data.analytics) {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkinRequest, createCheckinSession, getCheckinStatus } from "../api/http";
-import { LoadingIndicator } from "../components/LoadingIndicator";
+import { LoadingIndicator, LoadingScreen } from "../components/LoadingIndicator";
 import { useDebouncedValue } from "../components/useDebouncedValue";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -487,11 +487,7 @@ export function CheckinPage() {
 
   /* ─── LOADING STATE ─── */
   if (availability.state === "loading") {
-    return (
-      <main data-theme="dark" className="grid min-h-screen place-items-center bg-[#071313] px-4 text-white">
-        <LoadingIndicator label="Loading check-in workspace…" />
-      </main>
-    );
+    return <LoadingScreen label="Loading check-in workspace…" />;
   }
 
   /* ─── CLOSED STATE ─── */

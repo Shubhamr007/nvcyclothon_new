@@ -2,7 +2,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
-import { LoadingIndicator } from "./components/LoadingIndicator";
+import { LoadingIndicator, LoadingScreen } from "./components/LoadingIndicator";
 import { SiteSettingsProvider } from "./state/SiteSettingsContext";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
@@ -10,7 +10,7 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => 
 const CheckinPage = lazy(() => import("./pages/CheckinPage").then((module) => ({ default: module.CheckinPage })));
 const PartnerPage = lazy(() => import('./pages/PartnerPage').then((module) => ({ default: module.PartnerPage })));
 const VendorPage = lazy(() => import('./pages/VendorPage').then((module) => ({ default: module.VendorPage })));
-const PageFallback = () => <main className="grid min-h-screen place-items-center bg-[#071313] text-white"><LoadingIndicator label="Loading page…" /></main>;
+const PageFallback = () => <LoadingScreen label="Gearing up for the ride…" />;
 
 const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://nvcyclothon.in").replace(/\/$/, "");
 const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1502744688674-c619d1586c9e?auto=format&fit=crop&w=1200&q=85";

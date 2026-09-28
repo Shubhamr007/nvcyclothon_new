@@ -584,9 +584,24 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
   white-space: nowrap;
   border: 0;
 }
+@keyframes road-dash-stream {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-40px); }
+}
+@keyframes racer-wheel-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes racer-bob {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(-0.5deg); }
+}
 @media (prefers-reduced-motion: reduce) {
   .loading-track-bike,
-  .loading-bike-wheel {
+  .loading-bike-wheel,
+  [style*="road-dash-stream"],
+  [style*="racer-wheel-spin"],
+  [style*="racer-bob"] {
     animation: none !important;
   }
 }

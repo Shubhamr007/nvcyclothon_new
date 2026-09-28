@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
-import { LoadingIndicator } from "./components/LoadingIndicator";
+import { LoadingIndicator, LoadingScreen } from "./components/LoadingIndicator";
 
 const AdminPage = lazy(() =>
   import("./pages/AdminPage").then((module) => ({ default: module.AdminPage }))
@@ -25,11 +25,7 @@ function InternalSeo() {
 }
 
 function PageFallback() {
-  return (
-    <main data-theme="dark" className="grid min-h-screen place-items-center bg-[#071313] text-white">
-      <LoadingIndicator label="Loading internal workspace..." />
-    </main>
-  );
+  return <LoadingScreen label="Loading internal workspace…" />;
 }
 
 export default function InternalApp() {
