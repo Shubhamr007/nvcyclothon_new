@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /checkin
+
+Sitemap: https://nvcyclothon.in/sitemap.xml
