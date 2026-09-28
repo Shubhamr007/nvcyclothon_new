@@ -94,6 +94,30 @@ function drawIconBadge(page, cx, cy, iconR, drawGlyph) {
   drawGlyph(page, cx, cy);
 }
 
+let baseTemplateDocBytes = null;
+let baseTemplatePromise = null;
+
+async function getBaseTemplateDocBytes() {
+  if (baseTemplateDocBytes) return baseTemplateDocBytes;
+  if (baseTemplatePromise) return baseTemplatePromise;
+
+  baseTemplatePromise = (async () => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([PAGE_W, PAGE_H]);
+    const templateBytes = await fs.promises.readFile(TEMPLATE_PATH);
+    const templateImage = await doc.embedPng(templateBytes);
+    page.drawImage(templateImage, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+    baseTemplateDocBytes = await doc.save();
+    return baseTemplateDocBytes;
+  })();
+
+  try {
+    return await baseTemplatePromise;
+  } finally {
+    baseTemplatePromise = null;
+  }
+}
+
 async function generateRiderPassPdf(participant, options = {}) {
   const {
     eventDate = new Date().toISOString(),
@@ -103,15 +127,12 @@ async function generateRiderPassPdf(participant, options = {}) {
 
   logger.debug({ participantId: participant.id }, "Generating rider pass PDF");
 
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+  const baseBytes = await getBaseTemplateDocBytes();
+  const pdfDoc = await PDFDocument.load(baseBytes);
+  const [page] = pdfDoc.getPages();
 
   const fBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const fItalic = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
-
-  const templateBytes = fs.readFileSync(TEMPLATE_PATH);
-  const templateImage = await pdfDoc.embedPng(templateBytes);
-  page.drawImage(templateImage, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
 
   drawFitted(page, participant.name, fItalic, 22, 12, px(498), py(796) + 4, px(380), NAVY);
 
@@ -123,12 +144,13 @@ async function generateRiderPassPdf(participant, options = {}) {
   const qrY = py(1067) - QR_SIZE / 2;
 
   try {
-    const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, {
-      width: QR_SIZE * 4,
+    const qrBuffer = await QRCode.toBuffer(qrCodeUrl, {
+      type: "png",
+      width: QR_SIZE * 2,
       margin: 1,
       color: { dark: "#0D1A44", light: "#FFFFFF" }
     });
-    const qrImg = await pdfDoc.embedPng(Buffer.from(qrDataUrl.split(",")[1], "base64"));
+    const qrImg = await pdfDoc.embedPng(qrBuffer);
     page.drawImage(qrImg, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
   } catch (err) {
     logger.warn({ err, participantId: participant.id }, "QR generation failed; skipping");

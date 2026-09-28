@@ -49,15 +49,20 @@ function createEmailService(config, logger = console) {
     return transporter;
   }
 
+  let cachedBanner = null;
   async function bannerAttachment() {
+    if (cachedBanner) {
+      return cachedBanner;
+    }
     try {
-      return {
+      cachedBanner = {
         filename: "nv-cyclothon-email-banner.png",
         content: await fs.readFile(config.emailBannerImagePath),
         contentType: "image/png",
         cid: "nv-cyclothon-email-banner",
         contentDisposition: "inline",
       };
+      return cachedBanner;
     } catch (error) {
       logger.error("Unable to load the email banner", error);
       return null;

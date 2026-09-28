@@ -66,8 +66,8 @@ async function mapWithConcurrency(items, limit, worker) {
   return results;
 }
 
-async function getCachedRiderPass(config, repository, registration, checkinPayload) {
-  const settings = await repository.getSiteSettings();
+async function getCachedRiderPass(config, repository, registration, checkinPayload, settings = null) {
+  const siteSettings = settings || (await repository.getSiteSettings());
   return getOrCreatePdf({
     rootDirectory: config.uploadDir,
     directory: "generated-documents",
@@ -76,14 +76,14 @@ async function getCachedRiderPass(config, repository, registration, checkinPaylo
       templatePath: config.riderPassTemplatePath,
       registration,
       checkinPayload,
-      eventDate: settings.event_date,
-      assemblyPoint: settings.event_location,
+      eventDate: siteSettings.event_date,
+      assemblyPoint: siteSettings.event_location,
     }),
   });
 }
 
-async function getCachedCertificate(config, repository, registration) {
-  const settings = await repository.getSiteSettings();
+async function getCachedCertificate(config, repository, registration, settings = null) {
+  const siteSettings = settings || (await repository.getSiteSettings());
   return getOrCreatePdf({
     rootDirectory: config.uploadDir,
     directory: "generated-documents",
@@ -91,8 +91,8 @@ async function getCachedCertificate(config, repository, registration) {
     generate: () => generateParticipationCertificate({
       templatePath: config.certificateTemplatePath,
       registration,
-      eventDate: settings.event_date,
-      venue: settings.event_location,
+      eventDate: siteSettings.event_date,
+      venue: siteSettings.event_location,
     }),
   });
 }
@@ -587,13 +587,16 @@ function createAdminRouter({ config, repository, emailService }) {
       throw new ValidationError("Select at least one participant");
     }
 
-    const registrations = await repository.getRegistrationsByIds(ids);
+    const [settings, registrations] = await Promise.all([
+      repository.getSiteSettings(),
+      repository.getRegistrationsByIds(ids),
+    ]);
     const eligible = registrations.filter((item) => item.status === "checked_in");
     const sentIds = [];
     const failedIds = [];
 
-    await mapWithConcurrency(eligible, 4, async (registration) => {
-      const certificatePdf = await getCachedCertificate(config, repository, registration);
+    await mapWithConcurrency(eligible, 5, async (registration) => {
+      const certificatePdf = await getCachedCertificate(config, repository, registration, settings);
       const sent = await emailService.sendParticipationCertificate({
         recipient: registration.email,
         name: registration.full_name,
@@ -652,15 +655,18 @@ function createAdminRouter({ config, repository, emailService }) {
       .sort((a, b) => a - b);
     if (!ids.length) throw new ValidationError("Select at least one participant");
 
-    const registrations = await repository.getRegistrationsByIds(ids);
+    const [settings, registrations] = await Promise.all([
+      repository.getSiteSettings(),
+      repository.getRegistrationsByIds(ids),
+    ]);
     const eligible = registrations.filter((item) => item.payment_status === "paid" && item.status !== "cancelled");
     const sentIds = [];
     const failedIds = [];
-    await mapWithConcurrency(eligible, 4, async (registration) => {
+    await mapWithConcurrency(eligible, 5, async (registration) => {
       const checkinPayload = registration.checkin_token
         ? `${config.checkinQrPrefix}${registration.checkin_token}`
         : "";
-      const riderPassPdf = await getCachedRiderPass(config, repository, registration, checkinPayload);
+      const riderPassPdf = await getCachedRiderPass(config, repository, registration, checkinPayload, settings);
       const sent = await emailService.sendRiderPass({ recipient: registration.email, registration, riderPassPdf });
       await repository.recordRiderPass(registration.id, sent);
       await recordDelivery(registration, "rider_pass", "Your official NV Cyclothon 2026 rider pass", sent);

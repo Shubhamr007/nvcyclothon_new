@@ -50,19 +50,22 @@ function formatDate(dateInput) {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+let cachedTemplateBytes = null;
+function getCertificateTemplateBytes() {
+  if (!cachedTemplateBytes) {
+    cachedTemplateBytes = fs.readFileSync(TEMPLATE_PATH);
+  }
+  return cachedTemplateBytes;
+}
+
 async function generateCertificatePdf(participant, options = {}) {
   const { eventDate = new Date().toISOString(), venue = "Rewa, Madhya Pradesh" } = options;
 
   logger.debug({ participantId: participant.id }, "Generating certificate PDF");
 
-  const templateBytes = fs.readFileSync(TEMPLATE_PATH);
-  const templateDoc = await PDFDocument.load(templateBytes);
-
-  const pdfDoc = await PDFDocument.create();
-  const [embeddedTemplatePage] = await pdfDoc.embedPdf(templateDoc, [0]);
-
-  const page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  page.drawPage(embeddedTemplatePage, { x: 0, y: 0, width: PAGE_WIDTH, height: PAGE_HEIGHT });
+  const templateBytes = getCertificateTemplateBytes();
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  const [page] = pdfDoc.getPages();
 
   const fontScript = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
   const fontBody = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
