@@ -172,6 +172,7 @@ export async function getAdminCommunityMedia(accessToken, key) {
 export function adminRequest(path, accessToken, options = {}) {
   const authHeader = accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
   return request(`/admin${path}`, {
+    timeoutMs: options.timeoutMs || 45000,
     ...options,
     headers: { ...authHeader, ...options.headers },
   });

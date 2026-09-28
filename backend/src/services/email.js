@@ -45,6 +45,9 @@ function createEmailService(config, logger = console) {
           }
         : undefined,
       requireTLS: config.smtpUseTls,
+      connectionTimeout: 6000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000,
     });
     return transporter;
   }

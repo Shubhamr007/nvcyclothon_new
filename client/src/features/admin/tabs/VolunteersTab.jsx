@@ -69,6 +69,7 @@ export function VolunteersTab({ accessToken, onFeedback }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [recentImports, setRecentImports] = useState(null);
+  const [modalError, setModalError] = useState("");
 
   // Filters & Search
   const [searchText, setSearchText] = useState("");
@@ -141,10 +142,12 @@ export function VolunteersTab({ accessToken, onFeedback }) {
   const handleCreateVolunteer = async (e) => {
     e.preventDefault();
     setBusy(true);
+    setModalError("");
     setErrorMessage("");
     try {
       const result = await createVolunteer(accessToken, form);
       setIsAddModalOpen(false);
+      setModalError("");
       setForm({
         display_name: "",
         email: "",
@@ -162,7 +165,7 @@ export function VolunteersTab({ accessToken, onFeedback }) {
       onFeedback?.(note);
       await load();
     } catch (error) {
-      setErrorMessage(error.message || "Unable to create volunteer.");
+      setModalError(error.message || "Unable to create volunteer.");
     } finally {
       setBusy(false);
     }
@@ -319,6 +322,7 @@ export function VolunteersTab({ accessToken, onFeedback }) {
             <Button
               variant="accent"
               onClick={() => {
+                setModalError("");
                 setForm((prev) => ({
                   ...prev,
                   password: makeFriendlyPassword(),
@@ -710,12 +714,36 @@ export function VolunteersTab({ accessToken, onFeedback }) {
               </div>
               <button
                 type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="h-8 w-8 rounded-full bg-black/5 font-bold text-black/60 hover:bg-black/10 flex items-center justify-center"
+                disabled={busy}
+                onClick={() => {
+                  if (!busy) {
+                    setIsAddModalOpen(false);
+                    setModalError("");
+                  }
+                }}
+                className="h-8 w-8 rounded-full bg-black/5 font-bold text-black/60 hover:bg-black/10 flex items-center justify-center disabled:opacity-40"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
+
+            {/* In-Modal Error Banner */}
+            {modalError && (
+              <div className="flex items-start gap-2.5 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-950 animate-in fade-in">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-bold text-rose-950">Unable to create volunteer</p>
+                  <p className="text-rose-800 text-[11px] mt-0.5">{modalError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalError("")}
+                  className="text-[11px] font-bold text-rose-700 hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
 
             <form onSubmit={handleCreateVolunteer} className="space-y-4 text-xs">
               {/* Row 1: Full Name & Role */}
@@ -828,8 +856,14 @@ export function VolunteersTab({ accessToken, onFeedback }) {
                     <input
                       type="text"
                       value={form.volunteer_id}
-                      onChange={(e) => setForm({ ...form, volunteer_id: e.target.value })}
-                      placeholder="Leave blank to auto-generate (e.g. vol-siddhart)"
+                      onChange={(e) => {
+                        setModalError("");
+                        setForm({
+                          ...form,
+                          volunteer_id: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ""),
+                        });
+                      }}
+                      placeholder="Leave blank to auto-generate (e.g. vol-siddharth)"
                       className="mt-1 h-9 w-full rounded-lg border border-black/20 bg-white px-3 font-mono text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
                     />
                   </div>
@@ -842,7 +876,10 @@ export function VolunteersTab({ accessToken, onFeedback }) {
                       required
                       type="text"
                       value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      onChange={(e) => {
+                        setModalError("");
+                        setForm({ ...form, password: e.target.value });
+                      }}
                       className="mt-1 h-9 w-full rounded-lg border border-black/20 bg-white px-3 font-mono text-xs text-[#071313] font-bold focus:border-[#071313] focus:outline-none"
                     />
                   </div>
@@ -866,7 +903,13 @@ export function VolunteersTab({ accessToken, onFeedback }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsAddModalOpen(false)}
+                  disabled={busy}
+                  onClick={() => {
+                    if (!busy) {
+                      setIsAddModalOpen(false);
+                      setModalError("");
+                    }
+                  }}
                   className="h-10 text-xs px-4"
                 >
                   Cancel
@@ -877,7 +920,14 @@ export function VolunteersTab({ accessToken, onFeedback }) {
                   disabled={busy}
                   className="h-10 text-xs font-bold px-5"
                 >
-                  {busy ? "Registering…" : "Create Volunteer"}
+                  {busy ? (
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Registering Volunteer…
+                    </span>
+                  ) : (
+                    "Create Volunteer"
+                  )}
                 </Button>
               </div>
             </form>

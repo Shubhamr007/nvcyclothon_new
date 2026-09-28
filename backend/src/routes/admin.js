@@ -469,22 +469,29 @@ function createAdminRouter({ config, repository, emailService }) {
 
     let emailSent = false;
     if (payload.send_email !== false && payload.email) {
-      try {
-        emailSent = await emailService.sendVolunteerCredentials({
+      const emailPromise = emailService
+        .sendVolunteerCredentials({
           recipient: payload.email,
           name: payload.display_name,
           volunteerId,
           password: plainPassword,
           role: payload.role || "Check-in Desk",
-        });
-        if (emailSent) {
-          await repository.updateVolunteerAccount(account.id, {
-            credentials_sent_at: new Date().toISOString(),
-          });
-        }
-      } catch (_) {
-        // Non-fatal, credentials still returned
-      }
+        })
+        .then(async (sent) => {
+          if (sent) {
+            await repository.updateVolunteerAccount(account.id, {
+              credentials_sent_at: new Date().toISOString(),
+            }).catch(() => {});
+          }
+          return sent;
+        })
+        .catch(() => false);
+
+      // Wait up to 2.5 seconds for fast SMTP delivery; if longer, return response immediately while email continues in background
+      emailSent = await Promise.race([
+        emailPromise,
+        new Promise((resolve) => setTimeout(() => resolve(false), 2500)),
+      ]);
     }
 
     const responseData = toVolunteerAccountRead(account);
@@ -574,22 +581,23 @@ function createAdminRouter({ config, repository, emailService }) {
 
         let emailSent = false;
         if (sendEmailOption && email) {
-          try {
-            emailSent = await emailService.sendVolunteerCredentials({
+          void emailService
+            .sendVolunteerCredentials({
               recipient: email,
               name,
               volunteerId,
               password: plainPassword,
               role,
-            });
-            if (emailSent) {
-              await repository.updateVolunteerAccount(account.id, {
-                credentials_sent_at: new Date().toISOString(),
-              });
-            }
-          } catch (_) {
-            // Non-fatal
-          }
+            })
+            .then(async (sent) => {
+              if (sent) {
+                await repository.updateVolunteerAccount(account.id, {
+                  credentials_sent_at: new Date().toISOString(),
+                }).catch(() => {});
+              }
+            })
+            .catch(() => {});
+          emailSent = true;
         }
 
         imported.push({
@@ -647,13 +655,29 @@ function createAdminRouter({ config, repository, emailService }) {
       credentials_sent_at: new Date().toISOString(),
     });
 
-    const emailSent = await emailService.sendVolunteerCredentials({
-      recipient: account.email,
-      name: account.display_name,
-      volunteerId: account.volunteer_id,
-      password: newPassword,
-      role: account.role || "Check-in Desk",
-    });
+    let emailSent = false;
+    const emailPromise = emailService
+      .sendVolunteerCredentials({
+        recipient: account.email,
+        name: account.display_name,
+        volunteerId: account.volunteer_id,
+        password: newPassword,
+        role: account.role || "Check-in Desk",
+      })
+      .then(async (sent) => {
+        if (sent) {
+          await repository.updateVolunteerAccount(id, {
+            credentials_sent_at: new Date().toISOString(),
+          }).catch(() => {});
+        }
+        return sent;
+      })
+      .catch(() => false);
+
+    emailSent = await Promise.race([
+      emailPromise,
+      new Promise((resolve) => setTimeout(() => resolve(false), 2500)),
+    ]);
 
     res.json({
       success: true,
