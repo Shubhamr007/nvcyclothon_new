@@ -1,4 +1,4 @@
-import { forwardRef, useState } from "react";
+import { forwardRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import Confetti from "react-confetti";
@@ -61,6 +61,7 @@ export function RegistrationForm({ initialRoute }) {
   const reduceMotion = useReducedMotion();
   const { settings, loading: settingsLoading } = useSiteSettings();
   const [status, setStatus] = useState({ state: "idle", message: "" });
+  const [pendingRegistration, setPendingRegistration] = useState(null);
   const selectedRoute = watch("ride_category");
   const selectedRide =
     RIDE_OPTIONS.find((route) => route.distance === selectedRoute) || RIDE_OPTIONS[0];
@@ -80,14 +81,6 @@ export function RegistrationForm({ initialRoute }) {
     }
 
     const cleanPhone = String(form.phone_raw || "").trim().replace(/\D+/g, "");
-
-    if (phoneCountryCode === "+91" && !/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setError("phone_raw", {
-        type: "manual",
-        message: "Enter a valid 10-digit Indian mobile number starting with 6-9",
-      });
-      return;
-    }
     const fullPhone = `${phoneCountryCode}${cleanPhone}`;
 
     const payload = {
@@ -116,25 +109,41 @@ export function RegistrationForm({ initialRoute }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const completedRegistration = registration.checkout
-        ? await openRazorpayCheckout({
-            checkout: registration.checkout,
-            registration: { ...registration, ...payload },
-            verifyPayment: (payment) =>
-              request(`/cyclothon/registrations/${registration.id}/payment/verify`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payment),
-              }),
-          })
-        : registration;
-      setStatus({
-        state: "success",
-        message: `You are registered. Your rider ID is #${completedRegistration.id}.`,
-      });
+
+      if (registration.checkout) {
+        setPendingRegistration({ ...registration, payload });
+        const completedRegistration = await openRazorpayCheckout({
+          checkout: registration.checkout,
+          registration: { ...registration, ...payload },
+          verifyPayment: (payment) =>
+            request(`/cyclothon/registrations/${registration.id}/payment/verify`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payment),
+            }),
+        });
+        setPendingRegistration(null);
+        setStatus({
+          state: "success",
+          message: `You are registered. Your rider ID is #${completedRegistration.id}.`,
+        });
+      } else {
+        setPendingRegistration(null);
+        setStatus({
+          state: "success",
+          message: `You are registered. Your rider ID is #${registration.id}.`,
+        });
+      }
       toast.success("Registration confirmed — see you on the road!");
     } catch (error) {
-      setStatus({ state: "error", message: error.message });
+      if (pendingRegistration?.checkout) {
+        setStatus({
+          state: "error",
+          message: "Payment was not completed. You can retry payment below.",
+        });
+      } else {
+        setStatus({ state: "error", message: error.message });
+      }
       toast.error(error.message);
     }
   };
@@ -213,7 +222,23 @@ export function RegistrationForm({ initialRoute }) {
           name="email"
           {...register("email", {
             required: "Enter your email",
-            pattern: { value: /^\S+@\S+\.\S+$/, message: "Enter a valid email address" },
+            pattern: {
+              value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+              message: "Enter a valid email address (e.g. name@domain.com)",
+            },
+            validate: {
+              noDisposable: (v) => {
+                const domain = v.split("@")[1]?.toLowerCase();
+                const blocked = [
+                  "tempmail.com", "throwaway.email", "guerrillamail.com",
+                  "mailinator.com", "yopmail.com", "trashmail.com",
+                  "10minutemail.com", "fakeinbox.com", "sharklasers.com",
+                  "guerrillamailblock.com", "grr.la", "dispostable.com",
+                  "temp-mail.org", "tempail.com", "mohmal.com",
+                ];
+                return !blocked.includes(domain) || "Please use a permanent email address";
+              },
+            },
           })}
           error={errors.email}
           maxLength="255"
@@ -228,8 +253,17 @@ export function RegistrationForm({ initialRoute }) {
           onCountryCodeChange={setPhoneCountryCode}
           {...register("phone_raw", {
             required: "Enter your phone number",
-            minLength: { value: 7, message: "Phone number is too short" },
-            maxLength: { value: 14, message: "Phone number is too long" },
+            validate: (value) => {
+              const clean = String(value).trim().replace(/\D+/g, "");
+              if (phoneCountryCode === "+91") {
+                if (!/^[6-9]\d{9}$/.test(clean))
+                  return "Enter a valid 10-digit Indian mobile number starting with 6-9";
+              } else {
+                if (clean.length < 7 || clean.length > 14)
+                  return "Enter a valid phone number (7–14 digits)";
+              }
+              return true;
+            },
           })}
           error={errors.phone_raw}
           inputMode="tel"
@@ -464,6 +498,43 @@ export function RegistrationForm({ initialRoute }) {
           "CONTINUE TO PAYMENT →"
         )}
       </Button>
+
+      {status.state === "error" && pendingRegistration?.checkout && (
+        <Button
+          type="button"
+          size="lg"
+          className="mt-3 w-full border-2 border-[#ff5f3d] bg-transparent text-[#ff5f3d] hover:bg-[#ff5f3d] hover:text-white"
+          onClick={async () => {
+            setStatus({ state: "loading", message: "Reopening payment…" });
+            try {
+              const completedRegistration = await openRazorpayCheckout({
+                checkout: pendingRegistration.checkout,
+                registration: { ...pendingRegistration, ...pendingRegistration.payload },
+                verifyPayment: (payment) =>
+                  request(`/cyclothon/registrations/${pendingRegistration.id}/payment/verify`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payment),
+                  }),
+              });
+              setPendingRegistration(null);
+              setStatus({
+                state: "success",
+                message: `You are registered. Your rider ID is #${completedRegistration.id}.`,
+              });
+              toast.success("Registration confirmed — see you on the road!");
+            } catch (error) {
+              setStatus({
+                state: "error",
+                message: "Payment was not completed. You can retry payment below.",
+              });
+              toast.error(error.message);
+            }
+          }}
+        >
+          RETRY PAYMENT →
+        </Button>
+      )}
 
       <p
         aria-live="polite"

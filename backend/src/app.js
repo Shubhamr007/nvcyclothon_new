@@ -295,7 +295,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     res.status(mapped.statusCode).json({ detail: mapped.message });
   });
 
-  return app;
+  return { app, rateLimiter };
 }
 
 module.exports = {

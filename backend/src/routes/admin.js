@@ -761,7 +761,7 @@ function createAdminRouter({ config, repository, emailService }) {
         name: item.name,
         message: item.message,
         image_url: item.image_key
-          ? `/api/admin/community/media/${item.image_key}`
+          ? (item.image_key.startsWith("http") ? item.image_key : `/api/admin/community/media/${item.image_key}`)
           : null,
         status: item.status,
         created_at: item.created_at,

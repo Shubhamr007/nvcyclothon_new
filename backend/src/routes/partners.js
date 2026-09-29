@@ -62,11 +62,16 @@ function createPartnersRouter({ config, repository, emailService, razorpayServic
     rateLimiter.middleware('partner_application', 10, 3600, 'Too many application attempts. Try again later.'),
     async (req, res, next) => {
       try {
-        await runMulter(req, res);
+        if (req.is('multipart/form-data')) {
+          await runMulter(req, res);
+        }
         const parsed = parseSchema(partnerApplicationSchema, req.body);
         const payload = normalizePartnerApplicationInput(parsed);
 
-        if (req.file) {
+        if (req.body?.logo_url) {
+          payload.logo_key = req.body.logo_url;
+          payload.logo_content_type = 'image/webp';
+        } else if (req.file) {
           const mediaService = createPartnerVendorMediaService(config);
           const savedMedia = await mediaService.savePartnerLogo(req.file.buffer, req.file.mimetype);
           payload.logo_key = savedMedia.key;

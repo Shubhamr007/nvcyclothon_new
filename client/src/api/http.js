@@ -126,23 +126,31 @@ export async function getCommunityPosts() {
   return request("/community/posts");
 }
 
-export async function submitCommunityPost(formData) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 30000);
-  try {
-    const response = await fetch(`${API_BASE}/community/posts`, {
-      method: "POST",
-      body: formData,
-      signal: controller.signal,
-    });
-    const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(body?.detail || "We could not accept your submission.");
+export async function submitCommunityPost(payload) {
+  if (payload instanceof FormData) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(`${API_BASE}/community/posts`, {
+        method: "POST",
+        body: payload,
+        signal: controller.signal,
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(body?.detail || "We could not accept your submission.");
+      }
+      return body;
+    } finally {
+      window.clearTimeout(timeout);
     }
-    return body;
-  } finally {
-    window.clearTimeout(timeout);
   }
+
+  return request("/community/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function listAdminCommunityPosts(accessToken, status = "pending") {
@@ -216,21 +224,29 @@ export async function getPartnerTiers() {
   return request('/partners/tiers');
 }
 
-export async function submitPartnerApplication(formData) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 30000);
-  try {
-    const response = await fetch(`${API_BASE}/partners/applications`, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
-    });
-    const body = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(body?.detail || 'Unable to submit partner application.');
-    return body;
-  } finally {
-    window.clearTimeout(timeout);
+export async function submitPartnerApplication(payload) {
+  if (payload instanceof FormData) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(`${API_BASE}/partners/applications`, {
+        method: 'POST',
+        body: payload,
+        signal: controller.signal,
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(body?.detail || 'Unable to submit partner application.');
+      return body;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
+
+  return request('/partners/applications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function getApprovedPartners() {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCommunityPosts, submitCommunityPost } from "../../../api/http";
 import { Reveal } from "../../../components/Reveal";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
+import { uploadImage, isCloudinaryConfigured } from "../../../services/cloudinary";
 
 const MAX_IMAGE_MB = 5;
 const MAX_MESSAGE = 500;
@@ -147,27 +148,50 @@ function CommunitySubmissionForm({ onSubmitted }) {
     setImage(file);
   }
 
+  function finishSubmit() {
+    setStatus({
+      state: "success",
+      text: "Thanks — your submission is with the team for review. It will appear here once approved.",
+    });
+    setName("");
+    setMessage("");
+    setImage(null);
+    setConsent(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (typeof onSubmitted === "function") onSubmitted();
+  }
+
   async function submit(event) {
     event.preventDefault();
     if (disabled) return;
     setStatus({ state: "loading", text: "" });
     try {
-      const formData = new FormData();
-      formData.append("name", name.trim());
-      formData.append("message", message.trim());
-      formData.append("consent_accepted", "true");
-      if (image) formData.append("image", image);
-      await submitCommunityPost(formData);
-      setStatus({
-        state: "success",
-        text: "Thanks — your submission is with the team for review. It will appear here once approved.",
+      let uploadedImageUrl = null;
+      if (image) {
+        if (isCloudinaryConfigured().configured) {
+          const uploadRes = await uploadImage(image, { folder: "nvcyclothon/community" });
+          uploadedImageUrl = uploadRes.secureUrl;
+        } else {
+          // Fallback to legacy FormData if Cloudinary is not configured yet
+          const formData = new FormData();
+          formData.append("name", name.trim());
+          formData.append("message", message.trim());
+          formData.append("consent_accepted", "true");
+          formData.append("image", image);
+          await submitCommunityPost(formData);
+          finishSubmit();
+          return;
+        }
+      }
+
+      await submitCommunityPost({
+        name: name.trim(),
+        message: message.trim(),
+        consent_accepted: true,
+        image_url: uploadedImageUrl,
       });
-      setName("");
-      setMessage("");
-      setImage(null);
-      setConsent(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (typeof onSubmitted === "function") onSubmitted();
+
+      finishSubmit();
     } catch (error) {
       setStatus({
         state: "error",

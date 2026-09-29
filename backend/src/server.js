@@ -9,8 +9,22 @@ async function start() {
     );
   });
 
+  // Clean up expired unpaid pending registrations every 15 minutes
+  const CLEANUP_INTERVAL_MS = 15 * 60 * 1000;
+  const cleanupTimer = setInterval(async () => {
+    try {
+      const cleaned = await runtime.repository.cleanupExpiredPendingRegistrations(30);
+      if (cleaned.length > 0) {
+        console.log(`Cleaned up ${cleaned.length} expired pending registration(s)`);
+      }
+    } catch (err) {
+      console.error("Pending registration cleanup failed", err);
+    }
+  }, CLEANUP_INTERVAL_MS);
+
   async function shutdown(signal) {
     console.log(`Received ${signal}. Shutting down...`);
+    clearInterval(cleanupTimer);
     server.close(async () => {
       await runtime.close();
       process.exit(0);

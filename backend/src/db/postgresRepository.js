@@ -958,6 +958,15 @@ class PostgresRepository {
     return this.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(20261018)");
 
+      // Remove any stale unpaid pending registration for this email so the user can retry
+      await client.query(
+        `DELETE FROM cyclothon_registrations
+         WHERE lower(email) = lower($1)
+           AND status = 'pending'
+           AND payment_status = 'pending'`,
+        [payload.email]
+      );
+
       const duplicate = await client.query(
         `SELECT id
          FROM cyclothon_registrations
@@ -973,7 +982,8 @@ class PostgresRepository {
         `SELECT COUNT(*)::int AS count
          FROM cyclothon_registrations
          WHERE ride_category = $1
-           AND status <> 'cancelled'`,
+           AND status <> 'cancelled'
+           AND NOT (status = 'pending' AND payment_status = 'pending')`,
         [payload.ride_category]
       );
       const categoryCount = categoryCountResult.rows[0].count;
@@ -981,7 +991,8 @@ class PostgresRepository {
       const activeCountResult = await client.query(
         `SELECT COUNT(*)::int AS count
          FROM cyclothon_registrations
-         WHERE status <> 'cancelled'`
+         WHERE status <> 'cancelled'
+           AND NOT (status = 'pending' AND payment_status = 'pending')`
       );
       const activeCount = activeCountResult.rows[0].count;
 
@@ -2472,6 +2483,18 @@ class PostgresRepository {
       partners: partnerResult.rows,
       vendors: vendorResult.rows,
     };
+  }
+
+  async cleanupExpiredPendingRegistrations(ttlMinutes = 30) {
+    const result = await this.pool.query(
+      `DELETE FROM cyclothon_registrations
+       WHERE status = 'pending'
+         AND payment_status = 'pending'
+         AND created_at < NOW() - INTERVAL '1 minute' * $1
+       RETURNING id, email`,
+      [ttlMinutes]
+    );
+    return result.rows;
   }
 }
 

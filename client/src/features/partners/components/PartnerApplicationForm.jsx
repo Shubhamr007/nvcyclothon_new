@@ -10,6 +10,7 @@ import {
   CONTACT_INFO,
 } from "../constants";
 import { submitPartnerApplication } from "../../../api/http";
+import { uploadImage, isCloudinaryConfigured } from "../../../services/cloudinary";
 
 const STEPS = [
   { id: 1, label: "01 Company", title: "Company Information" },
@@ -164,30 +165,49 @@ export function PartnerApplicationForm({ initialPackage = null }) {
 
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, val]) => {
-        if (key === "activation_options" || key === "visibility_interests") {
-          formData.append(key, JSON.stringify(val || []));
-        } else if (["instagram", "facebook", "youtube", "linkedin"].includes(key)) {
-          // Handled via social_links
-        } else if (val !== null && val !== undefined) {
-          formData.append(key, String(val));
-        }
-      });
-
       const socialLinks = {
         instagram: data.instagram || "",
         facebook: data.facebook || "",
         youtube: data.youtube || "",
         linkedin: data.linkedin || "",
       };
-      formData.append("social_links", JSON.stringify(socialLinks));
 
+      let uploadedLogoUrl = null;
       if (logoFile) {
-        formData.append("logo", logoFile);
+        if (isCloudinaryConfigured().configured) {
+          const uploadRes = await uploadImage(logoFile, { folder: "nvcyclothon/partners" });
+          uploadedLogoUrl = uploadRes.secureUrl;
+        }
       }
 
-      const result = await submitPartnerApplication(formData);
+      let result;
+      // If Cloudinary uploaded or no logo file, send pure JSON without file to backend:
+      if (uploadedLogoUrl || !logoFile) {
+        const payload = {
+          ...data,
+          logo_url: uploadedLogoUrl,
+          social_links: socialLinks,
+          activation_options: data.activation_options || [],
+          visibility_interests: data.visibility_interests || [],
+        };
+        result = await submitPartnerApplication(payload);
+      } else {
+        // Fallback to legacy FormData if Cloudinary is not configured
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, val]) => {
+          if (key === "activation_options" || key === "visibility_interests") {
+            formData.append(key, JSON.stringify(val || []));
+          } else if (["instagram", "facebook", "youtube", "linkedin"].includes(key)) {
+            // Handled via social_links
+          } else if (val !== null && val !== undefined) {
+            formData.append(key, String(val));
+          }
+        });
+        formData.append("social_links", JSON.stringify(socialLinks));
+        formData.append("logo", logoFile);
+        result = await submitPartnerApplication(formData);
+      }
+
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       setSuccessData({
         referenceNumber: result.reference_number || result.application?.application_number,
