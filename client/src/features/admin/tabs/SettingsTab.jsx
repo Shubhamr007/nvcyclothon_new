@@ -26,7 +26,7 @@ const SECTION_LABELS = [
   ["why_sport", "Why Cycling Section"],
   ["community", "Community Wall"],
   ["contact", "Point of Contact + Map"],
-  ["sponsors", "Sponsors & Partners"],
+  ["sponsors", "Association & Commercial Collaborations"],
 ];
 
 export function SettingsTab({ accessToken, onFeedback }) {

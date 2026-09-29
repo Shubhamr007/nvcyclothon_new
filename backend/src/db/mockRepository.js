@@ -34,8 +34,8 @@ function defaultSiteSettings() {
     event_location: "Rewa, Madhya Pradesh",
     edition_label: "3rd Edition",
     registration_open: true,
-    partner_applications_open: false,
-    vendor_applications_open: false,
+    partner_applications_open: true,
+    vendor_applications_open: true,
     hero_images: [],
     feature_section: {
       enabled: false,
@@ -66,6 +66,8 @@ function mergeSiteSettings(current, patch) {
     "event_location",
     "edition_label",
     "registration_open",
+    "partner_applications_open",
+    "vendor_applications_open",
     "hero_images",
   ];
   for (const key of allowedKeys) {

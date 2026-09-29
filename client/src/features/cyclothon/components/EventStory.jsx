@@ -267,14 +267,7 @@ function MemberProfileDialog({ member, onClose }) {
     </AnimatePresence>
   );
 }
-const sponsorOpportunities = [
-  ["Title partner", "Lead the ride"],
-  ["Hydration partner", "Keep riders moving"],
-  ["Mobility partner", "Power safer streets"],
-  ["Wellness partner", "Champion healthy lives"],
-  ["Community partner", "Bring riders together"],
-  ["Media partner", "Share every finish"],
-];
+
 
 export function PeopleAndSponsors() {
   return (
@@ -316,26 +309,32 @@ export function PeopleAndSponsors() {
             </div>
             <p className="mt-6 max-w-lg text-sm leading-6 text-white">NV Cyclothon 2026 is proudly organised in association with the Rewa District Cycling Association, bringing local riders, clubs and advocates together for a memorable day on two wheels.</p>
           </div>
-          <div id="sponsors" className="md:col-span-2">
-            <h2 className="text-5xl font-black leading-[.86] tracking-[-.08em] uppercase md:text-6xl">
-              Sponsor
-              <br />
-              the ride.
-            </h2>
-            <p className="mt-4 max-w-md text-sm leading-6 text-white/65">Put your brand at the heart of Rewa’s cycling community. Partnership opportunities are open now.</p>
-            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {sponsorOpportunities.map(([partner, promise]) => (
-                <div
-                  key={partner}
-                  className="grid min-h-24 place-items-center rounded-xl border border-white/15 p-3 text-center text-xs font-black tracking-wider text-white/60 uppercase"
-                >
-                  {partner}
-                  <br />
-                  <span className="mt-1 block normal-case tracking-normal text-[#d9ff38]">{promise}</span>
-                </div>
-              ))}
+          <div className="md:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-r from-white/[0.04] to-transparent p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="max-w-xl space-y-2">
+              <span className="text-[11px] font-black uppercase tracking-[.22em] text-[#d9ff38]">
+                Commercial Collaborations
+              </span>
+              <h3 className="text-3xl font-black uppercase tracking-tight text-white md:text-4xl">
+                Partner with NV Cyclothon
+              </h3>
+              <p className="text-sm leading-6 text-white/70">
+                Put your brand at the heart of Central India's premier cycling event. Official sponsorship packages and commercial vendor stalls are now open for the 3rd Edition.
+              </p>
             </div>
-            <a href="mailto:partners@nvcyclothon.in?subject=NV%20Cyclothon%20partnership" className="mt-6 inline-flex rounded-full bg-[#d9ff38] px-5 py-3 text-xs font-black tracking-wider text-[#071313] transition hover:-translate-y-1">Become a partner →</a>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href="/partners"
+                className="inline-flex items-center gap-2 rounded-full bg-[#d9ff38] px-6 py-3.5 text-xs font-black uppercase tracking-wider text-[#071313] transition hover:scale-105"
+              >
+                Become a Partner →
+              </a>
+              <a
+                href="/vendors"
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-xs font-black uppercase tracking-wider text-white transition hover:bg-white/10"
+              >
+                Vendor Expo Stalls →
+              </a>
+            </div>
           </div>
         </div>
       </div>

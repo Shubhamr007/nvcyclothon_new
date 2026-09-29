@@ -26,7 +26,6 @@ export function SiteHeader({ theme, onToggleTheme }) {
           <a href="/#about">The ride</a>
           <a href="/#routes">Routes</a>
           <a href="/#about">Impact</a>
-          <a href="/#sponsors">Sponsors</a>
           <a href="/partners">Partners</a>
           <a href="/vendors">Vendors</a>
         </nav>

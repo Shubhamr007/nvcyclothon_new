@@ -1925,8 +1925,20 @@ class PostgresRepository {
       return { ...defaults, updated_at: new Date().toISOString() };
     }
     const data = { ...result.rows[0].data };
+    let dirty = false;
     if (data.event_date === "2026-10-18") {
       data.event_date = "2026-11-22";
+      dirty = true;
+    }
+    if (data.partner_applications_open === undefined) {
+      data.partner_applications_open = true;
+      dirty = true;
+    }
+    if (data.vendor_applications_open === undefined) {
+      data.vendor_applications_open = true;
+      dirty = true;
+    }
+    if (dirty) {
       await this.pool.query(
         "UPDATE site_settings SET data = $1, updated_at = NOW() WHERE id = 1",
         [data]
