@@ -13,11 +13,19 @@ const {
 } = require("../services/communityMedia");
 
 function toPublicPost(record) {
+  let imageUrl = null;
+  if (record.image_url) {
+    imageUrl = record.image_url;
+  } else if (record.image_key) {
+    imageUrl = record.image_key.startsWith("http")
+      ? record.image_key
+      : `/api/community/media/${record.image_key}`;
+  }
   return {
     id: record.id,
     name: record.name,
     message: record.message,
-    image_url: record.image_key ? `/api/community/media/${record.image_key}` : null,
+    image_url: imageUrl,
     created_at: record.created_at,
     approved_at: record.moderated_at,
   };
@@ -68,15 +76,9 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
   });
 
   router.post("/posts", (req, res, next) => {
-    upload(req, res, async (uploadError) => {
+    const isMultipart = req.is("multipart/form-data");
+    const execute = async () => {
       try {
-        if (uploadError) {
-          if (uploadError.code === "LIMIT_FILE_SIZE") {
-            throw new ApiError(413, "Image exceeds the 5 MB size limit.");
-          }
-          throw uploadError;
-        }
-
         const settings = await repository.getSiteSettings();
         if (settings.sections?.community === false) {
           throw new ApiError(403, "Community submissions are currently closed.");
@@ -106,6 +108,7 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
           name: req.body?.name,
           message: req.body?.message,
           consent_accepted: req.body?.consent_accepted,
+          image_url: req.body?.image_url,
         });
         if (!payload.consent_accepted) {
           throw new ValidationError(
@@ -113,7 +116,16 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
           );
         }
 
-        const imageDetails = await processAndStoreCommunityImage(config, req.file);
+        let imageDetails = null;
+        if (payload.image_url) {
+          imageDetails = {
+            image_key: payload.image_url,
+            image_content_type: "image/webp",
+            image_size_bytes: null,
+          };
+        } else if (req.file) {
+          imageDetails = await processAndStoreCommunityImage(config, req.file);
+        }
 
         let record;
         try {
@@ -127,7 +139,7 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
             submitted_user_agent: String(req.headers["user-agent"] || "").slice(0, 240),
           });
         } catch (error) {
-          if (imageDetails?.image_key) {
+          if (imageDetails?.image_key && !imageDetails.image_key.startsWith("http")) {
             deleteCommunityImage(config, imageDetails.image_key);
           }
           throw error;
@@ -148,8 +160,23 @@ function createCommunityRouter({ config, repository, rateLimiter, emailService, 
         }
         next(error);
       }
-    });
+    };
+
+    if (isMultipart) {
+      upload(req, res, async (uploadError) => {
+        if (uploadError) {
+          if (uploadError.code === "LIMIT_FILE_SIZE") {
+            return next(new ApiError(413, "Image exceeds the 5 MB size limit."));
+          }
+          return next(uploadError);
+        }
+        await execute();
+      });
+    } else {
+      execute();
+    }
   });
+
 
   return router;
 }

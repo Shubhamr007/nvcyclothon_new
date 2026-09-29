@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { uploadAdminProfileImage } from "../../../api/http";
+import { uploadImage, isCloudinaryConfigured } from "../../../services/cloudinary";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Edit2, Trash2, Plus, Upload, Sparkles, Award, UsersRound, Tag, Flag } from "lucide-react";
@@ -138,8 +139,13 @@ export function ManagePanel({
                           const file = event.target.files?.[0];
                           if (!file) return;
                           try {
-                            const result = await uploadAdminProfileImage(adminKey, file);
-                            setForm((current) => ({ ...current, image_url: result.image_url }));
+                            if (isCloudinaryConfigured().configured) {
+                              const result = await uploadImage(file, { folder: "nvcyclothon/profiles" });
+                              setForm((current) => ({ ...current, image_url: result.secureUrl }));
+                            } else {
+                              const result = await uploadAdminProfileImage(adminKey, file);
+                              setForm((current) => ({ ...current, image_url: result.image_url }));
+                            }
                           } catch (error) {
                             window.alert(error.message);
                           }

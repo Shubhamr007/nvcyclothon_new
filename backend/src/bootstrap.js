@@ -17,7 +17,7 @@ async function buildApplication({ env = process.env, logger = console } = {}) {
 
   const emailService = createEmailService(config, logger);
   const razorpayService = createRazorpayService(config);
-  const app = createApp({
+  const { app, rateLimiter } = createApp({
     config,
     repository,
     emailService,
@@ -29,6 +29,9 @@ async function buildApplication({ env = process.env, logger = console } = {}) {
     app,
     config,
     repository,
+    resetRateLimits() {
+      rateLimiter.reset();
+    },
     async close() {
       await repository.close();
     },

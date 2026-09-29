@@ -372,6 +372,14 @@ class MockRepository {
   }
 
   async createCyclothonRegistration(payload, options) {
+    // Remove any stale unpaid pending registration for this email so the user can retry
+    this.tables.cyclothon_registrations = this.tables.cyclothon_registrations.filter(
+      (item) =>
+        !(item.email.toLowerCase() === payload.email.toLowerCase() &&
+          item.status === "pending" &&
+          item.payment_status === "pending")
+    );
+
     const duplicate = this.tables.cyclothon_registrations.find(
       (item) => item.email.toLowerCase() === payload.email.toLowerCase()
     );
@@ -1539,6 +1547,20 @@ class MockRepository {
       partners: Object.entries(partnerStatus).map(([status, count]) => ({ status, count })),
       vendors: Object.entries(vendorStatus).map(([status, count]) => ({ status, count })),
     };
+  }
+
+  async cleanupExpiredPendingRegistrations(ttlMinutes = 30) {
+    const cutoff = new Date(Date.now() - ttlMinutes * 60 * 1000);
+    const expired = this.tables.cyclothon_registrations.filter(
+      (item) =>
+        item.status === "pending" &&
+        item.payment_status === "pending" &&
+        new Date(item.created_at) < cutoff
+    );
+    this.tables.cyclothon_registrations = this.tables.cyclothon_registrations.filter(
+      (item) => !expired.includes(item)
+    );
+    return expired.map((item) => ({ id: item.id, email: item.email }));
   }
 }
 

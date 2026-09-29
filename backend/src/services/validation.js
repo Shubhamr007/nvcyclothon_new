@@ -2,7 +2,7 @@ const { z } = require("zod");
 const { ValidationError } = require("../errors");
 const { DELEGATION_STATUSES, REGISTRATION_STATUSES, RACE_CATEGORIES } = require("../constants");
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const INDIAN_MOBILE_PATTERN = /^[6-9]\d{9}$/;
 
 function normalizeIndianMobile(value) {
@@ -88,8 +88,21 @@ const orderCreateSchema = z.object({
 const registrationCreateSchema = z
   .object({
     full_name: z.string().trim().min(2).max(160),
-    email: z.string().trim().min(5).max(255),
-    phone: z.string().trim().min(8).max(32),
+    email: z.string().trim().email("Enter a valid email address").max(255),
+    phone: z.string().trim().min(8).max(32)
+      .refine(
+        (v) => {
+          const clean = v.replace(/[\s()\-]/g, "");
+          if (clean.startsWith("+91")) {
+            return /^[6-9]\d{9}$/.test(clean.slice(3));
+          }
+          if (clean.startsWith("+")) {
+            return /^\+[1-9]\d{6,14}$/.test(clean);
+          }
+          return /^[6-9]\d{9}$/.test(clean);
+        },
+        { message: "Enter a valid mobile number" }
+      ),
     age: z.number().int().min(10).max(100),
     city: z.string().trim().min(2).max(100),
     gender: z.enum(["Female", "Male", "Non-binary", "Prefer not to say"]),
@@ -280,6 +293,7 @@ const communityPostSchema = z.object({
     const str = String(v).trim().toLowerCase();
     return str === "true" || str === "1" || str === "on" || str === "yes";
   }),
+  image_url: z.union([z.string().url().max(1000), z.literal(""), z.null()]).optional(),
 });
 
 const communityModerationSchema = z.object({
@@ -472,6 +486,7 @@ const partnerApplicationSchema = z.object({
   accurate_info_consent: z.union([z.boolean(), z.string(), z.number()]).optional().default(true),
   contact_consent: z.union([z.boolean(), z.string(), z.number()]).optional().default(true),
   message: z.string().trim().max(3000).nullable().optional(),
+  logo_url: z.union([z.string().url().max(1000), z.literal(""), z.null()]).optional(),
 });
 
 const vendorApplicationSchema = z.object({

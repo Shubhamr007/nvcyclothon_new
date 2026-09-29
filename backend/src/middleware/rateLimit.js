@@ -33,6 +33,9 @@ function createRateLimiter() {
   return {
     check,
     middleware,
+    reset() {
+      attempts.clear();
+    },
   };
 }
 

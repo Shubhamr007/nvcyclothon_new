@@ -657,4 +657,80 @@ describe("NV Cyclothon Node backend", () => {
     expect(reviewRes.statusCode).toBe(200);
     expect(reviewRes.body.status).toBe("APPROVED");
   });
+
+  describe("email and phone validation on registration", () => {
+    beforeEach(() => {
+      runtime.resetRateLimits();
+    });
+
+    const validPayload = {
+      full_name: "Validation Tester",
+      email: "valid@gmail.com",
+      phone: "+91 9876543299",
+      age: 25,
+      city: "Rewa",
+      gender: "Male",
+      ride_category: "10 Km Green Ride",
+      emergency_contact: "+91 9876543299",
+      t_shirt_size: "M",
+      waiver_accepted: true,
+      privacy_accepted: true,
+    };
+
+    it("rejects an incomplete email (missing domain)", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "user@" });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("rejects an email without a TLD", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "user@domain" });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("rejects an email with a single-character TLD", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "user@domain.c" });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("accepts a valid email address", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "rider-valid@gmail.com" });
+      expect(res.statusCode).toBe(201);
+    });
+
+    it("rejects a short Indian mobile number", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "short-phone@test.com", phone: "+91 12345" });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("rejects an Indian mobile starting with 5", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "bad-start@test.com", phone: "+91 5123456789" });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("accepts a valid Indian mobile number", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "valid-phone@test.com", phone: "+91 9876501234" });
+      expect(res.statusCode).toBe(201);
+    });
+
+    it("accepts a valid international phone number", async () => {
+      const res = await request(runtime.app)
+        .post("/api/cyclothon/registrations")
+        .send({ ...validPayload, email: "intl-phone@test.com", phone: "+1 2025551234" });
+      expect(res.statusCode).toBe(201);
+    });
+  });
 });
