@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import Confetti from "react-confetti";
 import { toast } from "react-toastify";
@@ -22,12 +22,59 @@ const STEPS = [
 
 const SESSION_STORAGE_KEY = "nv_partner_application_draft";
 
+function getInitialPartnerValues(initialPackage) {
+  try {
+    const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch {
+    // ignore
+  }
+  return {
+    company_name: "",
+    business_type: "Corporate",
+    contact_name: "",
+    designation: "",
+    phone: "",
+    email: "",
+    website: "",
+    gst_number: "",
+    pan_number: "",
+    address: "",
+    city: "",
+    state: "Madhya Pradesh",
+    pincode: "",
+    selected_package: initialPackage?.name || "Title Sponsor",
+    sponsorship_tier_id: initialPackage?.id || 1,
+    partnership_type: "Cash Sponsorship",
+    proposed_value: "",
+    custom_description: "",
+    brand_name: "",
+    brand_tagline: "",
+    brand_description: "",
+    industry: "",
+    instagram: "",
+    facebook: "",
+    youtube: "",
+    linkedin: "",
+    activation_options: [],
+    activation_description: "",
+    visibility_interests: [],
+    accurate_info_consent: false,
+    contact_consent: false,
+  };
+}
+
 export function PartnerApplicationForm({ initialPackage = null }) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
+
+  const initialDefaultValues = useMemo(
+    () => getInitialPartnerValues(initialPackage),
+    [initialPackage]
+  );
 
   const {
     register,
@@ -38,47 +85,7 @@ export function PartnerApplicationForm({ initialPackage = null }) {
     getValues,
     formState: { errors },
   } = useForm({
-    defaultValues: () => {
-      try {
-        const saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch {
-        // ignore
-      }
-      return {
-        company_name: "",
-        business_type: "Corporate",
-        contact_name: "",
-        designation: "",
-        phone: "",
-        email: "",
-        website: "",
-        gst_number: "",
-        pan_number: "",
-        address: "",
-        city: "",
-        state: "Madhya Pradesh",
-        pincode: "",
-        selected_package: initialPackage?.name || "Title Sponsor",
-        sponsorship_tier_id: initialPackage?.id || 1,
-        partnership_type: "Cash Sponsorship",
-        proposed_value: "",
-        custom_description: "",
-        brand_name: "",
-        brand_tagline: "",
-        brand_description: "",
-        industry: "",
-        instagram: "",
-        facebook: "",
-        youtube: "",
-        linkedin: "",
-        activation_options: [],
-        activation_description: "",
-        visibility_interests: [],
-        accurate_info_consent: false,
-        contact_consent: false,
-      };
-    },
+    defaultValues: initialDefaultValues,
   });
 
   const formValues = watch();
