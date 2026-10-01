@@ -6,7 +6,13 @@ const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 const QRCode = require("qrcode");
 const logger = require("./logger");
 
-const ASSETS = path.join(__dirname, "..", "..", "assets");
+const assetCandidates = [
+  path.join(__dirname, "..", "..", "assets"),
+  path.join(__dirname, "..", "assets"),
+  path.join(process.cwd(), "backend", "assets"),
+  path.join(process.cwd(), "assets"),
+];
+const ASSETS = assetCandidates.find((p) => fs.existsSync(p)) || assetCandidates[0];
 const TEMPLATE_PATH = path.join(ASSETS, "rider-pass-original.png");
 
 if (!fs.existsSync(TEMPLATE_PATH)) {

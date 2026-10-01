@@ -5,7 +5,13 @@ const path = require("path");
 const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
 const logger = require("./logger");
 
-const TEMPLATE_PATH = path.join(__dirname, "..", "..", "assets", "certificate-template.pdf");
+const templateCandidates = [
+  path.join(__dirname, "..", "..", "assets", "certificate-template.pdf"),
+  path.join(__dirname, "..", "assets", "certificate-template.pdf"),
+  path.join(process.cwd(), "backend", "assets", "certificate-template.pdf"),
+  path.join(process.cwd(), "assets", "certificate-template.pdf"),
+];
+const TEMPLATE_PATH = templateCandidates.find((p) => fs.existsSync(p)) || templateCandidates[0];
 
 if (!fs.existsSync(TEMPLATE_PATH)) {
   throw new Error(

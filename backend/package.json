@@ -5,7 +5,9 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "build": "node build.js",
     "start": "node src/server.js",
+    "start:dist": "node dist/server.js",
     "db": "node src/initDb.js",
     "db:init": "node src/initDb.js",
     "db:seed": "node src/initDb.js",
@@ -37,6 +39,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2",
     "vitest": "^4.1.10"
