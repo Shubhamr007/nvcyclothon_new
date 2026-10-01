@@ -10,6 +10,13 @@ export async function request(path, options = {}) {
       ...fetchOptions,
       signal: options.signal || controller.signal,
     });
+    if (response.status === 204 || response.status === 205) {
+      return null;
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("text/html")) {
+      throw new Error(`API endpoint ${path} returned HTML instead of JSON. Ensure the backend server is running and your Nginx configuration proxies /api to port 8000.`);
+    }
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(body?.detail || 'Something went wrong. Please try again.');
     return body;

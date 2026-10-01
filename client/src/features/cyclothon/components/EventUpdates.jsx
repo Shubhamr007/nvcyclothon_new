@@ -5,20 +5,27 @@ export function EventUpdates() {
   const [content, setContent] = useState({ offers: [], guests: [] });
   useEffect(() => {
     Promise.all([request("/content/offers"), request("/content/chief-guests")])
-      .then(([offers, guests]) => setContent({ offers, guests }))
+      .then(([offers, guests]) =>
+        setContent({
+          offers: Array.isArray(offers) ? offers : [],
+          guests: Array.isArray(guests) ? guests : [],
+        })
+      )
       .catch(() => {});
   }, []);
-  if (!content.offers.length && !content.guests.length) return null;
+  const offers = Array.isArray(content?.offers) ? content.offers : [];
+  const guests = Array.isArray(content?.guests) ? content.guests : [];
+  if (!offers.length && !guests.length) return null;
   return (
     <section className="bg-[#071313] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white">
       <div className="mx-auto max-w-[1400px]">
-        {content.offers.length > 0 && (
+        {offers.length > 0 && (
           <div>
             <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">
               Event offers
             </p>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {content.offers.map((offer) => (
+              {offers.map((offer) => (
                 <article
                   key={offer.id}
                   className="rounded-2xl bg-white p-6 text-[#071313]"
@@ -39,13 +46,13 @@ export function EventUpdates() {
             </div>
           </div>
         )}
-        {content.guests.length > 0 && (
-          <div className={content.offers.length ? "mt-16" : ""}>
+        {guests.length > 0 && (
+          <div className={offers.length ? "mt-16" : ""}>
             <p className="text-xs font-black tracking-[.2em] text-[#ff9b57] uppercase">
               Chief guests
             </p>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {content.guests.map((guest) => (
+              {guests.map((guest) => (
                 <article
                   key={guest.id}
                   className="rounded-2xl border border-white/15 p-6"

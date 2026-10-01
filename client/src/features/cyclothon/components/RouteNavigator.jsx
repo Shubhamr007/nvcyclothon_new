@@ -70,7 +70,7 @@ export function RouteNavigator() {
               viewport={{ once: true }}
               transition={{ duration: 1.8, ease: "easeInOut" }}
             />
-            {!reduceMotion && <motion.circle r="2.2" fill="#f4f1e9" stroke="#071313" strokeWidth="1" animate={{ cx: [18, 29, 42, 53, 64, 73, 83], cy: [77, 67, 55, 47, 37, 31, 22] }} transition={{ duration: 5.8, repeat: Infinity, ease: "linear" }} />}
+            {!reduceMotion && <motion.circle cx={18} cy={77} r="2.2" fill="#f4f1e9" stroke="#071313" strokeWidth="1" animate={{ cx: [18, 29, 42, 53, 64, 73, 83], cy: [77, 67, 55, 47, 37, 31, 22] }} transition={{ duration: 5.8, repeat: Infinity, ease: "linear" }} />}
           </svg>
           {routeStops.map(([name, time, left, top], index) => (
             <motion.div

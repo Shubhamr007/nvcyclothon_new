@@ -186,7 +186,7 @@ export function OrganizingMembers() {
 
   useEffect(() => {
     request("/content/organizing-members")
-      .then(setMembers)
+      .then((data) => setMembers(Array.isArray(data) ? data : []))
       .catch(() => setMembers([]));
   }, []);
 
@@ -209,13 +209,14 @@ export function OrganizingMembers() {
     window.setTimeout(() => openerRef.current?.focus(), 0);
   }
 
-  if (!members.length) return null;
+  const safeMembers = Array.isArray(members) ? members : [];
+  if (!safeMembers.length) return null;
   return (
     <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]" aria-labelledby="members-heading">
       <div className="mx-auto max-w-[1400px]">
         <Reveal><p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">The people behind the ride</p><h2 id="members-heading" className="mt-4 max-w-3xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl">Built by people<br /><span className="text-[#ff5f3d]">who show up.</span></h2><p className="mt-5 max-w-xl text-sm leading-6 text-[#071313]/70">Meet the people bringing NV Cyclothon to life.</p></Reveal>
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {members.map((member, index) => (
+          {safeMembers.map((member, index) => (
             <Reveal key={member.id} delay={index * 0.06}>
               <article className="member-profile-card group relative h-full overflow-hidden rounded-3xl bg-[#071313] shadow-[6px_6px_0_#d9ff38]">
                 {member.image_url ? (
