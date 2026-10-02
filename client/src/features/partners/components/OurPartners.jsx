@@ -1,4 +1,5 @@
 import { Reveal } from "../../../components/Reveal";
+import { apiUrl } from "../../../api/http";
 
 export function OurPartners({ partners = [], onApplyClick }) {
   const hasPartners = Array.isArray(partners) && partners.length > 0;
@@ -131,7 +132,7 @@ function PartnerCard({ partner, isTitle, small }) {
     >
       {partner.logo_key ? (
         <img
-          src={`/api/admin/partner-applications/${partner.id}/logo`}
+          src={apiUrl(`/admin/partner-applications/${partner.id}/logo`)}
           alt={partner.brand_name || partner.company_name}
           className="max-h-16 w-auto object-contain"
         />

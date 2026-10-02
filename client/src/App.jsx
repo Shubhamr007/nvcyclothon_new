@@ -4,6 +4,7 @@ import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { LoadingIndicator, LoadingScreen } from "./components/LoadingIndicator";
 import { SiteSettingsProvider } from "./state/SiteSettingsContext";
+import { apiUrl } from "./api/http";
 
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
@@ -94,7 +95,7 @@ export default function App() {
   useEffect(() => {
     if (isCheckinRoute || sessionStorage.getItem(`nv-visit:${pathname}`)) return;
     sessionStorage.setItem(`nv-visit:${pathname}`, "1");
-    fetch(`${import.meta.env.VITE_API_URL || "/api"}/content/visits`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: pathname, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: navigator.language }), keepalive: true }).catch(() => {});
+    fetch(apiUrl("/content/visits"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: pathname, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: navigator.language }), keepalive: true }).catch(() => {});
   }, [pathname, isCheckinRoute]);
   return (
     <SiteSettingsProvider>
