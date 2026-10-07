@@ -226,14 +226,22 @@ function createEmailService(config, logger = console) {
         ? `${String(checkinQrPrefix || "nvcyclothon-checkin:")}${checkinToken}`
         : "";
 
-      let qrCodeDataUrl = "";
+      let qrAttachment = null;
       if (checkinPayload) {
         try {
-          qrCodeDataUrl = await QRCode.toDataURL(checkinPayload, {
+          const qrBuffer = await QRCode.toBuffer(checkinPayload, {
             errorCorrectionLevel: "M",
             margin: 1,
             width: 240,
+            type: "png",
           });
+          qrAttachment = {
+            filename: "nv-cyclothon-checkin-qr.png",
+            content: qrBuffer,
+            contentType: "image/png",
+            cid: "nv-cyclothon-checkin-qr",
+            contentDisposition: "inline",
+          };
         } catch (error) {
           logger.error("Unable to generate check-in QR code", error);
         }
@@ -242,12 +250,20 @@ function createEmailService(config, logger = console) {
       const subject = "Your NV Cyclothon 2026 registration is confirmed";
       const formattedDate = new Date(`${eventDate}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
       const text = `Hi ${name},\n\nYour NV Cyclothon registration is confirmed after successful payment.\n\nRider ID: ${passRiderId}\nRoute: ${route}\nAmount paid: ${amount}\nRace day: ${formattedDate}\nReporting time: ${eventStartTime}\nVenue: ${eventLocation}\n\nRace-day check-in code: ${checkinPayload || "Will be shared by event desk"}\n\nPlease keep this email handy on race day.\n\nNV Cyclothon, in association with Rewa Cycling Federation`;
-      const qrMarkup = qrCodeDataUrl
-        ? `<p><img src="${qrCodeDataUrl}" alt="Race day check-in QR code" width="220" height="220" /></p>`
+      const qrMarkup = qrAttachment
+        ? `<p style="margin:20px 0;text-align:center"><img src="cid:nv-cyclothon-checkin-qr" alt="Race day check-in QR code" width="220" height="220" style="display:inline-block;width:220px;height:220px;border:0" /></p>`
         : "";
       const banner = await bannerAttachment();
-      const html = emailShell({ title: "Your registration is confirmed", greeting: name, banner, body: `<p>Your NV Cyclothon registration and payment are confirmed. Your rider pass will be sent separately by the event team.</p><ul><li><strong>Rider ID:</strong> ${escapeHtml(passRiderId)}</li><li><strong>Route:</strong> ${escapeHtml(route)}</li><li><strong>Amount paid:</strong> ${escapeHtml(amount)}</li><li><strong>Event date:</strong> ${escapeHtml(formattedDate)}</li><li><strong>Reporting time:</strong> ${escapeHtml(eventStartTime)}</li><li><strong>Venue:</strong> ${escapeHtml(eventLocation)}</li></ul>${qrMarkup}<p>Please retain this confirmation for your records.</p>` });
-      return send({ recipient, subject, text, html, attachments: banner ? [banner] : [] });
+      const html = emailShell({
+        title: "Your registration is confirmed",
+        greeting: name,
+        banner: !!banner,
+        body: `<p>Your NV Cyclothon registration and payment are confirmed. Your rider pass will be sent separately by the event team.</p><ul><li><strong>Rider ID:</strong> ${escapeHtml(passRiderId)}</li><li><strong>Route:</strong> ${escapeHtml(route)}</li><li><strong>Amount paid:</strong> ${escapeHtml(amount)}</li><li><strong>Event date:</strong> ${escapeHtml(formattedDate)}</li><li><strong>Reporting time:</strong> ${escapeHtml(eventStartTime)}</li><li><strong>Venue:</strong> ${escapeHtml(eventLocation)}</li></ul>${qrMarkup}<p>Please retain this confirmation for your records.</p>`,
+      });
+      const attachments = [];
+      if (banner) attachments.push(banner);
+      if (qrAttachment) attachments.push(qrAttachment);
+      return send({ recipient, subject, text, html, attachments });
     },
 
     async sendRiderPass({ recipient, registration, riderPassPdf }) {
@@ -260,11 +276,17 @@ function createEmailService(config, logger = console) {
     },
 
     async sendPaymentReceipt({ recipient, name, orderId, totalPaise }) {
-      const total = `Rs ${Number(totalPaise) / 100}`;
+      const banner = await bannerAttachment();
+      const total = formatRupees(totalPaise);
       const subject = `Payment receipt for order #${orderId}`;
-      const text = `Hi ${name},\n\nWe received payment of ${total} for order #${orderId}. Keep this email as your receipt.`;
-      const html = `<h1>Payment received</h1><p>Hi ${escapeHtml(name)},</p><p>We received <strong>${escapeHtml(total)}</strong> for order <strong>#${escapeHtml(orderId)}</strong>.</p>`;
-      return send({ recipient, subject, text, html });
+      const text = `Hi ${name},\n\nWe received payment of ${total} for order #${orderId}. Keep this email as your receipt.\n\nNV Cyclothon`;
+      const html = emailShell({
+        title: "Payment Received",
+        greeting: name,
+        banner: !!banner,
+        body: `<p>We received payment of <strong>${escapeHtml(total)}</strong> for registration order <strong>#${escapeHtml(orderId)}</strong>.</p><p>Keep this email as your official receipt. Your registration confirmation and check-in pass details have been recorded.</p>`,
+      });
+      return send({ recipient, subject, text, html, attachments: banner ? [banner] : [] });
     },
 
     async sendEventUpdate({ recipients, subject, message }) {

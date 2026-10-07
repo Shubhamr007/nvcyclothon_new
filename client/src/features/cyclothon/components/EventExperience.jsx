@@ -6,6 +6,8 @@ const CountUp = CountUpModule.default || CountUpModule;
 import { FaBicycle, FaHeartPulse, FaMedal, FaMusic, FaPersonBiking, FaRegHeart, FaWater } from "react-icons/fa6";
 import { MdMedicalServices, MdPhotoCamera } from "react-icons/md";
 import { useSiteSettings } from "../../../state/SiteSettingsContext";
+import { getCommunityPosts } from "../../../api/http";
+
 
 const highlights = [
   [FaMedal, "Finisher medal"], [FaPersonBiking, "Ride with champions"], [FaHeartPulse, "Healthy lifestyle"], [FaRegHeart, "A family event"], [FaMusic, "Live music"], [FaWater, "Water stations"], [MdPhotoCamera, "Event photography"], [MdMedicalServices, "Medical support"],
@@ -33,7 +35,7 @@ const testimonials = [
 export function SocialProofAndExperience() {
   return (
     <>
-      <section className="bg-[#071313] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-white">
+      <section className="bg-[#071313] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-white overflow-hidden">
         <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-8 text-center sm:grid-cols-5">
           {[[500, "", "Total rider places"], [4, "", "Race categories"], [300, "+", "Finish moments"], [50, "+", "Volunteers"], [12, "", "Community partners"]].map(([number, suffix, label]) => (
             <AnimatedStat key={label} number={number} suffix={suffix} label={label} />
@@ -41,7 +43,7 @@ export function SocialProofAndExperience() {
         </div>
       </section>
       <Countdown />
-      <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
+      <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden">
         <div className="mx-auto max-w-[1400px]">
           <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">
             A whole morning of movement
@@ -63,37 +65,99 @@ export function SocialProofAndExperience() {
           </div>
         </div>
       </section>
-      <section className="bg-[#ff5f3d] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
-        <div className="mx-auto max-w-[1400px]">
-          <p className="text-xs font-black tracking-[.2em] uppercase">
-            The last ride, in their words
-          </p>
-          <h2 className="mt-4 text-5xl font-black tracking-[-.08em] uppercase md:text-7xl">
-            Stories with
-            <br />
-            pedal power.
-          </h2>
-          <div className="mt-12 grid gap-4 md:grid-cols-3">
-            {testimonials.map((item) => (
-              <figure key={item.name} className="rounded-2xl bg-[#f4f1e9] p-7">
-                <blockquote className="text-xl font-bold leading-7">
-                  “{item.quote}”
-                </blockquote>
-                <figcaption className="mt-8 text-xs font-black tracking-[.12em] uppercase">
-                  {item.name}
-                  <span className="mt-1 block font-medium tracking-normal text-[#071313]/60">
-                    {item.role}
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
+      <StoriesWithPedalPower />
       <Faq />
     </>
   );
 }
+
+function StoriesWithPedalPower() {
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCommunityPosts()
+      .then((data) => {
+        if (cancelled) return;
+        const approved = Array.isArray(data?.items) ? data.items : [];
+        if (approved.length > 0) {
+          const mapped = approved.map((p) => ({
+            id: p.id,
+            quote: p.message,
+            name: p.name,
+            role: "Community rider",
+            image_url: p.image_url,
+          }));
+          if (mapped.length < 3) {
+            setItems([...mapped, ...testimonials.slice(0, 3 - mapped.length)]);
+          } else {
+            setItems(mapped.slice(0, 6));
+          }
+        } else {
+          setItems(testimonials);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setItems(testimonials);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const displayList = items.length > 0 ? items : testimonials;
+
+  return (
+    <section id="stories" className="bg-[#ff5f3d] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden">
+      <div className="mx-auto max-w-[1400px]">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <p className="text-xs font-black tracking-[.2em] uppercase">
+              The last ride, in their words
+            </p>
+            <h2 className="mt-4 text-5xl font-black tracking-[-.08em] uppercase md:text-7xl">
+              Stories with
+              <br />
+              pedal power.
+            </h2>
+          </div>
+          <a
+            href="#community"
+            className="self-start md:self-end inline-flex items-center gap-2 rounded-full bg-[#071313] px-6 py-3.5 text-xs font-black uppercase tracking-wider text-[#d9ff38] shadow-[4px_4px_0_#ffffff] transition hover:-translate-y-0.5"
+          >
+            Share your story & photo ↓
+          </a>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {displayList.map((item, index) => (
+            <figure key={item.id || item.name || index} className="flex flex-col justify-between rounded-2xl bg-[#f4f1e9] p-7 shadow-sm">
+              <div>
+                {item.image_url && (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    loading="lazy"
+                    className="mb-5 aspect-video w-full rounded-xl object-cover shadow-sm"
+                  />
+                )}
+                <blockquote className="text-lg font-bold leading-7">
+                  “{item.quote}”
+                </blockquote>
+              </div>
+              <figcaption className="mt-6 border-t border-[#071313]/10 pt-4 text-xs font-black tracking-[.12em] uppercase">
+                {item.name}
+                <span className="mt-1 block font-medium tracking-normal text-[#071313]/60">
+                  {item.role}
+                </span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function AnimatedStat({ number, suffix, label }) {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.6 });
   return <div ref={ref}><b className="block text-3xl font-black text-[#d9ff38]">{inView ? <CountUp end={number} duration={1.4} separator="," /> : 0}{suffix}</b><span className="mt-1 block text-xs font-bold tracking-[.08em] text-white/65">{label}</span></div>;
@@ -116,12 +180,12 @@ function Countdown() {
     Math.floor(remaining / 1000) % 60,
   ];
   return (
-    <section className="bg-[#d9ff38] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-[#071313]">
+    <section className="bg-[#d9ff38] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-[#071313] overflow-hidden">
       <div className="mx-auto flex max-w-[1400px] flex-col justify-between gap-6 md:flex-row md:items-center">
         <p className="text-xl font-black uppercase">
           The starting bell is waiting.
         </p>
-        <div role="group" aria-label={`Countdown to ${settings.event_date || "2026-11-22"}`} className="flex gap-5">
+        <div role="group" aria-label={`Countdown to ${settings.event_date || "2026-11-22"}`} className="flex flex-wrap gap-3 sm:gap-5">
           {parts.map((value, index) => (
             <div key={index}>
               <b className="block text-4xl font-black tabular-nums">

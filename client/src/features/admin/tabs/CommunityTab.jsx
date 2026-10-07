@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { MessageSquare, Check, X, AlertCircle, Image as ImageIcon } from "lucide-react";
-import { listAdminCommunityPosts, moderateCommunityPost, getAdminCommunityMedia } from "../../../api/http";
+import { MessageSquare, Check, X, AlertCircle, Image as ImageIcon, Trash2 } from "lucide-react";
+import {
+  listAdminCommunityPosts,
+  moderateCommunityPost,
+  deleteAdminCommunityPost,
+  getAdminCommunityMedia,
+} from "../../../api/http";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 
-function CommunityModerationItem({ item, accessToken, working, onModerate }) {
+function CommunityModerationItem({ item, accessToken, working, onModerate, onDelete }) {
   const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
@@ -25,6 +30,13 @@ function CommunityModerationItem({ item, accessToken, working, onModerate }) {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [accessToken, item.image_url]);
+
+  const statusVariant =
+    item.status === "approved"
+      ? "bg-green-100 text-green-800 border-green-200"
+      : item.status === "rejected"
+      ? "bg-red-100 text-red-800 border-red-200"
+      : "bg-amber-100 text-amber-800 border-amber-200";
 
   return (
     <article className="grid gap-4 rounded-2xl border border-black/10 bg-white p-5 md:grid-cols-[160px_1fr_auto] hover:border-black/20 transition-colors shadow-sm">
@@ -46,36 +58,55 @@ function CommunityModerationItem({ item, accessToken, working, onModerate }) {
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <p className="font-black text-sm text-[#071313]">{item.name}</p>
-          <Badge variant="secondary" className="text-[10px] px-2 py-0.5 capitalize">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${statusVariant}`}>
             {item.status || "pending"}
-          </Badge>
+          </span>
         </div>
         <p className="text-xs leading-5 text-black/75 font-normal pt-1">{item.message}</p>
+        {item.moderation_reason && (
+          <p className="text-[11px] text-red-600 bg-red-50 p-2 rounded-lg mt-1 font-mono">
+            Reason: {item.moderation_reason}
+          </p>
+        )}
         <p className="text-[10px] text-black/45 pt-2 font-mono">
           Submitted {new Date(item.created_at).toLocaleString()}
         </p>
       </div>
 
       <div className="flex md:flex-col gap-2 justify-start shrink-0">
+        {item.status !== "approved" && (
+          <Button
+            size="sm"
+            variant="accent"
+            disabled={working}
+            onClick={() => onModerate(item.id, "approved")}
+            className="h-8 text-xs font-bold px-3"
+          >
+            <Check className="h-3.5 w-3.5 mr-1" />
+            Approve
+          </Button>
+        )}
+        {item.status !== "rejected" && (
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={working}
+            onClick={() => onModerate(item.id, "rejected")}
+            className="h-8 text-xs font-bold px-3 bg-red-600 hover:bg-red-700 text-white"
+          >
+            <X className="h-3.5 w-3.5 mr-1" />
+            Reject
+          </Button>
+        )}
         <Button
           size="sm"
-          variant="accent"
+          variant="outline"
           disabled={working}
-          onClick={() => onModerate(item.id, "approved")}
-          className="h-8 text-xs font-bold px-3"
+          onClick={() => onDelete(item.id, item.name)}
+          className="h-8 text-xs font-bold px-3 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
         >
-          <Check className="h-3.5 w-3.5 mr-1" />
-          Approve
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          disabled={working}
-          onClick={() => onModerate(item.id, "rejected")}
-          className="h-8 text-xs font-bold px-3 bg-red-600 hover:bg-red-700 text-white"
-        >
-          <X className="h-3.5 w-3.5 mr-1" />
-          Reject
+          <Trash2 className="h-3.5 w-3.5 mr-1" />
+          Delete
         </Button>
       </div>
     </article>
@@ -123,6 +154,29 @@ export function CommunityTab({ accessToken, onFeedback }) {
     }
   };
 
+  const removePost = async (id, name) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to permanently delete the post by "${name || 'User'}"? This removes the entry and any associated photo permanently.`
+      )
+    ) {
+      return;
+    }
+    setWorkingId(id);
+    try {
+      await deleteAdminCommunityPost(accessToken, id);
+      setItems((current) => current.filter((item) => item.id !== id));
+      onFeedback?.("Community post permanently deleted.");
+    } catch (error) {
+      setState((current) => ({
+        ...current,
+        error: error.message || "Unable to delete submission.",
+      }));
+    } finally {
+      setWorkingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* HEADER BAR */}
@@ -130,14 +184,14 @@ export function CommunityTab({ accessToken, onFeedback }) {
         <div>
           <h2 className="text-xl font-black text-[#071313]">Community Wall Moderation</h2>
           <p className="text-xs text-[#071313]/60">
-            Review user-submitted cheers, rider stories, and photos before public release.
+            Review user-submitted cheers, rider stories, and photos. Approve for the wall or permanently delete spam.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-black/60 uppercase font-mono">Queue:</span>
           <div className="flex rounded-xl bg-[#fbf8ef] p-1 border border-black/10">
-            {["pending", "approved"].map((status) => (
+            {["pending", "approved", "rejected", "all"].map((status) => (
               <button
                 key={status}
                 type="button"
@@ -154,6 +208,7 @@ export function CommunityTab({ accessToken, onFeedback }) {
           </div>
         </div>
       </div>
+
 
       {state.error && (
         <div className="flex items-center justify-between rounded-xl bg-red-50 p-4 text-xs text-red-700">
@@ -184,6 +239,7 @@ export function CommunityTab({ accessToken, onFeedback }) {
               accessToken={accessToken}
               working={workingId === item.id}
               onModerate={moderate}
+              onDelete={removePost}
             />
           ))}
         </div>

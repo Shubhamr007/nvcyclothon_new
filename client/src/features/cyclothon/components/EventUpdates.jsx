@@ -17,7 +17,7 @@ export function EventUpdates() {
   const guests = Array.isArray(content?.guests) ? content.guests : [];
   if (!offers.length && !guests.length) return null;
   return (
-    <section className="bg-[#071313] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white">
+    <section className="bg-[#071313] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white overflow-hidden">
       <div className="mx-auto max-w-[1400px]">
         {offers.length > 0 && (
           <div>

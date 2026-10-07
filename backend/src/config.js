@@ -100,6 +100,20 @@ function loadConfig(env = process.env) {
       (environment === "production" ? "" : env.ADMIN_API_KEY || "development-admin-token-secret"),
     adminSessionTtlSeconds: parseIntWithDefault(env.ADMIN_SESSION_TTL_SECONDS, 900),
     volunteerCheckinEnabled: parseBool(env.VOLUNTEER_CHECKIN_ENABLED, true),
+    registrationOpen:
+      env.REGISTRATION_OPEN !== undefined
+        ? parseBool(env.REGISTRATION_OPEN, true)
+        : undefined,
+    registrationTentativeDate:
+      env.REGISTRATION_TENTATIVE_DATE || "Upcoming Monday at 10:00 AM",
+    partnerApplicationsOpen:
+      env.PARTNER_APPLICATIONS_OPEN !== undefined
+        ? parseBool(env.PARTNER_APPLICATIONS_OPEN, true)
+        : undefined,
+    vendorApplicationsOpen:
+      env.VENDOR_APPLICATIONS_OPEN !== undefined
+        ? parseBool(env.VENDOR_APPLICATIONS_OPEN, true)
+        : undefined,
     volunteerCheckinPin: env.VOLUNTEER_CHECKIN_PIN || "",
     volunteerCheckinCredentials: parseVolunteerCredentials(
       env.VOLUNTEER_CHECKIN_CREDENTIALS

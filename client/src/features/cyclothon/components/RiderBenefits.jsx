@@ -11,7 +11,7 @@ export function RiderBenefits() {
   if (!showPrizes && !showKit) return null;
 
   return (
-    <section aria-labelledby="rider-benefits-heading" className="bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]">
+    <section aria-labelledby="rider-benefits-heading" className="bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313] overflow-hidden">
       <div className="mx-auto max-w-[1400px]">
         <h2 id="rider-benefits-heading" className="sr-only">Rider benefits</h2>
         <div className={`grid gap-6 ${showPrizes && showKit ? "lg:grid-cols-2" : "max-w-2xl"}`}>
@@ -25,7 +25,7 @@ export function RiderBenefits() {
 
 function PrizePool({ prizePool }) {
   return (
-    <article className="rounded-3xl bg-[#071313] p-7 text-white shadow-[8px_8px_0_#d9ff38] md:p-9">
+    <article className="rounded-3xl bg-[#071313] p-7 text-white shadow-[4px_4px_0_#d9ff38] sm:shadow-[8px_8px_0_#d9ff38] md:p-9">
       <p className="text-xs font-black tracking-[.18em] text-[#d9ff38] uppercase">{prizePool.eyebrow}</p>
       <div className="mt-5 flex items-start justify-between gap-5">
         <div>
@@ -53,7 +53,7 @@ function PrizePool({ prizePool }) {
 
 function ParticipantKit({ kit }) {
   return (
-    <article className="rounded-3xl border-2 border-[#071313] bg-white p-7 shadow-[8px_8px_0_#ff5f3d] md:p-9">
+    <article className="rounded-3xl border-2 border-[#071313] bg-white p-7 shadow-[4px_4px_0_#ff5f3d] sm:shadow-[8px_8px_0_#ff5f3d] md:p-9">
       <p className="text-xs font-black tracking-[.18em] text-[#9f3126] uppercase">{kit.eyebrow}</p>
       <h3 className="mt-5 text-4xl font-black leading-none tracking-[-.06em] md:text-5xl">{kit.title}</h3>
       {kit.body && <p className="mt-4 max-w-lg text-sm leading-6 text-[#071313]/80">{kit.body}</p>}

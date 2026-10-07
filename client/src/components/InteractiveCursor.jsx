@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
 export function InteractiveCursor() {
+  const isTouchDevice =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window);
   const prefersReducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -12,7 +15,7 @@ export function InteractiveCursor() {
     interactive: false,
   });
   useEffect(() => {
-    if (prefersReducedMotion) return undefined;
+    if (isTouchDevice || prefersReducedMotion) return undefined;
     const move = (event) =>
       setCursor({
         x: event.clientX,
@@ -26,7 +29,7 @@ export function InteractiveCursor() {
     window.addEventListener("pointermove", move);
     return () => window.removeEventListener("pointermove", move);
   }, [prefersReducedMotion]);
-  if (prefersReducedMotion) return null;
+  if (isTouchDevice || prefersReducedMotion) return null;
   return (
     <span
       aria-hidden="true"

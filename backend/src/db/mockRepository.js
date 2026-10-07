@@ -34,6 +34,7 @@ function defaultSiteSettings() {
     event_location: "Rewa, Madhya Pradesh",
     edition_label: "3rd Edition",
     registration_open: true,
+    registration_tentative_date: "Upcoming Monday at 10:00 AM",
     partner_applications_open: true,
     vendor_applications_open: true,
     hero_images: [],
@@ -66,6 +67,7 @@ function mergeSiteSettings(current, patch) {
     "event_location",
     "edition_label",
     "registration_open",
+    "registration_tentative_date",
     "partner_applications_open",
     "vendor_applications_open",
     "hero_images",
@@ -507,20 +509,51 @@ class MockRepository {
     return this.clone(registration);
   }
 
-  async listRegistrations() {
-    return this.tables.cyclothon_registrations
-      .slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .map((item) => ({
-        ...this.clone(item),
-        rider_pass_status: this.tables.rider_passes.find((pass) => pass.registration_id === item.id)?.status || null,
-        certificate_status: this.tables.participation_certificates.find((certificate) => certificate.registration_id === item.id)?.status || null,
-        certificate_recipient: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.recipient || null,
-        certificate_delivery_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.status || null,
-        certificate_sent_at: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.sent_at || null,
-        certificate_attempt_count: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.attempt_count || null,
-        registration_email_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "registration_confirmation")?.status || null,
-      }));
+  async listRegistrations(filters = {}) {
+    const { search, status, route, limit, offset } = filters || {};
+    let items = this.tables.cyclothon_registrations.slice();
+
+    if (status && status !== "all") {
+      items = items.filter((item) => item.status === status);
+    }
+    if (route && route !== "all") {
+      items = items.filter((item) => item.ride_category === route);
+    }
+    if (search && String(search).trim()) {
+      const q = String(search).trim().toLowerCase();
+      const idCandidate = Number.parseInt(q, 10);
+      const digits = q.replace(/\D+/g, "");
+      items = items.filter((item) => {
+        if (Number.isInteger(idCandidate) && item.id === idCandidate) return true;
+        const phoneDigits = String(item.phone || "").replace(/\D+/g, "");
+        return (
+          String(item.full_name || "").toLowerCase().includes(q) ||
+          String(item.email || "").toLowerCase().includes(q) ||
+          String(item.city || "").toLowerCase().includes(q) ||
+          (digits && phoneDigits.includes(digits))
+        );
+      });
+    }
+
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    if (offset && Number.isInteger(Number(offset)) && Number(offset) > 0) {
+      items = items.slice(Number(offset));
+    }
+    if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
+      items = items.slice(0, Number(limit));
+    }
+
+    return items.map((item) => ({
+      ...this.clone(item),
+      rider_pass_status: this.tables.rider_passes.find((pass) => pass.registration_id === item.id)?.status || null,
+      certificate_status: this.tables.participation_certificates.find((certificate) => certificate.registration_id === item.id)?.status || null,
+      certificate_recipient: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.recipient || null,
+      certificate_delivery_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.status || null,
+      certificate_sent_at: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.sent_at || null,
+      certificate_attempt_count: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.attempt_count || null,
+      registration_email_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "registration_confirmation")?.status || null,
+    }));
   }
 
   async getRegistrationById(registrationId) {
@@ -1064,7 +1097,21 @@ class MockRepository {
   }
 
   async getSiteSettings() {
-    return this.clone(this.siteSettings);
+    const data = { ...this.siteSettings };
+    if (this.config?.registrationOpen !== undefined) {
+      data.registration_open = this.config.registrationOpen;
+    }
+    if (this.config?.partnerApplicationsOpen !== undefined) {
+      data.partner_applications_open = this.config.partnerApplicationsOpen;
+    }
+    if (this.config?.vendorApplicationsOpen !== undefined) {
+      data.vendor_applications_open = this.config.vendorApplicationsOpen;
+    }
+    data.registration_tentative_date =
+      this.config?.registrationTentativeDate ||
+      data.registration_tentative_date ||
+      "Upcoming Monday at 10:00 AM";
+    return this.clone(data);
   }
 
   async updateSiteSettings(patch) {
@@ -1210,6 +1257,25 @@ class MockRepository {
     post.moderation_reason = reason || null;
     return this.clone(post);
   }
+
+  async listCommunityPostsByStatus(status, limit = 100) {
+    let rows = this.tables.community_posts;
+    if (status && status !== "all") {
+      rows = rows.filter((post) => post.status === status);
+    }
+    rows = rows
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, limit);
+    return rows.map((row) => this.clone(row));
+  }
+
+  async deleteCommunityPost(id) {
+    const index = this.tables.community_posts.findIndex((p) => p.id === Number(id));
+    if (index === -1) return null;
+    const [removed] = this.tables.community_posts.splice(index, 1);
+    return this.clone(removed);
+  }
+
 
   // --- Sponsorship Tiers Helper ---
 

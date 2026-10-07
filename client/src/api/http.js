@@ -177,7 +177,14 @@ export async function moderateCommunityPost(accessToken, id, payload) {
   });
 }
 
+export async function deleteAdminCommunityPost(accessToken, id) {
+  return adminRequest(`/community/posts/${id}`, accessToken, {
+    method: "DELETE",
+  });
+}
+
 export async function getAdminCommunityMedia(accessToken, key) {
+
   const response = await fetch(
     `${API_BASE}/admin/community/media/${encodeURIComponent(key)}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }

@@ -25,7 +25,7 @@ export function HomePage() {
       <SocialProofAndExperience />
       {sections.editions !== false && <Editions />}
       {sections.about !== false && (
-      <section id="about" className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]">
+      <section id="about" className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden">
         <div className="mx-auto max-w-[1400px]">
           <div className="grid gap-10 md:grid-cols-[.6fr_1.4fr]">
             <Reveal>
@@ -82,7 +82,7 @@ export function HomePage() {
       {sections.gallery !== false && <Gallery />}
       {sections.why_sport !== false && <WhySport />}
       {sections.contact !== false && (
-      <section id="contact" className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white">
+      <section id="contact" className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white overflow-hidden">
         <div className="mx-auto max-w-[1400px]">
           <Reveal>
             <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">Point of contact</p>
@@ -127,14 +127,14 @@ export function HomePage() {
 
 function ManagedFeatureSection({ feature }) {
   return (
-    <section className="bg-[#ff5f3d] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white">
+    <section className="bg-[#ff5f3d] px-4 py-16 sm:px-6 sm:py-20 lg:px-8 text-white overflow-hidden">
       <div className="mx-auto grid max-w-[1400px] gap-8 md:grid-cols-[1fr_.9fr] md:items-center">
         <Reveal>
           {feature.eyebrow && <p className="text-xs font-black tracking-[.22em] text-[#071313] uppercase">{feature.eyebrow}</p>}
           {feature.title && <h2 className="mt-4 text-4xl font-black leading-none tracking-[-.05em] uppercase md:text-6xl">{feature.title}</h2>}
           {feature.body && <p className="mt-6 max-w-2xl text-base leading-7 text-white/85">{feature.body}</p>}
         </Reveal>
-        {feature.image_url && <Reveal delay={0.1}><img src={feature.image_url} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover shadow-[8px_8px_0_#071313]" loading="lazy" /></Reveal>}
+        {feature.image_url && <Reveal delay={0.1}><img src={feature.image_url} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover shadow-[4px_4px_0_#071313] sm:shadow-[8px_8px_0_#071313]" loading="lazy" /></Reveal>}
       </div>
     </section>
   );

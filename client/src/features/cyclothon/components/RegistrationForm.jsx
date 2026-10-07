@@ -10,6 +10,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { EVENT, RIDE_OPTIONS } from "../constants";
 import { useSiteSettings } from "../../../state/SiteSettingsContext";
+import { PolicyModal } from "../../../components/PolicyModal";
 
 const COUNTRY_CODES = [
   { code: "+91", label: "🇮🇳 +91", name: "India" },
@@ -163,22 +164,61 @@ export function RegistrationForm({ initialRoute }) {
       </>
     );
 
+  const [policyModal, setPolicyModal] = useState({ isOpen: false, tab: "refund" });
+
   if (settingsLoading || !settings.registration_open) {
+    const tentativeDate =
+      settings?.registration_tentative_date || "Upcoming Monday at 10:00 AM";
     return (
       <section
         data-theme="dark"
-        className="rounded-3xl bg-[#071313] p-8 text-white shadow-[10px_10px_0_#ff5f3d]"
+        className="rounded-3xl border border-white/10 bg-[#071313] p-8 text-white shadow-[10px_10px_0_#ff5f3d] sm:p-10"
         aria-live="polite"
       >
-        <p className="text-xs font-black tracking-[.16em] text-[#d9ff38] uppercase">Registration</p>
-        <h2 className="mt-2 text-3xl font-black tracking-tight">
-          {settingsLoading ? "Checking availability…" : "Registration is closed."}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-[#d9ff38] px-3 py-1 text-[11px] font-black uppercase tracking-wider text-[#071313]">
+            Next Slot Opening Soon
+          </span>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-white/80">
+            {EVENT.edition} · 22 Nov 2026
+          </span>
+        </div>
+
+        <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl uppercase">
+          Registrations Opening Soon
         </h2>
-        <p className="mt-3 text-sm leading-6 text-white/70">
-          {settingsLoading
-            ? "Please wait while we confirm event availability."
-            : "Thank you for your interest in NV Cyclothon. Please follow our official channels for the next opening."}
-        </p>
+
+        <div className="mt-5 rounded-2xl border border-[#ff5f3d]/30 bg-[#ff5f3d]/10 p-5">
+          <p className="text-xs font-black tracking-wider uppercase text-[#ff5f3d]">
+            Tentative Registration Window
+          </p>
+          <p className="mt-1 text-xl font-black text-white">
+            📅 {tentativeDate}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-white/80">
+            Wave 1 registrations and category allocations are currently in preparation. The next registration window for all race categories (60K, 30K, 10K, Senior Masters, and Kid-o-thon) will open at the tentative time above.
+          </p>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <a
+            href="/#routes"
+            className="flex items-center justify-center rounded-xl bg-white/10 px-5 py-3 text-xs font-black tracking-wider uppercase text-white transition hover:bg-white/20 text-center"
+          >
+            Explore Routes & Categories →
+          </a>
+          <a
+            href="/"
+            className="flex items-center justify-center rounded-xl bg-[#d9ff38] px-5 py-3 text-xs font-black tracking-wider uppercase text-[#071313] transition hover:bg-[#c8ee27] text-center"
+          >
+            Back to Event Home
+          </a>
+        </div>
+
+        <div className="mt-6 border-t border-white/10 pt-4 text-xs text-white/60">
+          For emergency or group inquiries:{" "}
+          <span className="font-bold text-white">Aman Mishra (Joint Secretary, RDCA)</span> — +91 88395 03099 | nvcyclothon@gmail.com
+        </div>
       </section>
     );
   }
@@ -474,16 +514,68 @@ export function RegistrationForm({ initialRoute }) {
         {...register("waiver_accepted", { required: "Accept the rider waiver to continue" })}
         error={errors.waiver_accepted}
       >
-        I understand bicycle riding carries inherent risk and agree to the NV Cyclothon rider waiver.
+        I understand bicycle riding carries inherent risk and agree to the{" "}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            setPolicyModal({ isOpen: true, tab: "waiver" });
+          }}
+          className="font-bold underline text-[#ff5f3d] hover:text-[#d9492c]"
+        >
+          NV Cyclothon rider waiver
+        </button>{" "}
+        and safety rules (helmets compulsory).
       </ConsentCheckbox>
+
+      {/* Strict Cancellation & No-Refund Policy Notice */}
+      <div className="rounded-2xl border border-[#ff5f3d]/30 bg-[#ff5f3d]/10 p-3.5 text-xs text-[#071313] dark:text-white/90">
+        <p className="font-bold uppercase tracking-wider text-[#ff5f3d] text-[11px]">
+          ⚠️ Strict Cancellation & Non-Refundable Policy
+        </p>
+        <p className="mt-1 text-[11px] leading-relaxed text-black/75 dark:text-white/75">
+          Registration fees are <strong>strictly non-refundable and non-transferable</strong> under all circumstances, including absence/no-show on event day or event postponement. Read our{" "}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setPolicyModal({ isOpen: true, tab: "refund" });
+            }}
+            className="font-bold underline text-[#ff5f3d] hover:text-[#d9492c]"
+          >
+            Cancellation & Refund Policy
+          </button>{" "}
+          and{" "}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              setPolicyModal({ isOpen: true, tab: "terms" });
+            }}
+            className="font-bold underline text-[#ff5f3d] hover:text-[#d9492c]"
+          >
+            Terms & Conditions
+          </button>.
+        </p>
+      </div>
 
       <ConsentCheckbox
         name="privacy_accepted"
         {...register("privacy_accepted", { required: "Accept the privacy notice to continue" })}
         error={errors.privacy_accepted}
       >
-        I have read the privacy notice and agree that NV Cyclothon may use my information only to
-        manage this event and send essential rider updates.
+        I have read the{" "}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            setPolicyModal({ isOpen: true, tab: "privacy" });
+          }}
+          className="font-bold underline text-[#ff5f3d] hover:text-[#d9492c]"
+        >
+          privacy notice
+        </button>{" "}
+        and agree that NV Cyclothon may use my information only to manage this event and send essential rider updates.
       </ConsentCheckbox>
 
       <Button
@@ -543,6 +635,12 @@ export function RegistrationForm({ initialRoute }) {
         {status.message}
       </p>
       <ErrorSummary errors={errors} />
+
+      <PolicyModal
+        isOpen={policyModal.isOpen}
+        onClose={() => setPolicyModal({ isOpen: false, tab: "refund" })}
+        initialTab={policyModal.tab}
+      />
     </form>
   );
 }

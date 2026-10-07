@@ -747,13 +747,19 @@ function createAdminRouter({ config, repository, emailService }) {
 
   router.get("/community/posts", async (req, res) => {
     const status = String(req.query.status || "pending").toLowerCase();
-    if (!["pending", "approved"].includes(status)) {
+    if (!["pending", "approved", "rejected", "all"].includes(status)) {
       throw new ValidationError("Invalid status filter");
     }
-    const items =
-      status === "pending"
-        ? await repository.listPendingCommunityPosts(100)
-        : await repository.listApprovedCommunityPosts(200);
+    let items;
+    if (status === "pending") {
+      items = await repository.listPendingCommunityPosts(100);
+    } else if (status === "approved") {
+      items = await repository.listApprovedCommunityPosts(200);
+    } else if (typeof repository.listCommunityPostsByStatus === "function") {
+      items = await repository.listCommunityPostsByStatus(status, 200);
+    } else {
+      items = [];
+    }
     res.json({
       status,
       items: items.map((item) => ({
@@ -811,8 +817,32 @@ function createAdminRouter({ config, repository, emailService }) {
     });
   });
 
-  router.get("/registrations", async (_req, res) => {
-    const registrations = await repository.listRegistrations();
+  router.delete("/community/posts/:id", async (req, res) => {
+    const postId = parsePositiveInt(req.params.id, "post id");
+    const record = await repository.deleteCommunityPost(postId);
+    if (!record) {
+      throw new NotFoundError("Community post not found");
+    }
+    if (record.image_key && !record.image_key.startsWith("http")) {
+      deleteCommunityImage(config, record.image_key);
+    }
+    res.json({
+      success: true,
+      id: record.id,
+      message: "Community post permanently removed.",
+    });
+  });
+
+
+  router.get("/registrations", async (req, res) => {
+    const filters = {
+      search: req.query.q || req.query.search || null,
+      status: req.query.status || null,
+      route: req.query.route || null,
+      limit: req.query.limit ? Number.parseInt(req.query.limit, 10) : null,
+      offset: req.query.offset ? Number.parseInt(req.query.offset, 10) : null,
+    };
+    const registrations = await repository.listRegistrations(filters);
     res.json(registrations);
   });
 

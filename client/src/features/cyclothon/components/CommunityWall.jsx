@@ -19,95 +19,67 @@ function formatDate(iso) {
 }
 
 export function CommunityWall() {
-  const [state, setState] = useState({ loading: true, enabled: true, items: [], totalApproved: 0 });
-  const [refreshTick, setRefreshTick] = useState(0);
+  const [state, setState] = useState({ loading: true, enabled: true });
 
   useEffect(() => {
     let cancelled = false;
-    setState((current) => ({ ...current, loading: true }));
     getCommunityPosts()
       .then((data) => {
         if (cancelled) return;
         setState({
           loading: false,
           enabled: Boolean(data?.enabled),
-          items: Array.isArray(data?.items) ? data.items : [],
-          totalApproved: Number(data?.total_approved) || 0,
         });
       })
       .catch(() => {
         if (cancelled) return;
-        setState({ loading: false, enabled: false, items: [], totalApproved: 0 });
+        setState({ loading: false, enabled: false });
       });
     return () => {
       cancelled = true;
     };
-  }, [refreshTick]);
+  }, []);
 
   if (state.loading) return null;
   if (!state.enabled) return null;
-
-  const hideBecauseEmpty = state.totalApproved === 0;
 
   return (
     <section
       id="community"
       aria-labelledby="community-heading"
-      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]"
+      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden"
     >
-      <div className="mx-auto max-w-[1400px]">
-        <Reveal className={hideBecauseEmpty ? "mx-auto max-w-xl" : ""}>
-          <p className="text-xs font-black tracking-[.28em] text-[#ff5f3d] uppercase">
-            Your ride memories
-          </p>
-          <h2
-            id="community-heading"
-            className="mt-3 max-w-2xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl"
-          >
-            Share the ride,<br />
-            <span className="text-[#ff5f3d]">keep the memory.</span>
-          </h2>
-          <p className="mt-6 max-w-2xl text-sm leading-6 text-[#071313]/70">
-            Add your photo, memory or shout-out to the rider memory wall. Every
-            submission is reviewed by our team before it goes live.
-          </p>
-        </Reveal>
+      <div className="mx-auto max-w-3xl">
+        <div className="text-center">
+          <Reveal>
+            <p className="text-xs font-black tracking-[.28em] text-[#ff5f3d] uppercase">
+              Community stories & memories
+            </p>
+            <h2
+              id="community-heading"
+              className="mt-3 text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl"
+            >
+              Share the ride,<br />
+              <span className="text-[#ff5f3d]">keep the memory.</span>
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-[#071313]/70 max-w-xl mx-auto">
+              Add your photo, ride memory, or shout-out. Every submission is reviewed by our team and featured proudly in the{" "}
+              <a href="#stories" className="font-bold underline text-[#071313] hover:text-[#ff5f3d]">
+                Stories with Pedal Power
+              </a>{" "}
+              wall above!
+            </p>
+          </Reveal>
+        </div>
 
-        <div className={`mt-10 grid gap-8 ${hideBecauseEmpty ? "mx-auto max-w-xl" : "md:grid-cols-[1fr_1.3fr]"}`}>
-          <CommunitySubmissionForm onSubmitted={() => setRefreshTick((n) => n + 1)} />
-          {!hideBecauseEmpty && (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {state.items.map((post, index) => (
-                <Reveal key={post.id} delay={Math.min(index * 0.05, 0.4)}>
-                  <article className="flex h-full flex-col rounded-3xl border border-[#071313]/10 bg-white p-5 shadow-sm">
-                    {post.image_url && (
-                      <img
-                        src={post.image_url}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="mb-4 aspect-video w-full rounded-2xl object-cover"
-                      />
-                    )}
-                    <p className="text-sm leading-6 text-[#071313]/85">
-                      “{post.message}”
-                    </p>
-                    <p className="mt-4 text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
-                      {post.name}
-                    </p>
-                    <p className="mt-1 text-[10px] tracking-[.16em] text-[#071313]/70 uppercase">
-                      {formatDate(post.approved_at || post.created_at)}
-                    </p>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-          )}
+        <div className="mt-10">
+          <CommunitySubmissionForm />
         </div>
       </div>
     </section>
   );
 }
+
 
 function CommunitySubmissionForm({ onSubmitted }) {
   const [name, setName] = useState("");
@@ -151,7 +123,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
   function finishSubmit() {
     setStatus({
       state: "success",
-      text: "Thanks — your submission is with the team for review. It will appear here once approved.",
+      text: "Thanks — your submission is with the team for review! Once approved, it will be proudly featured in the Stories with Pedal Power showcase above.",
     });
     setName("");
     setMessage("");

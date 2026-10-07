@@ -27,7 +27,7 @@ export function Editions() {
     <section
       id="editions"
       aria-labelledby="editions-heading"
-      className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-white"
+      className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-white overflow-hidden"
     >
       <div className="mx-auto max-w-[1400px]">
         <Reveal>
@@ -55,7 +55,7 @@ export function Editions() {
                 <article
                   className={`relative flex h-full flex-col rounded-3xl border p-7 transition ${
                     isCurrent
-                      ? "border-[#d9ff38] bg-[#d9ff38] text-[#071313] shadow-[8px_8px_0_#ff5f3d]"
+                      ? "border-[#d9ff38] bg-[#d9ff38] text-[#071313] shadow-[4px_4px_0_#ff5f3d] sm:shadow-[8px_8px_0_#ff5f3d]"
                       : "border-white/15 bg-white/[.03] text-white"
                   }`}
                 >
@@ -95,7 +95,7 @@ export function Gallery() {
   return (
     <section
       aria-labelledby="gallery-heading"
-      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313]"
+      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden"
     >
       <div className="mx-auto max-w-[1400px]">
         <div className="max-w-2xl">
@@ -150,20 +150,20 @@ export function WhySport() {
       <img src={rewaMap} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-center opacity-60" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[#d9ff38]/20" aria-hidden="true" />
       <div className="mx-auto grid max-w-[1400px] gap-14 md:grid-cols-[.7fr_1.3fr]">
-        <p className="h-fit rounded-xl bg-[#f4f1e9]/90 px-4 py-3 text-xs font-black tracking-[.2em] shadow-[4px_4px_0_#071313] uppercase">
+        <p className="h-fit w-fit max-w-full rounded-xl bg-[#f4f1e9]/90 px-4 py-3 text-xs font-black tracking-[.2em] shadow-[4px_4px_0_#071313] uppercase">
           Why we ride
         </p>
         <div>
-          <h2 className="w-fit rounded-2xl bg-[#f4f1e9]/90 p-4 text-5xl font-black leading-[.86] tracking-[-.08em] shadow-[6px_6px_0_#071313] uppercase md:text-7xl">
+          <h2 className="w-fit max-w-full rounded-2xl bg-[#f4f1e9]/90 p-4 text-3xl font-black leading-[.86] tracking-[-.08em] shadow-[4px_4px_0_#071313] sm:shadow-[6px_6px_0_#071313] uppercase sm:text-5xl md:text-7xl">
             Ride with
             <br />
             purpose.
             <br />
             <span className="text-[#ff5f3d]">Finish with pride.</span>
           </h2>
-          <p className="mt-6 w-fit rounded-lg bg-[#071313] px-4 py-3 text-xl font-black leading-7 uppercase text-[#d9ff38] shadow-[4px_4px_0_#ff5f3d]">Pedal with passion. Finish with pride.</p>
+          <p className="mt-6 w-fit max-w-full rounded-lg bg-[#071313] px-4 py-3 text-base sm:text-xl font-black leading-7 uppercase text-[#d9ff38] shadow-[4px_4px_0_#ff5f3d]">Pedal with passion. Finish with pride.</p>
           <p className="mt-4 max-w-2xl rounded-xl bg-[#f4f1e9]/90 p-4 text-sm leading-6 text-[#071313] shadow-[4px_4px_0_#071313]">This is more than a race. It is a high-energy movement for a stronger Vindhya, safer streets and every rider ready to own their road.</p>
-          <p className="mt-6 w-fit rounded-lg bg-[#f4f1e9]/90 px-4 py-3 text-[10px] font-black tracking-[.2em] text-[#071313] shadow-[4px_4px_0_#071313] uppercase">Land of the white tiger · Rewa rides with a fierce heart</p>
+          <p className="mt-6 w-fit max-w-full rounded-lg bg-[#f4f1e9]/90 px-4 py-3 text-[10px] font-black tracking-[.12em] sm:tracking-[.2em] text-[#071313] shadow-[4px_4px_0_#071313] uppercase">Land of the white tiger · Rewa rides with a fierce heart</p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {causes.map(([title, copy], index) => (
               <article key={title} className="rounded-2xl border-2 border-[#071313] bg-[#f4f1e9]/90 p-5 shadow-[5px_5px_0_#071313] backdrop-blur-md transition hover:-translate-y-1 hover:shadow-[8px_8px_0_#ff5f3d]">
@@ -212,7 +212,7 @@ export function OrganizingMembers() {
   const safeMembers = Array.isArray(members) ? members : [];
   if (!safeMembers.length) return null;
   return (
-    <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313]" aria-labelledby="members-heading">
+    <section className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-24 lg:px-8 text-[#071313] overflow-hidden" aria-labelledby="members-heading">
       <div className="mx-auto max-w-[1400px]">
         <Reveal><p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">The people behind the ride</p><h2 id="members-heading" className="mt-4 max-w-3xl text-4xl font-black leading-none tracking-[-.06em] uppercase md:text-6xl">Built by people<br /><span className="text-[#ff5f3d]">who show up.</span></h2><p className="mt-5 max-w-xl text-sm leading-6 text-[#071313]/70">Meet the people bringing NV Cyclothon to life.</p></Reveal>
         <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -274,7 +274,7 @@ export function PeopleAndSponsors() {
   return (
     <section
       aria-labelledby="people-heading"
-      className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white"
+      className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white overflow-hidden"
     >
       <div className="mx-auto max-w-[1400px]">
         <p className="text-xs font-black tracking-[.2em] text-[#d9ff38] uppercase">

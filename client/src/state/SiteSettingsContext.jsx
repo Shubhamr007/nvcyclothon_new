@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS = {
   event_location: "Rewa, Madhya Pradesh",
   edition_label: "3rd Edition",
   registration_open: true,
+  registration_tentative_date: "Upcoming Monday at 10:00 AM",
   partner_applications_open: true,
   vendor_applications_open: true,
   hero_images: [],
@@ -95,6 +96,9 @@ function mergeWithDefaults(raw) {
       typeof raw?.registration_open === "boolean"
         ? raw.registration_open
         : DEFAULT_SETTINGS.registration_open,
+    registration_tentative_date:
+      raw?.registration_tentative_date ||
+      DEFAULT_SETTINGS.registration_tentative_date,
     partner_applications_open:
       typeof raw?.partner_applications_open === "boolean"
         ? raw.partner_applications_open

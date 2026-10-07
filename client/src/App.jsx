@@ -99,21 +99,23 @@ export default function App() {
   }, [pathname, isCheckinRoute]);
   return (
     <SiteSettingsProvider>
-      <Seo />
-      {!isCheckinRoute && <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />}
-      <main id="main-content">
-        <Suspense fallback={<PageFallback />}><Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/checkin" element={<CheckinPage />} />
-            <Route path="/partners" element={<PartnerPage />} />
-            <Route path="/partners/apply" element={<PartnerPage />} />
-            <Route path="/vendors" element={<VendorPage />} />
-            <Route path="/vendors/apply" element={<VendorPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes></Suspense>
-      </main>
-      {!isCheckinRoute && <SiteFooter />}
+      <div className="app-shell relative min-h-screen w-full max-w-full overflow-x-hidden">
+        <Seo />
+        {!isCheckinRoute && <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />}
+        <main id="main-content" className="w-full max-w-full overflow-x-hidden">
+          <Suspense fallback={<PageFallback />}><Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/checkin" element={<CheckinPage />} />
+              <Route path="/partners" element={<PartnerPage />} />
+              <Route path="/partners/apply" element={<PartnerPage />} />
+              <Route path="/vendors" element={<VendorPage />} />
+              <Route path="/vendors/apply" element={<VendorPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes></Suspense>
+        </main>
+        {!isCheckinRoute && <SiteFooter />}
+      </div>
     </SiteSettingsProvider>
   );
 }

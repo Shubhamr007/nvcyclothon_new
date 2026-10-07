@@ -563,7 +563,17 @@ describe("NV Cyclothon Node backend", () => {
       .patch("/api/admin/settings")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ sections: { community: true } });
+
+    const deleteRes = await request(runtime.app)
+      .delete(`/api/admin/community/posts/${postId}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(deleteRes.statusCode).toBe(200);
+    expect(deleteRes.body.success).toBe(true);
+
+    const publicAfterDelete = await request(runtime.app).get("/api/community/posts");
+    expect(publicAfterDelete.body.total_approved).toBe(0);
   });
+
 
   it("submits partner application, verifies reference number format, and allows admin review", async () => {
     // 1. Check public packages

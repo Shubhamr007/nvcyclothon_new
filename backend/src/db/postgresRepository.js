@@ -16,8 +16,12 @@ const { defaultSiteSettings, mergeSiteSettings } = require("./mockRepository");
 
 class PostgresRepository {
   constructor(config) {
+    this.config = config;
     this.pool = new Pool({
       connectionString: config.databaseUrl,
+      max: config.dbPoolMax || 25,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
     this.pool.on("error", (error) => {
       // Idle PostgreSQL client failures otherwise emit an unhandled EventEmitter
@@ -202,6 +206,29 @@ class PostgresRepository {
         ON cyclothon_registrations (phone);
       CREATE INDEX IF NOT EXISTS cyclothon_registrations_status_created_idx
         ON cyclothon_registrations (status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_fullname_lower_idx
+        ON cyclothon_registrations (lower(full_name));
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_city_lower_idx
+        ON cyclothon_registrations (lower(city));
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_route_idx
+        ON cyclothon_registrations (ride_category);
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_payment_status_idx
+        ON cyclothon_registrations (payment_status);
+
+      DO $$
+      BEGIN
+        CREATE EXTENSION IF NOT EXISTS pg_trgm;
+        CREATE INDEX IF NOT EXISTS cyclothon_registrations_fullname_trgm_idx
+          ON cyclothon_registrations USING gin (lower(full_name) gin_trgm_ops);
+        CREATE INDEX IF NOT EXISTS cyclothon_registrations_email_trgm_idx
+          ON cyclothon_registrations USING gin (lower(email) gin_trgm_ops);
+        CREATE INDEX IF NOT EXISTS cyclothon_registrations_phone_trgm_idx
+          ON cyclothon_registrations USING gin (phone gin_trgm_ops);
+        CREATE INDEX IF NOT EXISTS cyclothon_registrations_city_trgm_idx
+          ON cyclothon_registrations USING gin (lower(city) gin_trgm_ops);
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS site_settings (
         id INTEGER PRIMARY KEY DEFAULT 1,
@@ -1177,25 +1204,85 @@ class PostgresRepository {
     return result.rows[0];
   }
 
-  async listRegistrations() {
-    const result = await this.pool.query(
-      `SELECT id, full_name, email, phone, age, city, gender, ride_category,
-              organization_type, organization_name,
-              emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-              status, registration_fee_paise, payment_status, razorpay_order_id,
-              razorpay_payment_id, razorpay_signature, payment_verified_at,
-              checkin_token, checked_in_at, checked_in_by, checkin_method,
-              checkin_device, created_at,
-              (SELECT status FROM rider_passes WHERE registration_id = cyclothon_registrations.id) AS rider_pass_status,
-              (SELECT status FROM participation_certificates WHERE registration_id = cyclothon_registrations.id) AS certificate_status,
-              (SELECT recipient FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_recipient,
-              (SELECT status FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_delivery_status,
-              (SELECT sent_at FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_sent_at,
-              (SELECT attempt_count FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'certificate') AS certificate_attempt_count,
-              (SELECT status FROM registration_email_deliveries WHERE registration_id = cyclothon_registrations.id AND email_type = 'registration_confirmation') AS registration_email_status
-       FROM cyclothon_registrations
-       ORDER BY created_at DESC`
-    );
+  async listRegistrations(filters = {}) {
+    const { search, status, route, limit, offset } = filters || {};
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (status && status !== "all") {
+      conditions.push(`cr.status = $${paramIndex++}`);
+      params.push(status);
+    }
+
+    if (route && route !== "all") {
+      conditions.push(`cr.ride_category = $${paramIndex++}`);
+      params.push(route);
+    }
+
+    if (search && String(search).trim()) {
+      const trimmedSearch = String(search).trim();
+      const idCandidate = Number.parseInt(trimmedSearch, 10);
+      const isNum = Number.isInteger(idCandidate) && idCandidate > 0 && idCandidate <= 2147483647;
+      const fuzzy = `%${trimmedSearch.toLowerCase()}%`;
+      const digits = trimmedSearch.replace(/\D+/g, "");
+
+      if (isNum && trimmedSearch.length <= 6) {
+        conditions.push(`(cr.id = $${paramIndex} OR (cr.phone IS NOT NULL AND cr.phone LIKE $${paramIndex + 1}))`);
+        params.push(idCandidate, `%${digits}%`);
+        paramIndex += 2;
+      } else {
+        conditions.push(`(
+          lower(cr.full_name) LIKE $${paramIndex} OR
+          lower(cr.email) LIKE $${paramIndex} OR
+          lower(cr.city) LIKE $${paramIndex} OR
+          ($${paramIndex + 1}::int IS NOT NULL AND cr.id = $${paramIndex + 1}) OR
+          ($${paramIndex + 2}::text IS NOT NULL AND cr.phone LIKE $${paramIndex + 2})
+        )`);
+        params.push(fuzzy, isNum ? idCandidate : null, digits ? `%${digits}%` : null);
+        paramIndex += 3;
+      }
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    let paginationClause = "";
+    if (limit && Number.isInteger(Number(limit)) && Number(limit) > 0) {
+      paginationClause += ` LIMIT $${paramIndex++}`;
+      params.push(Number(limit));
+      if (offset && Number.isInteger(Number(offset)) && Number(offset) >= 0) {
+        paginationClause += ` OFFSET $${paramIndex++}`;
+        params.push(Number(offset));
+      }
+    }
+
+    const query = `
+      SELECT cr.id, cr.full_name, cr.email, cr.phone, cr.age, cr.city, cr.gender, cr.ride_category,
+             cr.organization_type, cr.organization_name,
+             cr.emergency_contact, cr.t_shirt_size, cr.waiver_accepted, cr.privacy_accepted,
+             cr.status, cr.registration_fee_paise, cr.payment_status, cr.razorpay_order_id,
+             cr.razorpay_payment_id, cr.razorpay_signature, cr.payment_verified_at,
+             cr.checkin_token, cr.checked_in_at, cr.checked_in_by, cr.checkin_method,
+             cr.checkin_device, cr.created_at,
+             rp.status AS rider_pass_status,
+             pc.status AS certificate_status,
+             red_cert.recipient AS certificate_recipient,
+             red_cert.status AS certificate_delivery_status,
+             red_cert.sent_at AS certificate_sent_at,
+             red_cert.attempt_count AS certificate_attempt_count,
+             red_conf.status AS registration_email_status
+      FROM cyclothon_registrations cr
+      LEFT JOIN rider_passes rp ON rp.registration_id = cr.id
+      LEFT JOIN participation_certificates pc ON pc.registration_id = cr.id
+      LEFT JOIN registration_email_deliveries red_cert 
+        ON red_cert.registration_id = cr.id AND red_cert.email_type = 'certificate'
+      LEFT JOIN registration_email_deliveries red_conf 
+        ON red_conf.registration_id = cr.id AND red_conf.email_type = 'registration_confirmation'
+      ${whereClause}
+      ORDER BY cr.created_at DESC
+      ${paginationClause}
+    `;
+
+    const result = await this.pool.query(query, params);
     return result.rows;
   }
 
@@ -1303,27 +1390,62 @@ class PostgresRepository {
     }
 
     const idCandidate = Number.parseInt(trimmed, 10);
-    const idFilter = Number.isInteger(idCandidate) ? idCandidate : null;
+    const isStrictNumeric = /^\d+$/.test(trimmed);
+    const idFilter = Number.isInteger(idCandidate) && idCandidate > 0 && idCandidate <= 2147483647 ? idCandidate : null;
     const fuzzy = `%${trimmed.toLowerCase()}%`;
     const digitOnly = trimmed.replace(/\D+/g, "");
     const phoneFilter = digitOnly ? `%${digitOnly}%` : null;
 
-    const result = await this.pool.query(
-      `SELECT id, full_name, email, phone, city, ride_category, status,
-              payment_status, checked_in_at, checked_in_by, checkin_method,
-              payment_verified_at, created_at
-       FROM cyclothon_registrations
-       WHERE lower(full_name) LIKE $1
-          OR lower(email) LIKE $1
-          OR lower(city) LIKE $1
-          OR ($2::int IS NOT NULL AND id = $2)
-          OR ($3::text IS NOT NULL AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE $3)
-       ORDER BY
-         CASE WHEN ($2::int IS NOT NULL AND id = $2) THEN 0 ELSE 1 END,
-         created_at DESC
-       LIMIT $4`,
-      [fuzzy, idFilter, phoneFilter, limit]
-    );
+    let querySql;
+    let params;
+
+    if (isStrictNumeric && idFilter && trimmed.length <= 6) {
+      // Fast path: Exact ID / bib lookup (Primary key index scan: < 0.2ms)
+      querySql = `
+        SELECT id, full_name, email, phone, city, ride_category, status,
+               payment_status, checked_in_at, checked_in_by, checkin_method,
+               payment_verified_at, created_at
+        FROM cyclothon_registrations
+        WHERE id = $1
+           OR (phone IS NOT NULL AND phone LIKE $2)
+        ORDER BY CASE WHEN id = $1 THEN 0 ELSE 1 END, created_at DESC
+        LIMIT $3
+      `;
+      params = [idFilter, phoneFilter, limit];
+    } else if (isStrictNumeric && phoneFilter) {
+      // Fast path: Phone search (using indexed phone column)
+      querySql = `
+        SELECT id, full_name, email, phone, city, ride_category, status,
+               payment_status, checked_in_at, checked_in_by, checkin_method,
+               payment_verified_at, created_at
+        FROM cyclothon_registrations
+        WHERE phone LIKE $1
+           OR ($2::int IS NOT NULL AND id = $2)
+        ORDER BY created_at DESC
+        LIMIT $3
+      `;
+      params = [phoneFilter, idFilter, limit];
+    } else {
+      // General multi-column search
+      querySql = `
+        SELECT id, full_name, email, phone, city, ride_category, status,
+               payment_status, checked_in_at, checked_in_by, checkin_method,
+               payment_verified_at, created_at
+        FROM cyclothon_registrations
+        WHERE lower(full_name) LIKE $1
+           OR lower(email) LIKE $1
+           OR lower(city) LIKE $1
+           OR ($2::int IS NOT NULL AND id = $2)
+           OR ($3::text IS NOT NULL AND phone LIKE $3)
+        ORDER BY
+          CASE WHEN ($2::int IS NOT NULL AND id = $2) THEN 0 ELSE 1 END,
+          created_at DESC
+        LIMIT $4
+      `;
+      params = [fuzzy, idFilter, phoneFilter, limit];
+    }
+
+    const result = await this.pool.query(querySql, params);
     return result.rows;
   }
 
@@ -1944,6 +2066,20 @@ class PostgresRepository {
         [data]
       );
     }
+    if (this.config?.registrationOpen !== undefined) {
+      data.registration_open = this.config.registrationOpen;
+    }
+    if (this.config?.partnerApplicationsOpen !== undefined) {
+      data.partner_applications_open = this.config.partnerApplicationsOpen;
+    }
+    if (this.config?.vendorApplicationsOpen !== undefined) {
+      data.vendor_applications_open = this.config.vendorApplicationsOpen;
+    }
+    data.registration_tentative_date =
+      this.config?.registrationTentativeDate ||
+      data.registration_tentative_date ||
+      "Upcoming Monday at 10:00 AM";
+
     return {
       ...data,
       updated_at: result.rows[0].updated_at
@@ -2149,6 +2285,34 @@ class PostgresRepository {
     }
     return result.rows[0];
   }
+
+  async listCommunityPostsByStatus(status, limit = 100) {
+    if (status && status !== "all") {
+      const result = await this.pool.query(
+        `SELECT * FROM community_posts
+         WHERE status = $1
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [status, limit]
+      );
+      return result.rows;
+    }
+    const result = await this.pool.query(
+      `SELECT * FROM community_posts
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+    return result.rows;
+  }
+
+  async deleteCommunityPost(id) {
+    const post = await this.getCommunityPostById(id);
+    if (!post) return null;
+    await this.pool.query("DELETE FROM community_posts WHERE id = $1", [id]);
+    return post;
+  }
+
 
   // --- Sponsorship Tiers Helper ---
 
