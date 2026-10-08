@@ -40,6 +40,19 @@ function parseCsv(value, fallback) {
     .filter(Boolean);
 }
 
+const PLACEHOLDER_SECRET_PATTERNS = [
+  "replace-with",
+  "change-me",
+  "default-secret",
+  "development-",
+];
+
+function isPlaceholderSecret(secret) {
+  if (!secret) return true;
+  const lower = String(secret).toLowerCase().trim();
+  return PLACEHOLDER_SECRET_PATTERNS.some((pattern) => lower.includes(pattern));
+}
+
 function parseVolunteerCredentials(value) {
   if (!value) {
     return {};
@@ -87,6 +100,13 @@ function loadConfig(env = process.env) {
     port: parseIntWithDefault(env.PORT, 8000),
     dbBackend,
     databaseUrl,
+    databaseSsl:
+      env.DATABASE_SSL !== undefined
+        ? parseBool(env.DATABASE_SSL, false)
+        : (environment === "production" &&
+           !databaseUrl.includes("127.0.0.1") &&
+           !databaseUrl.includes("localhost")),
+    databaseSslRejectUnauthorized: parseBool(env.DATABASE_SSL_REJECT_UNAUTHORIZED, true),
     uploadDir: path.resolve(__dirname, "..", env.UPLOAD_DIR || "uploads"),
     allowedOrigins: parseCsv(env.ALLOWED_ORIGINS, "http://localhost:5173"),
     allowedHosts: parseCsv(env.ALLOWED_HOSTS, "localhost,127.0.0.1"),
@@ -154,10 +174,12 @@ function loadConfig(env = process.env) {
       "..",
       env.CERTIFICATE_TEMPLATE_PATH || "../client/assets/NV_Cyclothon_2026_Certificate_Design_Approval.pdf"
     ),
-    razorpayEnabled: parseBool(env.RAZORPAY_ENABLED, false),
-    razorpayKeyId: env.RAZORPAY_KEY_ID || "",
-    razorpayKeySecret: env.RAZORPAY_KEY_SECRET || "",
-    razorpayWebhookSecret: env.RAZORPAY_WEBHOOK_SECRET || "",
+    cashfreeEnabled: parseBool(env.CASHFREE_ENABLED, false),
+    cashfreeEnvironment: env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox",
+    cashfreeClientId: env.CASHFREE_CLIENT_ID || "",
+    cashfreeClientSecret: env.CASHFREE_CLIENT_SECRET || "",
+    publicApiUrl: String(env.PUBLIC_API_URL || "").replace(/\/$/, ""),
+    publicSiteUrl: String(env.PUBLIC_SITE_URL || "").replace(/\/$/, ""),
     communityModeratorEmails: parseCsv(env.COMMUNITY_MODERATOR_EMAILS || "", ""),
   };
 
@@ -170,6 +192,12 @@ function loadConfig(env = process.env) {
     if (!env.ADMIN_TOKEN_SECRET || config.adminTokenSecret.length < 32) {
       throw new Error("ADMIN_TOKEN_SECRET must be set to a 32+ character secret in production");
     }
+    if (isPlaceholderSecret(config.adminTokenSecret)) {
+      throw new Error("ADMIN_TOKEN_SECRET must not use a default placeholder secret in production");
+    }
+    if (config.adminBootstrapPassword && isPlaceholderSecret(config.adminBootstrapPassword)) {
+      throw new Error("ADMIN_BOOTSTRAP_PASSWORD/ADMIN_API_KEY must not use a default placeholder secret in production");
+    }
     if (
       config.allowedOrigins.includes("*") ||
       config.allowedOrigins.some((origin) => !origin.startsWith("https://"))
@@ -181,24 +209,24 @@ function loadConfig(env = process.env) {
       if (configuredVolunteerNames.length > 0) {
         for (const name of configuredVolunteerNames) {
           const pin = config.volunteerCheckinCredentials[name];
-          if (name.length < 2 || pin.length < 6) {
+          if (name.length < 2 || pin.length < 6 || isPlaceholderSecret(pin)) {
             throw new Error(
-              "VOLUNTEER_CHECKIN_CREDENTIALS entries must use 2+ character names and 6+ character pins"
+              "VOLUNTEER_CHECKIN_CREDENTIALS entries must use 2+ character names and secure 6+ character pins (no placeholders)"
             );
           }
         }
-      } else if (!config.volunteerCheckinPin || config.volunteerCheckinPin.length < 6) {
+      } else if (!config.volunteerCheckinPin || config.volunteerCheckinPin.length < 6 || isPlaceholderSecret(config.volunteerCheckinPin)) {
         throw new Error(
-          "VOLUNTEER_CHECKIN_PIN must be at least 6 characters when VOLUNTEER_CHECKIN_ENABLED=true"
+          "VOLUNTEER_CHECKIN_PIN must be at least 6 characters and not use a default placeholder in production"
         );
       }
       if (
         !config.volunteerTokenSecret ||
-        config.volunteerTokenSecret === "change-me-checkin-token-secret" ||
-        config.volunteerTokenSecret.length < 16
+        config.volunteerTokenSecret.length < 16 ||
+        isPlaceholderSecret(config.volunteerTokenSecret)
       ) {
         throw new Error(
-          "VOLUNTEER_TOKEN_SECRET must be set to a 16+ character secret when VOLUNTEER_CHECKIN_ENABLED=true"
+          "VOLUNTEER_TOKEN_SECRET must be set to a secure 16+ character secret (no placeholders) in production"
         );
       }
     }
@@ -206,12 +234,12 @@ function loadConfig(env = process.env) {
       throw new Error("SMTP_HOST and SMTP_FROM_EMAIL are required when EMAIL_ENABLED=true");
     }
     if (
-      config.razorpayEnabled &&
-      (!config.razorpayKeyId.startsWith("rzp_live_") ||
-        !config.razorpayKeySecret ||
-        !config.razorpayWebhookSecret)
+      config.cashfreeEnabled &&
+      (!config.cashfreeClientId || !config.cashfreeClientSecret ||
+        !config.publicApiUrl || !config.publicSiteUrl ||
+        config.cashfreeEnvironment !== "production")
     ) {
-      throw new Error("Live Razorpay credentials and webhook secret are required in production");
+      throw new Error("Live Cashfree credentials, PUBLIC_API_URL, and PUBLIC_SITE_URL are required in production");
     }
   }
 

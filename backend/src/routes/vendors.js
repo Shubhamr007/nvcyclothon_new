@@ -5,7 +5,7 @@ const { ApiError, NotFoundError, ValidationError } = require('../errors');
 const { parseSchema, vendorApplicationSchema, paymentVerifySchema, normalizeVendorApplicationInput, VENDOR_CATEGORIES } = require('../services/validation');
 const { createPartnerVendorMediaService } = require('../services/partnerVendorMedia');
 
-function createVendorsRouter({ config, repository, emailService, razorpayService, rateLimiter }) {
+function createVendorsRouter({ config, repository, emailService, cashfreeService, rateLimiter }) {
   const router = express.Router();
 
   const upload = multer({
@@ -108,7 +108,7 @@ function createVendorsRouter({ config, repository, emailService, razorpayService
     }
   });
 
-  // Optional vendor payment verification
+  // Payment verification via Cashfree
   router.post('/applications/:id/payment/verify', async (req, res, next) => {
     try {
       const id = Number.parseInt(req.params.id, 10);
@@ -116,19 +116,23 @@ function createVendorsRouter({ config, repository, emailService, razorpayService
         throw new ValidationError('Invalid application id');
       }
 
-      const payload = parseSchema(paymentVerifySchema, req.body);
-      const expectedSignature = crypto
-        .createHmac('sha256', config.razorpayKeySecret)
-        .update(`${payload.razorpay_order_id}|${payload.razorpay_payment_id}`)
-        .digest('hex');
+      const orderId = req.body?.order_id;
+      if (!orderId) {
+        throw new ValidationError('order_id is required');
+      }
 
-      if (expectedSignature !== payload.razorpay_signature) {
-        throw new ValidationError('Payment signature verification failed.');
+      if (!cashfreeService || !config.cashfreeEnabled) {
+        throw new ApiError(503, 'Payments are not configured');
+      }
+
+      const payment = await cashfreeService.getPaymentStatus(orderId);
+      if (payment.state !== "paid") {
+        throw new ValidationError('Payment was not completed. No application has been verified.');
       }
 
       const application = await repository.verifyVendorPayment(id, {
-        paymentId: payload.razorpay_payment_id,
-        signature: payload.razorpay_signature,
+        paymentId: payment.paymentId,
+        signature: "cashfree-server-verified",
       });
 
       res.json(application);

@@ -13,7 +13,8 @@ describe("NV Cyclothon Node backend", () => {
         ADMIN_AUTH_ENABLED: "true",
         ADMIN_API_KEY: "test-admin-key-for-ci",
         ALLOWED_HOSTS: "127.0.0.1,localhost",
-        RAZORPAY_ENABLED: "false",
+        CASHFREE_ENABLED: "false",
+        EMAIL_ENABLED: "false",
         VOLUNTEER_CHECKIN_PIN: "test-volunteer-pin",
         VOLUNTEER_TOKEN_SECRET: "test-volunteer-token-secret",
       },
@@ -741,6 +742,413 @@ describe("NV Cyclothon Node backend", () => {
         .post("/api/cyclothon/registrations")
         .send({ ...validPayload, email: "intl-phone@test.com", phone: "+1 2025551234" });
       expect(res.statusCode).toBe(201);
+    });
+  });
+
+  describe("SSRF and URL Validation Hardening", () => {
+    const { validateHttpsUrl } = require("../src/services/validation");
+
+    it("accepts valid public HTTPS image URLs", () => {
+      const url = "https://res.cloudinary.com/nvcyclothon/image/upload/sample.jpg";
+      expect(validateHttpsUrl(url)).toBe(url);
+      expect(validateHttpsUrl(null)).toBe(null);
+      expect(validateHttpsUrl("")).toBe(null);
+    });
+
+    it("rejects loopback and local hostnames", () => {
+      expect(() => validateHttpsUrl("https://localhost/image.png")).toThrow();
+      expect(() => validateHttpsUrl("https://127.0.0.1/image.png")).toThrow();
+      expect(() => validateHttpsUrl("https://127.0.0.1:8000/api/admin")).toThrow();
+    });
+
+    it("rejects cloud metadata and link-local IP addresses (169.254.169.254)", () => {
+      expect(() => validateHttpsUrl("https://169.254.169.254/latest/meta-data")).toThrow();
+      expect(() => validateHttpsUrl("https://metadata.google.internal/computeMetadata/v1/")).toThrow();
+    });
+
+    it("rejects private RFC-1918 addresses", () => {
+      expect(() => validateHttpsUrl("https://10.0.0.5/logo.jpg")).toThrow();
+      expect(() => validateHttpsUrl("https://172.16.1.100/logo.jpg")).toThrow();
+      expect(() => validateHttpsUrl("https://192.168.1.1/admin")).toThrow();
+    });
+
+    it("rejects non-standard HTTPS ports to prevent internal port scanning", () => {
+      expect(() => validateHttpsUrl("https://cdn.example.com:8443/image.png")).toThrow();
+    });
+  });
+
+  describe("Cashfree Payment Gateway Integration", () => {
+    let cashfreeRuntime;
+    const clientSecret = "test_client_secret_for_cashfree_1234";
+
+    beforeAll(async () => {
+      cashfreeRuntime = await buildApplication({
+        env: {
+          NODE_ENV: "test",
+          ENVIRONMENT: "test",
+          DB_BACKEND: "mock",
+          ADMIN_AUTH_ENABLED: "true",
+          ADMIN_API_KEY: "test-admin-key-for-ci",
+          ALLOWED_HOSTS: "127.0.0.1,localhost",
+          CASHFREE_ENABLED: "true",
+          CASHFREE_ENVIRONMENT: "sandbox",
+          CASHFREE_CLIENT_ID: "test_client_id_cf",
+          CASHFREE_CLIENT_SECRET: clientSecret,
+          PUBLIC_API_URL: "http://127.0.0.1:8000",
+          PUBLIC_SITE_URL: "http://127.0.0.1:5173",
+          VOLUNTEER_CHECKIN_PIN: "test-volunteer-pin",
+          VOLUNTEER_TOKEN_SECRET: "test-volunteer-token-secret",
+        },
+        logger: {
+          info() {},
+          error() {},
+          log() {},
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await cashfreeRuntime.close();
+    });
+
+    it("creates cyclothon registration with Cashfree checkout session and pending status", async () => {
+      const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (url, opts) => {
+        if (String(url).includes("/pg/orders") && opts?.method === "POST") {
+          const body = JSON.parse(opts.body);
+          return {
+            ok: true,
+            json: async () => ({
+              order_id: body.order_id,
+              payment_session_id: "session_token_abc_123",
+              order_status: "ACTIVE",
+            }),
+          };
+        }
+        return { ok: false, json: async () => ({ message: "Not mocked" }) };
+      });
+
+      const payload = {
+        full_name: "Cashfree Rider",
+        email: "cashfree.rider@example.com",
+        phone: "+91 9876543210",
+        age: 26,
+        city: "Rewa",
+        gender: "Female",
+        ride_category: "60 Km Road Challenge",
+        emergency_contact: "9876543211",
+        t_shirt_size: "M",
+        waiver_accepted: true,
+        privacy_accepted: true,
+      };
+
+      const res = await request(cashfreeRuntime.app)
+        .post("/api/cyclothon/registrations")
+        .send(payload);
+
+      fetchSpy.mockRestore();
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.status).toBe("pending");
+      expect(res.body.checkout).toBeTruthy();
+      expect(res.body.checkout.provider).toBe("cashfree");
+      expect(res.body.checkout.payment_session_id).toBe("session_token_abc_123");
+      expect(res.body.checkout.order_id).toBe(`cyclothon-${res.body.id}`);
+
+      // Verify payment using verify-order endpoint
+      const orderId = res.body.checkout.order_id;
+      const verifyFetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (url) => {
+        if (String(url).includes(`/pg/orders/${encodeURIComponent(orderId)}/payments`)) {
+          return {
+            ok: true,
+            json: async () => [
+              {
+                cf_payment_id: "cf_pay_test_001",
+                payment_status: "SUCCESS",
+                payment_amount: 899,
+              },
+            ],
+          };
+        }
+        return { ok: false, json: async () => ({ message: "Not mocked" }) };
+      });
+
+      const verifyRes = await request(cashfreeRuntime.app)
+        .post("/api/cyclothon/registrations/verify-order")
+        .send({ order_id: orderId });
+
+      verifyFetchSpy.mockRestore();
+
+      expect(verifyRes.statusCode).toBe(200);
+      expect(verifyRes.body.id).toBe(res.body.id);
+      expect(verifyRes.body.status).toBe("approved");
+
+      // Idempotent retry returns the same approved registration
+      const retryRes = await request(cashfreeRuntime.app)
+        .post("/api/cyclothon/registrations/verify-order")
+        .send({ order_id: orderId });
+
+      expect(retryRes.statusCode).toBe(200);
+      expect(retryRes.body.id).toBe(res.body.id);
+      expect(retryRes.body.status).toBe("approved");
+    });
+
+    it("verifies and processes Cashfree webhook signatures", async () => {
+      const crypto = require("crypto");
+      const orderId = "cyclothon-webhook-test";
+      const paymentId = "cf_pay_webhook_999";
+
+      // Seed a pending registration in mock tables
+      cashfreeRuntime.repository.tables.cyclothon_registrations.push({
+        id: 9999,
+        full_name: "Webhook Rider",
+        email: "webhook.rider@example.com",
+        phone: "+91 9999999999",
+        age: 30,
+        city: "Rewa",
+        gender: "Male",
+        ride_category: "10 Km Green Ride",
+        status: "pending",
+        payment_status: "pending",
+        payment_order_id: orderId,
+        created_at: new Date().toISOString(),
+      });
+
+      const rawBody = JSON.stringify({
+        type: "PAYMENT_SUCCESS_WEBHOOK",
+        data: {
+          order: { order_id: orderId },
+          payment: { cf_payment_id: paymentId },
+        },
+      });
+
+      const timestamp = String(Date.now());
+      const signature = crypto
+        .createHmac("sha256", clientSecret)
+        .update(`${timestamp}${rawBody}`)
+        .digest("base64");
+
+      const webhookRes = await request(cashfreeRuntime.app)
+        .post("/api/cyclothon/webhook/cashfree")
+        .set("x-webhook-signature", signature)
+        .set("x-webhook-timestamp", timestamp)
+        .set("content-type", "application/json")
+        .send(rawBody);
+
+      expect(webhookRes.statusCode).toBe(204);
+
+      const updated = await cashfreeRuntime.repository.getRegistrationByOrderId(orderId);
+      expect(updated).toBeTruthy();
+      expect(updated.payment_status).toBe("paid");
+      expect(updated.status).toBe("approved");
+      expect(updated.payment_id).toBe(paymentId);
+    });
+
+    it("rejects replayed or stale webhook signatures exceeding the tolerance window", async () => {
+      const crypto = require("crypto");
+      const rawBody = JSON.stringify({ type: "PAYMENT_SUCCESS_WEBHOOK", data: {} });
+      const staleTimestamp = String(Date.now() - 10 * 60 * 1000);
+      const staleSignature = crypto
+        .createHmac("sha256", clientSecret)
+        .update(`${staleTimestamp}${rawBody}`)
+        .digest("base64");
+
+      const staleRes = await request(cashfreeRuntime.app)
+        .post("/api/cyclothon/webhook/cashfree")
+        .set("x-webhook-signature", staleSignature)
+        .set("x-webhook-timestamp", staleTimestamp)
+        .set("content-type", "application/json")
+        .send(rawBody);
+
+      expect(staleRes.statusCode).toBe(401);
+      expect(staleRes.body.detail).toBe("Invalid webhook signature");
+
+      const futureTimestamp = String(Date.now() + 5 * 60 * 1000);
+      const futureSignature = crypto
+        .createHmac("sha256", clientSecret)
+        .update(`${futureTimestamp}${rawBody}`)
+        .digest("base64");
+
+      const futureRes = await request(cashfreeRuntime.app)
+        .post("/api/cyclothon/webhook/cashfree")
+        .set("x-webhook-signature", futureSignature)
+        .set("x-webhook-timestamp", futureTimestamp)
+        .set("content-type", "application/json")
+        .send(rawBody);
+
+      expect(futureRes.statusCode).toBe(401);
+    });
+
+    it("enforces rate limits on order lookups to prevent enumeration attacks", async () => {
+      cashfreeRuntime.resetRateLimits();
+      for (let i = 0; i < 30; i++) {
+        const res = await request(cashfreeRuntime.app).get("/api/cyclothon/registrations/by-order/order_enum_test");
+        expect([404, 200]).toContain(res.statusCode);
+      }
+      const throttledRes = await request(cashfreeRuntime.app).get("/api/cyclothon/registrations/by-order/order_enum_test");
+      expect(throttledRes.statusCode).toBe(429);
+      expect(throttledRes.body.code).toBe("RATE_LIMIT_EXCEEDED");
+    });
+
+    it("correctly enables PostgreSQL database SSL for remote production databases", () => {
+      const { loadConfig } = require("../src/config");
+
+      // Local development without SSL
+      const devConfig = loadConfig({
+        ENVIRONMENT: "development",
+        DATABASE_URL: "postgres://user:pass@127.0.0.1:5432/db",
+      });
+      expect(devConfig.databaseSsl).toBe(false);
+
+      // Explicit DATABASE_SSL=true
+      const explicitSslConfig = loadConfig({
+        ENVIRONMENT: "development",
+        DATABASE_URL: "postgres://user:pass@127.0.0.1:5432/db",
+        DATABASE_SSL: "true",
+      });
+      expect(explicitSslConfig.databaseSsl).toBe(true);
+
+      // Remote database in production auto-enables SSL
+      const prodConfig = loadConfig({
+        ENVIRONMENT: "production",
+        DATABASE_URL: "postgres://user:pass@db.aws.rds.com:5432/db",
+        ADMIN_AUTH_ENABLED: "true",
+        ADMIN_TOKEN_SECRET: "a".repeat(32),
+        ALLOWED_ORIGINS: "https://nvcyclothon.in",
+        VOLUNTEER_CHECKIN_PIN: "vol-pin-123456",
+        VOLUNTEER_TOKEN_SECRET: "b".repeat(16),
+      });
+      expect(prodConfig.databaseSsl).toBe(true);
+    });
+
+    it("rejects default placeholder secrets in production mode", () => {
+      const { loadConfig } = require("../src/config");
+
+      // Placeholder admin token secret
+      expect(() => {
+        loadConfig({
+          ENVIRONMENT: "production",
+          ADMIN_AUTH_ENABLED: "true",
+          ADMIN_TOKEN_SECRET: "replace-with-a-long-random-secret",
+          ALLOWED_ORIGINS: "https://nvcyclothon.in",
+        });
+      }).toThrow(/ADMIN_TOKEN_SECRET must not use a default placeholder secret/);
+
+      // Placeholder volunteer pin
+      expect(() => {
+        loadConfig({
+          ENVIRONMENT: "production",
+          ADMIN_AUTH_ENABLED: "true",
+          ADMIN_TOKEN_SECRET: "a".repeat(32),
+          ALLOWED_ORIGINS: "https://nvcyclothon.in",
+          VOLUNTEER_CHECKIN_PIN: "replace-with-event-day-pin",
+          VOLUNTEER_TOKEN_SECRET: "b".repeat(16),
+        });
+      }).toThrow(/VOLUNTEER_CHECKIN_PIN must be at least 6 characters/i);
+
+      // Placeholder volunteer token secret
+      expect(() => {
+        loadConfig({
+          ENVIRONMENT: "production",
+          ADMIN_AUTH_ENABLED: "true",
+          ADMIN_TOKEN_SECRET: "a".repeat(32),
+          ALLOWED_ORIGINS: "https://nvcyclothon.in",
+          VOLUNTEER_CHECKIN_PIN: "vol-pin-123456",
+          VOLUNTEER_TOKEN_SECRET: "replace-with-long-random-secret",
+        });
+      }).toThrow(/VOLUNTEER_TOKEN_SECRET must be set to a secure 16\+ character secret/);
+    });
+  });
+
+  describe("Zero-Cost Open-Source Media Upload & Delivery Engine", () => {
+    it("uploads raster image, converts to WebP, strips metadata, and serves with immutable caching", async () => {
+      const sharp = require("sharp");
+      const samplePng = await sharp({
+        create: {
+          width: 64,
+          height: 64,
+          channels: 4,
+          background: { r: 16, g: 185, b: 129, alpha: 1 },
+        },
+      })
+        .png()
+        .toBuffer();
+
+      // 1. Upload to /api/uploads/image
+      const uploadRes = await request(runtime.app)
+        .post("/api/uploads/image")
+        .attach("file", samplePng, "test-cyclist.png")
+        .field("folder", "community");
+
+      expect(uploadRes.statusCode).toBe(201);
+      expect(uploadRes.body.success).toBe(true);
+      expect(uploadRes.body.format).toBe("webp");
+      expect(uploadRes.body.url).toMatch(/^\/api\/media\/community\/.*\.webp$/);
+      expect(uploadRes.body.width).toBe(64);
+      expect(uploadRes.body.height).toBe(64);
+      expect(uploadRes.body.size_bytes).toBeGreaterThan(0);
+
+      // 2. Fetch via /api/media/...
+      const mediaRes = await request(runtime.app).get(uploadRes.body.url);
+      expect(mediaRes.statusCode).toBe(200);
+      expect(mediaRes.headers["content-type"]).toBe("image/webp");
+      expect(mediaRes.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+      expect(mediaRes.headers["x-content-type-options"]).toBe("nosniff");
+      expect(mediaRes.body.length).toBe(uploadRes.body.size_bytes);
+    });
+
+    it("strictly blocks path traversal attempts on /api/media/*", async () => {
+      const traversalAttempts = [
+        "/api/media/../../package.json",
+        "/api/media/..%2f..%2fpackage.json",
+        "/api/media/etc/passwd",
+        "/api/media/....//....//config.js",
+      ];
+
+      for (const attempt of traversalAttempts) {
+        const res = await request(runtime.app).get(attempt);
+        expect(res.statusCode).toBe(404);
+      }
+    });
+
+    it("rejects non-image files with 415 Unsupported Media Type", async () => {
+      const badFile = Buffer.from("echo 'malicious script';");
+      const res = await request(runtime.app)
+        .post("/api/uploads/image")
+        .attach("file", badFile, "script.sh");
+
+      expect(res.statusCode).toBe(415);
+      expect(res.body.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+    });
+
+    it("rejects malicious SVGs containing script tags or event handlers", async () => {
+      const maliciousSvg = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg"><script>alert('xss')</script><circle cx="5" cy="5" r="5"/></svg>`
+      );
+      const res = await request(runtime.app)
+        .post("/api/uploads/image")
+        .attach("file", maliciousSvg, { filename: "xss.svg", contentType: "image/svg+xml" });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.detail).toContain("SVG file contains prohibited embedded scripts");
+    });
+
+    it("accepts and safely serves clean SVG images", async () => {
+      const cleanSvg = Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="green"/></svg>`
+      );
+      const res = await request(runtime.app)
+        .post("/api/uploads/image")
+        .attach("file", cleanSvg, { filename: "logo.svg", contentType: "image/svg+xml" });
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.format).toBe("svg");
+      expect(res.body.url).toMatch(/^\/api\/media\/media\/.*\.svg$/);
+
+      const fetchRes = await request(runtime.app).get(res.body.url);
+      expect(fetchRes.statusCode).toBe(200);
+      expect(fetchRes.headers["content-type"]).toContain("image/svg+xml");
+      expect(fetchRes.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
     });
   });
 });

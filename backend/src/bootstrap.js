@@ -3,7 +3,7 @@ const { CATALOGUE } = require("./constants");
 const { createRepository } = require("./db");
 const { createApp } = require("./app");
 const { createEmailService } = require("./services/email");
-const { createRazorpayService } = require("./services/razorpay");
+const { createCashfreeService } = require("./services/cashfree");
 
 async function buildApplication({ env = process.env, logger = console } = {}) {
   const config = loadConfig(env);
@@ -16,12 +16,12 @@ async function buildApplication({ env = process.env, logger = console } = {}) {
   await repository.ensureAdminUser(config.adminUsername, config.adminBootstrapPassword);
 
   const emailService = createEmailService(config, logger);
-  const razorpayService = createRazorpayService(config);
+  const cashfreeService = createCashfreeService(config);
   const { app, rateLimiter } = createApp({
     config,
     repository,
     emailService,
-    razorpayService,
+    cashfreeService,
     logger,
   });
 

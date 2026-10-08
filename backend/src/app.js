@@ -29,6 +29,8 @@ const { createContentRouter } = require("./routes/content");
 const { createCommunityRouter } = require("./routes/community");
 const { createPartnersRouter } = require("./routes/partners");
 const { createVendorsRouter } = require("./routes/vendors");
+const { createMediaRouter } = require("./routes/media");
+const { createStorageService } = require("./services/storage");
 const { resolveProfileImage } = require("./services/profileMedia");
 
 const LOOPBACK_IPS = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
@@ -56,9 +58,10 @@ function localBypassGuard(config) {
   };
 }
 
-function createApp({ config, repository, emailService, razorpayService, logger = console }) {
+function createApp({ config, repository, emailService, cashfreeService, logger = console }) {
   const app = express();
   const rateLimiter = createRateLimiter();
+  const storageService = createStorageService(config);
 
   app.disable("x-powered-by");
 
@@ -118,15 +121,20 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-    );
-    res.setHeader(
-      "Cache-Control",
-      req.path.startsWith("/api/admin") ? "no-store" : "no-store, max-age=0"
-    );
+    const isMedia = req.path.startsWith("/api/media") || req.path.includes("/media/");
+    if (!isMedia) {
+      res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+      );
+      res.setHeader(
+        "Cache-Control",
+        req.path.startsWith("/api/admin") ? "no-store" : "no-store, max-age=0"
+      );
+    } else {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    }
     if (config.environment === "production") {
       res.setHeader(
         "Strict-Transport-Security",
@@ -194,7 +202,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
       config,
       repository,
       emailService,
-      razorpayService,
+      cashfreeService,
       rateLimiter,
     })
   );
@@ -203,7 +211,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     config,
     repository,
     emailService,
-    razorpayService,
+    cashfreeService,
     rateLimiter,
   });
   app.use("/api/partners", partnersRouter);
@@ -215,7 +223,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
       config,
       repository,
       emailService,
-      razorpayService,
+      cashfreeService,
       rateLimiter,
     })
   );
@@ -228,6 +236,14 @@ function createApp({ config, repository, emailService, razorpayService, logger =
       rateLimiter,
     })
   );
+
+  const mediaModule = createMediaRouter({
+    config,
+    storageService,
+    rateLimiter,
+  });
+  app.use("/api/media", mediaModule.deliveryRouter);
+  app.use("/api/uploads/image", mediaModule.uploadRouter);
 
   const uploadsModule = createUploadsRouter({
     config,
@@ -278,7 +294,7 @@ function createApp({ config, repository, emailService, razorpayService, logger =
 
   app.use((error, _req, res, _next) => {
     if (error instanceof SyntaxError && error.type === "entity.parse.failed") {
-      res.status(400).json({ detail: "Invalid JSON body" });
+      res.status(400).json({ detail: "Invalid JSON body", code: "INVALID_JSON" });
       return;
     }
 
@@ -292,7 +308,25 @@ function createApp({ config, repository, emailService, razorpayService, logger =
     if (mapped.statusCode >= 500) {
       logger.error(error);
     }
-    res.status(mapped.statusCode).json({ detail: mapped.message });
+
+    const defaultCodes = {
+      400: "VALIDATION_FAILED",
+      401: "UNAUTHORIZED",
+      403: "FORBIDDEN",
+      404: "NOT_FOUND",
+      409: "CONFLICT",
+      413: "PAYLOAD_TOO_LARGE",
+      415: "UNSUPPORTED_MEDIA_TYPE",
+      429: "RATE_LIMIT_EXCEEDED",
+      500: "INTERNAL_SERVER_ERROR",
+      503: "SERVICE_UNAVAILABLE",
+    };
+    const code = mapped.code || defaultCodes[mapped.statusCode] || "UNKNOWN_ERROR";
+
+    res.status(mapped.statusCode).json({
+      detail: mapped.message,
+      code,
+    });
   });
 
   return { app, rateLimiter };

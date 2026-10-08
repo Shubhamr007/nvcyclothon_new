@@ -1,12 +1,11 @@
-const crypto = require("crypto");
 const express = require("express");
 const {
   parseSchema,
   registrationCreateSchema,
-  paymentVerifySchema,
+  cashfreePaymentVerifySchema,
   normalizeRegistrationInput,
 } = require("../services/validation");
-const { ValidationError } = require("../errors");
+const { ValidationError, NotFoundError } = require("../errors");
 
 function toRegistrationRead(registration) {
   return {
@@ -22,7 +21,7 @@ function createCyclothonRouter({
   config,
   repository,
   emailService,
-  razorpayService,
+  cashfreeService,
   rateLimiter,
 }) {
   const router = express.Router();
@@ -47,30 +46,36 @@ function createCyclothonRouter({
     });
   }
 
-  router.post("/webhook/razorpay", async (req, res) => {
-    if (!config.razorpayEnabled || !config.razorpayWebhookSecret) {
+  router.post("/webhook/cashfree", async (req, res) => {
+    if (!config.cashfreeEnabled) {
       res.status(404).json({ detail: "Not found" });
       return;
     }
-    const signature = String(req.header("x-razorpay-signature") || "");
-    const expected = crypto
-      .createHmac("sha256", config.razorpayWebhookSecret)
-      .update(req.rawBody || Buffer.from(JSON.stringify(req.body || {})))
-      .digest("hex");
-    if (
-      !signature ||
-      signature.length !== expected.length ||
-      !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
-    ) {
+    if (!cashfreeService.verifyWebhook({
+      signature: req.header("x-webhook-signature"),
+      timestamp: req.header("x-webhook-timestamp"),
+      rawBody: req.rawBody || Buffer.from(JSON.stringify(req.body || {})),
+    })) {
       res.status(401).json({ detail: "Invalid webhook signature" });
       return;
     }
-    const payment = req.body?.payload?.payment?.entity;
-    if (req.body?.event === "payment.captured" && payment?.order_id && payment?.id) {
-      await repository.markCyclothonPaymentFromWebhook({
-        orderId: payment.order_id,
-        paymentId: payment.id,
-      });
+    const payment = req.body?.data?.payment;
+    const order = req.body?.data?.order;
+    if (req.body?.type === "PAYMENT_SUCCESS_WEBHOOK" && order?.order_id && payment?.cf_payment_id) {
+      try {
+        const updated = await repository.markCyclothonPaymentFromWebhook({
+          orderId: order.order_id,
+          paymentId: String(payment.cf_payment_id),
+        });
+        if (updated) {
+          void sendAndRecordRegistrationConfirmation(updated);
+        }
+      } catch (err) {
+        // If order not found (e.g. test webhook ping from Cashfree Dashboard), log and still return 200 to acknowledge Cashfree
+        if (!(err instanceof NotFoundError)) {
+          throw err;
+        }
+      }
     }
     res.status(204).end();
   });
@@ -99,14 +104,25 @@ function createCyclothonRouter({
       }
 
       const result = await repository.createCyclothonRegistration(payload, {
-        razorpayEnabled: config.razorpayEnabled,
-        razorpayKeyId: config.razorpayKeyId,
+        paymentEnabled: config.cashfreeEnabled,
         eventDate: settings.event_date,
-        createPaymentOrder: ({ amountPaise, receipt }) =>
-          razorpayService.createOrder({ amountPaise, receipt }),
+        createPaymentOrder: ({ amountPaise, receipt, registration }) =>
+          cashfreeService.createOrder({
+            orderId: receipt,
+            amountPaise,
+            customer: {
+              id: registration.id,
+              name: registration.full_name,
+              email: registration.email,
+              phone: registration.phone,
+            },
+            returnUrl: `${config.publicSiteUrl}/register?payment=return&order_id={order_id}`,
+            notifyUrl: `${config.publicApiUrl.replace(/\/api$/, "")}/api/cyclothon/webhook/cashfree`,
+            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          }),
       });
 
-      if (!config.razorpayEnabled) {
+      if (!config.cashfreeEnabled) {
         void sendAndRecordRegistrationConfirmation(result.registration);
       }
 
@@ -117,22 +133,39 @@ function createCyclothonRouter({
     }
   );
 
-  router.post("/registrations/:registrationId/payment/verify", async (req, res) => {
+  router.post(
+    "/registrations/:registrationId/payment/verify",
+    rateLimiter.middleware(
+      "payment-verify",
+      20,
+      900,
+      "Too many payment verification attempts. Try again in 15 minutes."
+    ),
+    async (req, res) => {
     const registrationId = Number.parseInt(req.params.registrationId, 10);
     if (!Number.isInteger(registrationId) || registrationId <= 0) {
       throw new ValidationError("Invalid registration id");
     }
 
-    const payload = parseSchema(paymentVerifySchema, req.body);
-    const expectedSignature = crypto
-      .createHmac("sha256", config.razorpayKeySecret)
-      .update(`${payload.razorpay_order_id}|${payload.razorpay_payment_id}`)
-      .digest("hex");
+    const payload = parseSchema(cashfreePaymentVerifySchema, req.body);
+    const payment = await cashfreeService.getPaymentStatus(payload.order_id);
+    if (payment.state !== "paid") {
+      res.status(409).json({
+        detail: payment.state === "pending"
+          ? "Your payment is still being confirmed. Please wait a moment and retry."
+          : "Payment was not completed. No registration has been confirmed.",
+      });
+      return;
+    }
 
     const registration = await repository.verifyCyclothonPayment(
       registrationId,
-      payload,
-      expectedSignature
+      {
+        order_id: payload.order_id,
+        payment_id: payment.paymentId,
+        signature: "cashfree-server-verified",
+      },
+      "cashfree-server-verified"
     );
 
     void sendAndRecordRegistrationConfirmation(registration);
@@ -143,6 +176,79 @@ function createCyclothonRouter({
       totalPaise: registration.registration_fee_paise,
     });
 
+    res.json(toRegistrationRead(registration));
+  });
+
+  router.post(
+    "/registrations/verify-order",
+    rateLimiter.middleware(
+      "verify-order",
+      20,
+      900,
+      "Too many payment verification attempts. Try again in 15 minutes."
+    ),
+    async (req, res) => {
+      const payload = parseSchema(cashfreePaymentVerifySchema, req.body);
+      const registration = await repository.getRegistrationByOrderId(payload.order_id);
+      if (!registration) {
+        throw new ValidationError("Registration not found for this order");
+      }
+
+      if (registration.payment_status === "paid") {
+        res.json(toRegistrationRead(registration));
+        return;
+      }
+
+      const payment = await cashfreeService.getPaymentStatus(payload.order_id);
+      if (payment.state !== "paid") {
+        res.status(409).json({
+          detail: payment.state === "pending"
+            ? "Your payment is still being confirmed. Please wait a moment and retry."
+            : "Payment was not completed. No registration has been confirmed.",
+        });
+        return;
+      }
+
+      const updated = await repository.verifyCyclothonPayment(
+        registration.id,
+        {
+          order_id: payload.order_id,
+          payment_id: payment.paymentId,
+          signature: "cashfree-server-verified",
+        },
+        "cashfree-server-verified"
+      );
+
+      void sendAndRecordRegistrationConfirmation(updated);
+      void emailService.sendPaymentReceipt({
+        recipient: updated.email,
+        name: updated.full_name,
+        orderId: updated.id,
+        totalPaise: updated.registration_fee_paise,
+      });
+
+      res.json(toRegistrationRead(updated));
+    }
+  );
+
+  router.get(
+    "/registrations/by-order/:orderId",
+    rateLimiter.middleware(
+      "order-lookup",
+      30,
+      900,
+      "Too many order lookups. Try again in 15 minutes."
+    ),
+    async (req, res) => {
+    const orderId = String(req.params.orderId || "").trim();
+    if (!orderId) {
+      throw new ValidationError("Order ID is required");
+    }
+    const registration = await repository.getRegistrationByOrderId(orderId);
+    if (!registration) {
+      res.status(404).json({ detail: "Registration not found" });
+      return;
+    }
     res.json(toRegistrationRead(registration));
   });
 

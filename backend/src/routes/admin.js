@@ -1,3 +1,4 @@
+const fs = require("fs");
 const crypto = require("crypto");
 const path = require("path");
 const bcrypt = require("bcryptjs");
@@ -1280,9 +1281,16 @@ function createAdminRouter({ config, repository, emailService }) {
     const id = parsePositiveInt(req.params.id, 'application id');
     const item = await repository.getPartnerApplicationById(id);
     if (!item || !item.logo_key) throw new NotFoundError('Logo not found');
+    if (item.logo_key.startsWith('http://') || item.logo_key.startsWith('https://')) {
+      return res.redirect(item.logo_key);
+    }
+    const cleanKey = item.logo_key.replace(/^\/api\/media\//, '');
     const mediaService = createPartnerVendorMediaService(config);
-    const filePath = mediaService.getFilePath(item.logo_key);
+    const filePath = mediaService.getFilePath(cleanKey);
+    if (!fs.existsSync(filePath)) throw new NotFoundError('Logo not found');
     res.setHeader('Content-Type', item.logo_content_type || 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.sendFile(filePath);
   });
 
@@ -1354,9 +1362,16 @@ function createAdminRouter({ config, repository, emailService }) {
     const id = parsePositiveInt(req.params.id, 'application id');
     const item = await repository.getVendorApplicationById(id);
     if (!item || !item.document_key) throw new NotFoundError('Document not found');
+    if (item.document_key.startsWith('http://') || item.document_key.startsWith('https://')) {
+      return res.redirect(item.document_key);
+    }
+    const cleanKey = item.document_key.replace(/^\/api\/media\//, '');
     const mediaService = createPartnerVendorMediaService(config);
-    const filePath = mediaService.getFilePath(item.document_key);
+    const filePath = mediaService.getFilePath(cleanKey);
+    if (!fs.existsSync(filePath)) throw new NotFoundError('Document not found');
     res.setHeader('Content-Type', item.document_content_type || 'application/pdf');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.sendFile(filePath);
   });
 

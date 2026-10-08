@@ -1,0 +1,37 @@
+# ==============================================================================
+# Docker Compose for NV Cyclothon PostgreSQL Database
+# Lightweight, persistent, and resource-bounded for 200 GB VPS
+# ==============================================================================
+
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nvcyclothon_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: nv_cyclothon
+      POSTGRES_USER: nv_cyclothon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_to_a_secure_password_in_production}
+    ports:
+      # Bind only to localhost (127.0.0.1) so database is not exposed publicly to the internet
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Persistent named volume on host VPS filesystem
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nv_cyclothon -d nv_cyclothon"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          # Cap memory usage so PostgreSQL does not starve Node.js or Nginx
+          memory: 1024M
+    shm_size: 256mb
+
+volumes:
+  postgres_data:
+    driver: local

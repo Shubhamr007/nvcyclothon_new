@@ -11,7 +11,7 @@ function createRateLimiter() {
     const active = window.filter((entry) => entry > cutoff);
 
     if (active.length >= maximum) {
-      throw new ApiError(429, message, { "Retry-After": String(seconds) });
+      throw new ApiError(429, message, "RATE_LIMIT_EXCEEDED", { "Retry-After": String(seconds) });
     }
 
     active.push(now);

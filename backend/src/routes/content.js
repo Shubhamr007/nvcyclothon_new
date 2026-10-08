@@ -36,10 +36,14 @@ function createContentRouter({ repository, config }) {
     res.status(204).end();
   });
 
-  router.get("/profile-media/:key", (req, res) => {
+  router.get("/profile-media/:key", (req, res, next) => {
     const filePath = resolveProfileImage(config, req.params.key);
     if (!filePath) return res.status(404).json({ detail: "Image not found" });
-    res.type("image/webp").send(fs.readFileSync(filePath));
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.type("image/webp").sendFile(filePath, (err) => {
+      if (err && !res.headersSent) next(err);
+    });
   });
 
   return router;

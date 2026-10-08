@@ -481,14 +481,14 @@
         The <strong>NV Cyclothon</strong> web platform is a modern, high-performance event management and commercial sponsorship system built for the <strong>3rd Edition of NV Cyclothon</strong> scheduled for <strong>22 November 2026 in Rewa, Madhya Pradesh</strong>, organized by the Rewa District Cycling Association (RDCA).
       </p>
       <p>
-        The platform coordinates public outreach, multi-category participant registrations (60 KM Road, 30 KM MTB, 10 KM Green Ride, 2.5 KM Kid-o-Thon), Razorpay online payment integration, on-day QR code-based volunteer check-in, real-time community engagement walls, automated PDF pass and certificate generation, commercial partnership & vendor onboarding, and a centralized administrative workspace.
+        The platform coordinates public outreach, multi-category participant registrations (60 KM Road, 30 KM MTB, 10 KM Green Ride, 2.5 KM Kid-o-Thon), Cashfree Payments integration, on-day QR code-based volunteer check-in, real-time community engagement walls, automated PDF pass and certificate generation, commercial partnership & vendor onboarding, and a centralized administrative workspace.
       </p>
 
       <div class="card">
         <h4 style="margin-top:0; color:#fff;">Core System Capabilities</h4>
         <ul style="margin-left: 1.5rem; color: var(--text-muted); line-height: 1.8;">
           <li><strong>Participant Registration Engine</strong>: 500+ expected riders, tiered registration fees, automated ticket payload generation, waiver enforcement, and duplicate phone/email prevention.</li>
-          <li><strong>Financial Gateway Integration</strong>: Razorpay payment orders with cryptographically verified signatures (HMAC-SHA256) and webhook capture handling.</li>
+          <li><strong>Financial Gateway Integration</strong>: Cashfree payment orders and checkout sessions with cryptographically verified signatures (HMAC-SHA256) and webhook capture handling.</li>
           <li><strong>Volunteer Race-Day Check-in Subsystem</strong>: Low-latency QR-code scanner and manual search supporting instant check-in verification with audit trails.</li>
           <li><strong>Partners & Commercial Vendors Portal</strong>: Dedicated corporate sponsorship packages (Title Sponsor ₹5,00,000 down to Supporting Partners ₹50,000), 13 vendor categories, multi-step application forms with draft persistence, and deliverables tracking.</li>
           <li><strong>Document Generation Service</strong>: In-memory dynamic PDF rendering for official Rider Passes (with QR code and bib styling) and Participation Certificates using <code>pdf-lib</code> and <code>pdfkit</code>.</li>
@@ -536,7 +536,7 @@ flowchart TB
         DocService["Event Document Engine<br/>(pdf-lib, pdfkit, QRCode)"]
         MediaService["Media & Storage Service<br/>(Sharp, Multer, Magic-Bytes)"]
         MailService["Email Service<br/>(Nodemailer + Templates)"]
-        RzpService["Razorpay Client<br/>(Orders & Signatures)"]
+        CashfreeService["Cashfree Client<br/>(Orders & Sessions)"]
     end
 
     subgraph DataStorage["Data & Storage Persistence Layer"]
@@ -547,7 +547,7 @@ flowchart TB
     end
 
     subgraph ExternalSystems["External Third-Party Services"]
-        RazorpayAPI["Razorpay Payment Gateway"]
+        CashfreeAPI["Cashfree Payment Gateway"]
         SMTPRelay["SMTP Mail Server (Gmail / Custom)"]
     end
 
@@ -563,7 +563,7 @@ flowchart TB
     MediaService --> LocalDisk
     DocService --> LocalDisk
 
-    DomainServices -->|Payments| RazorpayAPI
+    DomainServices -->|Payments| CashfreeAPI
     DomainServices -->|Notifications| SMTPRelay
         </pre>
         <div class="diagram-caption">Figure 1: High-Level System Architecture and Component Topology</div>
@@ -623,7 +623,7 @@ sequenceDiagram
     participant Rate as Rate Limiter
     participant Zod as Validation (validation.js)
     participant Repo as Postgres Repository
-    participant RZP as Razorpay Gateway
+    participant CF as Cashfree Gateway
     participant Mail as Email Service
 
     Rider->>Browser: Fill Registration Form (Category, Emergency Contact, Waiver)
@@ -637,16 +637,16 @@ sequenceDiagram
         Repo-->>API: ConflictError ("A registration already exists...")
         API-->>Browser: 409 Conflict
     else Available
-        API->>RZP: Create Order (Paise amount, receipt)
-        RZP-->>API: Order ID (order_xyz)
+        API->>CF: Create Order (Paise amount, session)
+        CF-->>API: Order ID + Session ID
         API->>Repo: INSERT cyclothon_registrations (status='pending')
         Repo-->>API: Registration Record
-        API-->>Browser: 201 Created + Razorpay Checkout Config
+        API-->>Browser: 201 Created + Cashfree Checkout Config
     end
 
-    Browser->>Rider: Open Razorpay Checkout Modal
-    Rider->>RZP: Submit UPI / Card / Netbanking
-    RZP-->>Browser: Payment Success (order_id, payment_id, signature)
+    Browser->>Rider: Open Cashfree Checkout Modal
+    Rider->>CF: Submit UPI / Card / Netbanking
+    CF-->>Browser: Payment Success (order_id, payment_id)
 
     Browser->>API: POST /api/cyclothon/registrations/:id/payment/verify
     API->>API: Calculate HMAC-SHA256(order_id + "|" + payment_id, secret)
@@ -739,8 +739,9 @@ erDiagram
         varchar ride_category
         varchar status
         int registration_fee_paise
-        varchar razorpay_order_id UK
-        varchar razorpay_payment_id UK
+        varchar payment_order_id UK
+        varchar payment_id UK
+        varchar payment_provider
         varchar checkin_token
         timestamp checked_in_at
         varchar checked_in_by
@@ -831,7 +832,7 @@ erDiagram
             <tr>
               <td><code>cyclothon_registrations</code></td>
               <td>Core participant table tracking rider details, category, emergency contact, waiver, payment IDs, and race-day check-in status.</td>
-              <td><code>uq_cyclothon_registrations_email_normalized</code>, <code>uq_cyclothon_razorpay_order</code>, <code>status, created_at DESC</code></td>
+              <td><code>uq_cyclothon_registrations_email_normalized</code>, <code>uq_cyclothon_payment_order</code>, <code>status, created_at DESC</code></td>
             </tr>
             <tr>
               <td><code>partner_applications</code></td>
@@ -970,14 +971,14 @@ erDiagram
               <td><span class="badge badge-post">POST</span></td>
               <td><code>/api/cyclothon/registrations/:id/payment/verify</code></td>
               <td>None</td>
-              <td><code>{ razorpay_order_id, razorpay_payment_id, razorpay_signature }</code></td>
+              <td><code>{ order_id }</code></td>
               <td><code>200 { id, status: "confirmed", ... }</code></td>
             </tr>
             <tr>
               <td><span class="badge badge-post">POST</span></td>
-              <td><code>/api/cyclothon/webhook/razorpay</code></td>
+              <td><code>/api/cyclothon/webhook/cashfree</code></td>
               <td>None</td>
-              <td>Webhook payload + <code>x-razorpay-signature</code></td>
+              <td>Webhook payload + <code>x-webhook-signature</code></td>
               <td><code>204 No Content</code></td>
             </tr>
             <tr>
@@ -1479,7 +1480,7 @@ router.delete("/:slug", requireAdmin(config), async (req, res) => { ... });</cod
             <tr>
               <td><strong>Payment Webhook Verification</strong></td>
               <td><code>crypto.timingSafeEqual</code> with HMAC-SHA256 signature</td>
-              <td><span class="badge badge-post">Robust</span> Prevents timing attacks on Razorpay webhook verification.</td>
+              <td><span class="badge badge-post">Robust</span> Prevents timing attacks on Cashfree webhook verification.</td>
             </tr>
             <tr>
               <td><strong>Password Storage</strong></td>

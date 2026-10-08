@@ -4,9 +4,12 @@ import Confetti from "react-confetti";
 import { toast } from "react-toastify";
 import { VENDOR_CATEGORIES, VENDOR_DISCLAIMER } from "../constants";
 import { submitVendorApplication } from "../../../api/http";
+import { normalizeError } from "../../../utils/errorHandler";
+import { ErrorAlert } from "../../../components/ErrorAlert";
 
 export function VendorApplicationForm() {
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [successData, setSuccessData] = useState(null);
   const [docFile, setDocFile] = useState(null);
 
@@ -57,6 +60,7 @@ export function VendorApplicationForm() {
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const formData = new FormData();
       Object.entries(data).forEach(([key, val]) => {
@@ -77,7 +81,9 @@ export function VendorApplicationForm() {
       });
       toast.success("Vendor application submitted successfully!");
     } catch (err) {
-      toast.error(err.message || "Failed to submit vendor application.");
+      const appErr = normalizeError(err);
+      setSubmitError(appErr);
+      toast.error(appErr.message);
     } finally {
       setSubmitting(false);
     }
@@ -444,6 +450,10 @@ export function VendorApplicationForm() {
             />
             <span>I confirm that the information provided is accurate.</span>
           </label>
+
+          {submitError && (
+            <ErrorAlert error={submitError} onDismiss={() => setSubmitError(null)} />
+          )}
 
           <button
             type="submit"

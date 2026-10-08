@@ -5,6 +5,16 @@ export function apiUrl(path) {
   return `${API_BASE}${path}`;
 }
 
+export class ApiError extends Error {
+  constructor(status, message, code = null, rawDetail = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.rawDetail = rawDetail || message;
+  }
+}
+
 export async function request(path, options = {}) {
   const { timeoutMs = 15000, ...fetchOptions } = options;
   const controller = new AbortController();
@@ -20,13 +30,27 @@ export async function request(path, options = {}) {
     }
     const contentType = response.headers.get("content-type") || "";
     if (contentType.includes("text/html")) {
-      throw new Error(`API endpoint ${path} returned HTML instead of JSON. Ensure the backend server is running and your Nginx configuration proxies /api to port 8000.`);
+      throw new ApiError(
+        502,
+        "The API service returned an HTML response instead of JSON.",
+        "ERR_INVALID_CONTENT_TYPE",
+        `API endpoint ${path} returned HTML.`
+      );
     }
     const body = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(body?.detail || 'Something went wrong. Please try again.');
+    if (!response.ok) {
+      const detail = body?.detail || "Something went wrong. Please try again.";
+      const code = body?.code || null;
+      throw new ApiError(response.status, detail, code, detail);
+    }
     return body;
   } catch (error) {
-    if (error.name === 'AbortError') throw new Error('The API did not respond. Check that the backend is running on port 8000.');
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    if (error.name === 'AbortError') {
+      throw new ApiError(408, "The API request timed out.", "ERR_TIMEOUT", "Request aborted or timed out.");
+    }
     throw error;
   } finally {
     window.clearTimeout(timeout);

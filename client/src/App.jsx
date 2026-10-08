@@ -6,11 +6,14 @@ import { LoadingIndicator, LoadingScreen } from "./components/LoadingIndicator";
 import { SiteSettingsProvider } from "./state/SiteSettingsContext";
 import { apiUrl } from "./api/http";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
 const CheckinPage = lazy(() => import("./pages/CheckinPage").then((module) => ({ default: module.CheckinPage })));
 const PartnerPage = lazy(() => import('./pages/PartnerPage').then((module) => ({ default: module.PartnerPage })));
 const VendorPage = lazy(() => import('./pages/VendorPage').then((module) => ({ default: module.VendorPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
 const PageFallback = () => <LoadingScreen label="Gearing up for the ride…" />;
 
 const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://nvcyclothon.in").replace(/\/$/, "");
@@ -18,7 +21,7 @@ const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1502744688674-c619d1586
 const metadata = {
   "/": {
     title: "NV Cyclothon 2026 | Cycling Event in Rewa, Madhya Pradesh",
-    description: "Join NV Cyclothon 2026 in Rewa: 60 Km Road Challenge, 30 Km MTB Challenge, 10 Km Green Ride, Senior Masters and Kid-o-thon.",
+    description: "Join NV Cyclothon 2026 in Rewa: 60 Km Road Challenge, 30 Km MTB Challenge, 10 Km Green Ride, and Kid-o-thon.",
   },
   "/register": {
     title: "Register for NV Cyclothon 2026 | Rewa Cycling Event",
@@ -98,24 +101,38 @@ export default function App() {
     fetch(apiUrl("/content/visits"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: pathname, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: navigator.language }), keepalive: true }).catch(() => {});
   }, [pathname, isCheckinRoute]);
   return (
-    <SiteSettingsProvider>
+    isCheckinRoute ? (
+      <PublicAppContent isCheckinRoute={isCheckinRoute} theme={theme} />
+    ) : (
+      <SiteSettingsProvider>
+        <PublicAppContent isCheckinRoute={isCheckinRoute} theme={theme} />
+      </SiteSettingsProvider>
+    )
+  );
+}
+
+function PublicAppContent({ isCheckinRoute, theme }) {
+  return (
       <div className="app-shell relative min-h-screen w-full max-w-full overflow-x-hidden">
         <Seo />
         {!isCheckinRoute && <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />}
         <main id="main-content" className="w-full max-w-full overflow-x-hidden">
-          <Suspense fallback={<PageFallback />}><Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/checkin" element={<CheckinPage />} />
-              <Route path="/partners" element={<PartnerPage />} />
-              <Route path="/partners/apply" element={<PartnerPage />} />
-              <Route path="/vendors" element={<VendorPage />} />
-              <Route path="/vendors/apply" element={<VendorPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes></Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<PageFallback />}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/checkin" element={<CheckinPage />} />
+                <Route path="/partners" element={<PartnerPage />} />
+                <Route path="/partners/apply" element={<PartnerPage />} />
+                <Route path="/vendors" element={<VendorPage />} />
+                <Route path="/vendors/apply" element={<VendorPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </main>
         {!isCheckinRoute && <SiteFooter />}
       </div>
-    </SiteSettingsProvider>
   );
 }

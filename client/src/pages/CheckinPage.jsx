@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { checkinRequest, createCheckinSession, getCheckinStatus } from "../api/http";
+import { normalizeError } from "../utils/errorHandler";
 import { LoadingIndicator, LoadingScreen } from "../components/LoadingIndicator";
 import { useDebouncedValue } from "../components/useDebouncedValue";
 import { Button } from "../components/ui/button";
@@ -288,7 +289,8 @@ export function CheckinPage() {
       setActiveVolunteer(session.volunteer_name || volunteerName.trim());
       setVolunteerPin("");
     } catch (error) {
-      setMessage(error.message);
+      const norm = normalizeError(error);
+      setMessage(norm.message);
     } finally {
       setBusy(false);
     }
@@ -327,8 +329,9 @@ export function CheckinPage() {
           : `${result.participant?.full_name || "Participant"} checked in successfully.`
       );
     } catch (error) {
-      setMessage(error.message);
-      if (error.message.toLowerCase().includes("session")) {
+      const norm = normalizeError(error);
+      setMessage(norm.message);
+      if (error?.status === 401 || (error?.message || "").toLowerCase().includes("session")) {
         clearSession();
       }
     } finally {
@@ -430,8 +433,9 @@ export function CheckinPage() {
       }
     } catch (error) {
       if (error.name === "AbortError" || controller.signal.aborted) return;
-      setMessage(error.message);
-      if (error.message.toLowerCase().includes("session")) {
+      const norm = normalizeError(error);
+      setMessage(norm.message);
+      if (error?.status === 401 || (error?.message || "").toLowerCase().includes("session")) {
         clearSession();
       }
     } finally {
@@ -479,7 +483,8 @@ export function CheckinPage() {
           : `${result.participant?.full_name || "Participant"} checked in successfully.`
       );
     } catch (error) {
-      setMessage(error.message);
+      const norm = normalizeError(error);
+      setMessage(norm.message);
     } finally {
       setBusy(false);
     }

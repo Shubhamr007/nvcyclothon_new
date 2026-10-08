@@ -395,7 +395,7 @@ class MockRepository {
       payload.ride_category,
       options.eventDate
     );
-    const isPaidRegistration = options.razorpayEnabled;
+    const isPaidRegistration = options.paymentEnabled;
     const registration = {
       id: this.nextId("cyclothon_registrations"),
       full_name: payload.full_name,
@@ -414,9 +414,10 @@ class MockRepository {
       status: isPaidRegistration ? "pending" : "approved",
       registration_fee_paise: registrationFee,
       payment_status: isPaidRegistration ? "pending" : "paid",
-      razorpay_order_id: null,
-      razorpay_payment_id: null,
-      razorpay_signature: null,
+      payment_order_id: null,
+      payment_id: null,
+      payment_signature: null,
+      payment_provider: "cashfree",
       payment_verified_at: isPaidRegistration ? null : this.now(),
       checkin_token: this.generateCheckinToken(),
       checked_in_at: null,
@@ -427,17 +428,19 @@ class MockRepository {
     };
 
     let checkout = null;
-    if (options.razorpayEnabled) {
+    if (options.paymentEnabled) {
       const order = await options.createPaymentOrder({
         amountPaise: registration.registration_fee_paise,
         receipt: `cyclothon-${registration.id}`,
+        registration,
       });
-      registration.razorpay_order_id = order.id;
+      registration.payment_order_id = order.id;
+      registration.payment_provider = "cashfree";
       checkout = {
-        key_id: options.razorpayKeyId,
+        provider: "cashfree",
         order_id: order.id,
-        amount_paise: registration.registration_fee_paise,
-        currency: "INR",
+        payment_session_id: order.payment_session_id,
+        mode: order.mode,
       };
     }
 
@@ -448,34 +451,46 @@ class MockRepository {
     };
   }
 
+  async getRegistrationByOrderId(orderId) {
+    const registration = this.tables.cyclothon_registrations.find(
+      (item) => item.payment_order_id === orderId
+    );
+    return registration ? this.clone(registration) : null;
+  }
+
   async verifyCyclothonPayment(registrationId, payload, expectedSignature) {
     const registration = this.tables.cyclothon_registrations.find(
       (item) => item.id === registrationId
     );
-    if (!registration || !registration.razorpay_order_id) {
+    const existingOrderId = registration?.payment_order_id;
+    if (!registration || !existingOrderId) {
       throw new NotFoundError("Payment registration not found");
     }
 
+    const orderId = payload.order_id || payload.payment_order_id;
+    const paymentId = payload.payment_id;
+    const signature = payload.signature || payload.payment_signature;
+
     if (registration.payment_status === "paid") {
-      if (registration.razorpay_payment_id === payload.razorpay_payment_id) {
+      const existingPaymentId = registration.payment_id;
+      if (existingPaymentId === paymentId) {
         return this.clone(registration);
       }
       throw new ConflictError("This registration has already been paid");
     }
 
-    if (payload.razorpay_order_id !== registration.razorpay_order_id) {
+    if (orderId !== existingOrderId) {
       throw new ValidationError("Payment order does not match this registration");
     }
 
-    if (payload.razorpay_signature !== expectedSignature) {
+    if (expectedSignature && signature !== expectedSignature) {
       throw new ValidationError("Payment signature verification failed");
     }
 
     const duplicatePayment = this.tables.cyclothon_registrations.find(
       (item) =>
         item.id !== registration.id &&
-        item.razorpay_payment_id &&
-        item.razorpay_payment_id === payload.razorpay_payment_id
+        item.payment_id && item.payment_id === paymentId
     );
     if (duplicatePayment) {
       throw new ConflictError("This payment has already been recorded");
@@ -485,8 +500,9 @@ class MockRepository {
     if (registration.status === "pending") {
       registration.status = "approved";
     }
-    registration.razorpay_payment_id = payload.razorpay_payment_id;
-    registration.razorpay_signature = payload.razorpay_signature;
+    registration.payment_id = paymentId;
+    registration.payment_signature = signature;
+    registration.payment_provider = "cashfree";
     registration.payment_verified_at = this.now();
 
     return this.clone(registration);
@@ -494,7 +510,7 @@ class MockRepository {
 
   async markCyclothonPaymentFromWebhook({ orderId, paymentId }) {
     const registration = this.tables.cyclothon_registrations.find(
-      (item) => item.razorpay_order_id === orderId
+      (item) => item.payment_order_id === orderId
     );
     if (!registration) {
       throw new NotFoundError("Payment registration not found");
@@ -504,7 +520,8 @@ class MockRepository {
     }
     registration.payment_status = "paid";
     registration.status = registration.status === "pending" ? "approved" : registration.status;
-    registration.razorpay_payment_id = paymentId;
+    registration.payment_id = paymentId;
+    registration.payment_provider = "cashfree";
     registration.payment_verified_at = this.now();
     return this.clone(registration);
   }
@@ -1332,9 +1349,9 @@ class MockRepository {
       status: payload.status || 'SUBMITTED',
       payment_status: payload.payment_status || 'PENDING',
       application_fee_paise: payload.application_fee_paise || 0,
-      razorpay_order_id: payload.razorpay_order_id || null,
-      razorpay_payment_id: null,
-      razorpay_signature: null,
+      payment_order_id: payload.payment_order_id || payload.order_id || null,
+      payment_id: null,
+      payment_signature: null,
       payment_verified_at: null,
       reviewed_by: null,
       reviewed_at: null,
@@ -1443,8 +1460,8 @@ class MockRepository {
     if (!partner) return null;
     partner.payment_status = 'PAYMENT_VERIFIED';
     partner.status = 'PAYMENT_VERIFIED';
-    partner.razorpay_payment_id = paymentId;
-    partner.razorpay_signature = signature;
+    partner.payment_id = paymentId;
+    partner.payment_signature = signature;
     partner.payment_verified_at = this.now();
     partner.updated_at = this.now();
     return this.clone(partner);
@@ -1523,9 +1540,9 @@ class MockRepository {
       status: payload.status || 'SUBMITTED',
       payment_status: payload.payment_status || 'PENDING',
       stall_fee_paise: payload.stall_fee_paise || 0,
-      razorpay_order_id: payload.razorpay_order_id || null,
-      razorpay_payment_id: null,
-      razorpay_signature: null,
+      payment_order_id: payload.payment_order_id || payload.order_id || null,
+      payment_id: null,
+      payment_signature: null,
       payment_verified_at: null,
       reviewed_by: null,
       reviewed_at: null,
@@ -1595,8 +1612,8 @@ class MockRepository {
     const vendor = this.tables.vendor_applications.find((v) => v.id === Number(id));
     if (!vendor) return null;
     vendor.payment_status = 'PAYMENT_VERIFIED';
-    vendor.razorpay_payment_id = paymentId;
-    vendor.razorpay_signature = signature;
+    vendor.payment_id = paymentId;
+    vendor.payment_signature = signature;
     vendor.payment_verified_at = this.now();
     vendor.updated_at = this.now();
     return this.clone(vendor);

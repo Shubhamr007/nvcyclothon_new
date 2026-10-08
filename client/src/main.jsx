@@ -8,12 +8,23 @@ import "react-toastify/dist/ReactToastify.css";
 import { SmoothScroll } from "./components/SmoothScroll";
 import { InteractiveCursor } from "./components/InteractiveCursor";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <SmoothScroll><App /></SmoothScroll>
-      <InteractiveCursor />
-      <ToastContainer position="bottom-right" theme="dark" closeOnClick pauseOnHover />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <SmoothScroll><App /></SmoothScroll>
+        <InteractiveCursor />
+        <ToastContainer
+          position="top-right"
+          theme="dark"
+          closeOnClick
+          pauseOnHover
+          autoClose={4500}
+          className="mt-14 sm:mt-2"
+        />
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>,
 );

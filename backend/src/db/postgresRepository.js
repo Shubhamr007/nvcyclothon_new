@@ -17,12 +17,18 @@ const { defaultSiteSettings, mergeSiteSettings } = require("./mockRepository");
 class PostgresRepository {
   constructor(config) {
     this.config = config;
-    this.pool = new Pool({
+    const poolConfig = {
       connectionString: config.databaseUrl,
       max: config.dbPoolMax || 25,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
-    });
+    };
+    if (config.databaseSsl) {
+      poolConfig.ssl = {
+        rejectUnauthorized: config.databaseSslRejectUnauthorized !== false,
+      };
+    }
+    this.pool = new Pool(poolConfig);
     this.pool.on("error", (error) => {
       // Idle PostgreSQL client failures otherwise emit an unhandled EventEmitter
       // error, which can terminate the API process during a transient network blip.
@@ -95,9 +101,10 @@ class PostgresRepository {
         status VARCHAR(32) NOT NULL DEFAULT 'pending',
         registration_fee_paise INTEGER NOT NULL DEFAULT 0,
         payment_status VARCHAR(32) NOT NULL DEFAULT 'pending',
-        razorpay_order_id VARCHAR(100),
-        razorpay_payment_id VARCHAR(100),
-        razorpay_signature VARCHAR(128),
+        payment_order_id VARCHAR(100),
+        payment_id VARCHAR(100),
+        payment_signature VARCHAR(128),
+        payment_provider VARCHAR(50) DEFAULT 'cashfree',
         payment_verified_at TIMESTAMPTZ,
         checkin_token VARCHAR(128),
         checked_in_at TIMESTAMPTZ,
@@ -107,8 +114,8 @@ class PostgresRepository {
         organization_type VARCHAR(64) DEFAULT 'Individual',
         organization_name VARCHAR(200),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        CONSTRAINT uq_cyclothon_razorpay_order UNIQUE (razorpay_order_id),
-        CONSTRAINT uq_cyclothon_razorpay_payment UNIQUE (razorpay_payment_id)
+        CONSTRAINT uq_cyclothon_payment_order UNIQUE (payment_order_id),
+        CONSTRAINT uq_cyclothon_payment_id UNIQUE (payment_id)
       );
 
       ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS organization_type VARCHAR(64) DEFAULT 'Individual';
@@ -353,9 +360,9 @@ class PostgresRepository {
         status VARCHAR(32) NOT NULL DEFAULT 'SUBMITTED',
         payment_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
         application_fee_paise INTEGER NOT NULL DEFAULT 0,
-        razorpay_order_id VARCHAR(100),
-        razorpay_payment_id VARCHAR(100),
-        razorpay_signature VARCHAR(128),
+        payment_order_id VARCHAR(100),
+        payment_id VARCHAR(100),
+        payment_signature VARCHAR(128),
         payment_verified_at TIMESTAMPTZ,
         reviewed_by VARCHAR(120),
         reviewed_at TIMESTAMPTZ,
@@ -397,7 +404,7 @@ class PostgresRepository {
         partner_id INTEGER NOT NULL REFERENCES partner_applications(id) ON DELETE CASCADE,
         amount_paise INTEGER NOT NULL,
         currency VARCHAR(10) NOT NULL DEFAULT 'INR',
-        payment_gateway VARCHAR(50) DEFAULT 'RAZORPAY',
+        payment_gateway VARCHAR(50) DEFAULT 'CASHFREE',
         gateway_order_id VARCHAR(100),
         gateway_payment_id VARCHAR(100),
         payment_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
@@ -436,9 +443,9 @@ class PostgresRepository {
         status VARCHAR(32) NOT NULL DEFAULT 'SUBMITTED',
         payment_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
         stall_fee_paise INTEGER NOT NULL DEFAULT 0,
-        razorpay_order_id VARCHAR(100),
-        razorpay_payment_id VARCHAR(100),
-        razorpay_signature VARCHAR(128),
+        payment_order_id VARCHAR(100),
+        payment_id VARCHAR(100),
+        payment_signature VARCHAR(128),
         payment_verified_at TIMESTAMPTZ,
         reviewed_by VARCHAR(120),
         reviewed_at TIMESTAMPTZ,
@@ -591,13 +598,16 @@ class PostgresRepository {
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_status VARCHAR(32) NOT NULL DEFAULT 'pending'"
     );
     await this.pool.query(
-      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS razorpay_order_id VARCHAR(100)"
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_order_id VARCHAR(100)"
     );
     await this.pool.query(
-      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR(100)"
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_id VARCHAR(100)"
     );
     await this.pool.query(
-      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS razorpay_signature VARCHAR(128)"
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_signature VARCHAR(128)"
+    );
+    await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_provider VARCHAR(50) DEFAULT 'cashfree'"
     );
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_verified_at TIMESTAMPTZ"
@@ -639,10 +649,28 @@ class PostgresRepository {
       "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS credentials_sent_at TIMESTAMPTZ"
     );
     await this.pool.query(
-      "CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_razorpay_order_partial ON cyclothon_registrations (razorpay_order_id) WHERE razorpay_order_id IS NOT NULL"
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS payment_order_id VARCHAR(100)"
     );
     await this.pool.query(
-      "CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_razorpay_payment_partial ON cyclothon_registrations (razorpay_payment_id) WHERE razorpay_payment_id IS NOT NULL"
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS payment_id VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE partner_applications ADD COLUMN IF NOT EXISTS payment_signature VARCHAR(128)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS payment_order_id VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS payment_id VARCHAR(100)"
+    );
+    await this.pool.query(
+      "ALTER TABLE vendor_applications ADD COLUMN IF NOT EXISTS payment_signature VARCHAR(128)"
+    );
+    await this.pool.query(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_payment_order_partial ON cyclothon_registrations (payment_order_id) WHERE payment_order_id IS NOT NULL"
+    );
+    await this.pool.query(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_payment_id_partial ON cyclothon_registrations (payment_id) WHERE payment_id IS NOT NULL"
     );
     await this.pool.query(
       "CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_checkin_token_partial ON cyclothon_registrations (checkin_token) WHERE checkin_token IS NOT NULL"
@@ -1009,8 +1037,7 @@ class PostgresRepository {
         `SELECT COUNT(*)::int AS count
          FROM cyclothon_registrations
          WHERE ride_category = $1
-           AND status <> 'cancelled'
-           AND NOT (status = 'pending' AND payment_status = 'pending')`,
+           AND status <> 'cancelled'`,
         [payload.ride_category]
       );
       const categoryCount = categoryCountResult.rows[0].count;
@@ -1018,8 +1045,7 @@ class PostgresRepository {
       const activeCountResult = await client.query(
         `SELECT COUNT(*)::int AS count
          FROM cyclothon_registrations
-         WHERE status <> 'cancelled'
-           AND NOT (status = 'pending' AND payment_status = 'pending')`
+         WHERE status <> 'cancelled'`
       );
       const activeCount = activeCountResult.rows[0].count;
 
@@ -1031,9 +1057,9 @@ class PostgresRepository {
         options.eventDate
       );
       const checkinToken = this.generateCheckinToken();
-      const initialStatus = options.razorpayEnabled ? "pending" : "approved";
-      const initialPaymentStatus = options.razorpayEnabled ? "pending" : "paid";
-      const paymentVerifiedAt = options.razorpayEnabled ? null : new Date();
+      const initialStatus = options.paymentEnabled ? "pending" : "approved";
+      const initialPaymentStatus = options.paymentEnabled ? "pending" : "paid";
+      const paymentVerifiedAt = options.paymentEnabled ? null : new Date();
 
       let registration;
       try {
@@ -1050,13 +1076,13 @@ class PostgresRepository {
              $10, $11, TRUE, TRUE,
              $12, $13, $14, $15, $16
            )
-           RETURNING id, full_name, email, phone, age, city, gender, ride_category,
-                     organization_type, organization_name,
-                     emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                     status, registration_fee_paise, payment_status, razorpay_order_id,
-                     razorpay_payment_id, razorpay_signature, payment_verified_at,
-                     checkin_token, checked_in_at, checked_in_by, checkin_method,
-                     checkin_device, created_at`,
+            RETURNING id, full_name, email, phone, age, city, gender, ride_category,
+                      organization_type, organization_name,
+                      emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
+                      status, registration_fee_paise, payment_status, payment_order_id,
+                      payment_id, payment_signature, payment_provider, payment_verified_at,
+                      checkin_token, checked_in_at, checked_in_by, checkin_method,
+                      checkin_device, created_at`,
           [
             payload.full_name,
             payload.email.toLowerCase(),
@@ -1090,29 +1116,31 @@ class PostgresRepository {
       }
 
       let checkout = null;
-      if (options.razorpayEnabled) {
+      if (options.paymentEnabled) {
         const order = await options.createPaymentOrder({
           amountPaise: registration.registration_fee_paise,
           receipt: `cyclothon-${registration.id}`,
+          registration,
         });
         const updateResult = await client.query(
           `UPDATE cyclothon_registrations
-           SET razorpay_order_id = $1
+           SET payment_order_id = $1,
+               payment_provider = 'cashfree'
            WHERE id = $2
            RETURNING id, full_name, email, phone, age, city, gender, ride_category,
                      emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                     status, registration_fee_paise, payment_status, razorpay_order_id,
-                     razorpay_payment_id, razorpay_signature, payment_verified_at,
+                     status, registration_fee_paise, payment_status,
+                     payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                      checkin_token, checked_in_at, checked_in_by, checkin_method,
                      checkin_device, created_at`,
           [order.id, registration.id]
         );
         registration = updateResult.rows[0];
         checkout = {
-          key_id: options.razorpayKeyId,
+          provider: "cashfree",
           order_id: order.id,
-          amount_paise: registration.registration_fee_paise,
-          currency: "INR",
+          payment_session_id: order.payment_session_id,
+          mode: order.mode,
         };
       }
 
@@ -1123,13 +1151,28 @@ class PostgresRepository {
     });
   }
 
+  async getRegistrationByOrderId(orderId) {
+    const result = await this.pool.query(
+      `SELECT id, full_name, email, phone, age, city, gender, ride_category,
+              emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
+              status, registration_fee_paise, payment_status,
+              payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
+              checkin_token, checked_in_at, checked_in_by, checkin_method,
+              checkin_device, created_at
+       FROM cyclothon_registrations
+       WHERE payment_order_id = $1`,
+      [orderId]
+    );
+    return result.rows[0] || null;
+  }
+
   async verifyCyclothonPayment(registrationId, payload, expectedSignature) {
     return this.withTransaction(async (client) => {
       const registrationResult = await client.query(
         `SELECT id, full_name, email, phone, age, city, gender, ride_category,
                 emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                status, registration_fee_paise, payment_status, razorpay_order_id,
-                razorpay_payment_id, razorpay_signature, payment_verified_at,
+                status, registration_fee_paise, payment_status,
+                payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                 checkin_token, checked_in_at, checked_in_by, checkin_method,
                 checkin_device, created_at
          FROM cyclothon_registrations
@@ -1141,22 +1184,28 @@ class PostgresRepository {
         throw new NotFoundError("Payment registration not found");
       }
       const registration = registrationResult.rows[0];
-      if (!registration.razorpay_order_id) {
+      const existingOrderId = registration.payment_order_id;
+      if (!existingOrderId) {
         throw new NotFoundError("Payment registration not found");
       }
 
+      const orderId = payload.order_id || payload.payment_order_id;
+      const paymentId = payload.payment_id;
+      const signature = payload.signature || payload.payment_signature;
+
       if (registration.payment_status === "paid") {
-        if (registration.razorpay_payment_id === payload.razorpay_payment_id) {
+        const existingPaymentId = registration.payment_id;
+        if (existingPaymentId === paymentId) {
           return registration;
         }
         throw new ConflictError("This registration has already been paid");
       }
 
-      if (payload.razorpay_order_id !== registration.razorpay_order_id) {
+      if (orderId !== existingOrderId) {
         throw new ValidationError("Payment order does not match this registration");
       }
 
-      if (payload.razorpay_signature !== expectedSignature) {
+      if (expectedSignature && signature !== expectedSignature) {
         throw new ValidationError("Payment signature verification failed");
       }
 
@@ -1165,17 +1214,18 @@ class PostgresRepository {
           `UPDATE cyclothon_registrations
            SET payment_status = 'paid',
                status = CASE WHEN status = 'pending' THEN 'approved' ELSE status END,
-               razorpay_payment_id = $1,
-               razorpay_signature = $2,
+               payment_id = $1,
+               payment_signature = $2,
+               payment_provider = 'cashfree',
                payment_verified_at = NOW()
            WHERE id = $3
            RETURNING id, full_name, email, phone, age, city, gender, ride_category,
                      emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                     status, registration_fee_paise, payment_status, razorpay_order_id,
-                     razorpay_payment_id, razorpay_signature, payment_verified_at,
+                     status, registration_fee_paise, payment_status,
+                     payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                      checkin_token, checked_in_at, checked_in_by, checkin_method,
                      checkin_device, created_at`,
-          [payload.razorpay_payment_id, payload.razorpay_signature, registrationId]
+          [paymentId, signature, registrationId]
         );
         return updated.rows[0];
       } catch (error) {
@@ -1192,9 +1242,10 @@ class PostgresRepository {
       `UPDATE cyclothon_registrations
        SET payment_status = 'paid',
            status = CASE WHEN status = 'pending' THEN 'approved' ELSE status END,
-           razorpay_payment_id = COALESCE(razorpay_payment_id, $2),
+           payment_id = COALESCE(payment_id, $2),
+           payment_provider = 'cashfree',
            payment_verified_at = COALESCE(payment_verified_at, NOW())
-       WHERE razorpay_order_id = $1
+       WHERE payment_order_id = $1
        RETURNING *`,
       [orderId, paymentId]
     );
@@ -1259,8 +1310,8 @@ class PostgresRepository {
       SELECT cr.id, cr.full_name, cr.email, cr.phone, cr.age, cr.city, cr.gender, cr.ride_category,
              cr.organization_type, cr.organization_name,
              cr.emergency_contact, cr.t_shirt_size, cr.waiver_accepted, cr.privacy_accepted,
-             cr.status, cr.registration_fee_paise, cr.payment_status, cr.razorpay_order_id,
-             cr.razorpay_payment_id, cr.razorpay_signature, cr.payment_verified_at,
+             cr.status, cr.registration_fee_paise, cr.payment_status, cr.payment_order_id,
+             cr.payment_id, cr.payment_signature, cr.payment_provider, cr.payment_verified_at,
              cr.checkin_token, cr.checked_in_at, cr.checked_in_by, cr.checkin_method,
              cr.checkin_device, cr.created_at,
              rp.status AS rider_pass_status,
@@ -1291,8 +1342,8 @@ class PostgresRepository {
       `SELECT id, full_name, email, phone, age, city, gender, ride_category,
               organization_type, organization_name,
               emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-              status, registration_fee_paise, payment_status, razorpay_order_id,
-              razorpay_payment_id, razorpay_signature, payment_verified_at,
+              status, registration_fee_paise, payment_status, payment_order_id,
+              payment_id, payment_signature, payment_provider, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
               checkin_device, created_at
        FROM cyclothon_registrations
@@ -1351,8 +1402,8 @@ class PostgresRepository {
        WHERE id = $2
        RETURNING id, full_name, email, phone, age, city, gender, ride_category,
                  emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                 status, registration_fee_paise, payment_status, razorpay_order_id,
-                 razorpay_payment_id, razorpay_signature, payment_verified_at,
+                 status, registration_fee_paise, payment_status, payment_order_id,
+                 payment_id, payment_signature, payment_provider, payment_verified_at,
                  checkin_token, checked_in_at, checked_in_by, checkin_method,
                  checkin_device, created_at`,
       [status, registrationId]
@@ -1524,8 +1575,8 @@ class PostgresRepository {
        WHERE id = $4
        RETURNING id, full_name, email, phone, age, city, gender, ride_category,
                  emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                 status, registration_fee_paise, payment_status, razorpay_order_id,
-                 razorpay_payment_id, razorpay_signature, payment_verified_at,
+                 status, registration_fee_paise, payment_status, payment_order_id,
+                 payment_id, payment_signature, payment_provider, payment_verified_at,
                  checkin_token, checked_in_at, checked_in_by, checkin_method,
                  checkin_device, created_at`,
       [volunteerName, method, sourceDevice, registration.id]
@@ -1552,8 +1603,8 @@ class PostgresRepository {
       const registrationResult = await client.query(
         `SELECT id, full_name, email, phone, age, city, gender, ride_category,
                 emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                status, registration_fee_paise, payment_status, razorpay_order_id,
-                razorpay_payment_id, razorpay_signature, payment_verified_at,
+                status, registration_fee_paise, payment_status, payment_order_id,
+                payment_id, payment_signature, payment_provider, payment_verified_at,
                 checkin_token, checked_in_at, checked_in_by, checkin_method,
                 checkin_device, created_at
          FROM cyclothon_registrations
@@ -1576,8 +1627,8 @@ class PostgresRepository {
       const registrationResult = await client.query(
         `SELECT id, full_name, email, phone, age, city, gender, ride_category,
                 emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-                status, registration_fee_paise, payment_status, razorpay_order_id,
-                razorpay_payment_id, razorpay_signature, payment_verified_at,
+                status, registration_fee_paise, payment_status, payment_order_id,
+                payment_id, payment_signature, payment_provider, payment_verified_at,
                 checkin_token, checked_in_at, checked_in_by, checkin_method,
                 checkin_device, created_at
          FROM cyclothon_registrations
@@ -1599,8 +1650,8 @@ class PostgresRepository {
     const result = await this.pool.query(
       `SELECT id, full_name, email, phone, age, city, gender, ride_category,
               emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
-              status, registration_fee_paise, payment_status, razorpay_order_id,
-              razorpay_payment_id, razorpay_signature, payment_verified_at,
+              status, registration_fee_paise, payment_status, payment_order_id,
+              payment_id, payment_signature, payment_provider, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
               checkin_device, created_at
        FROM cyclothon_registrations
@@ -2343,7 +2394,7 @@ class PostgresRepository {
         sponsorship_tier_id, package_name, partnership_type, proposed_value, custom_description,
         brand_tagline, brand_description, industry, social_links,
         logo_key, logo_content_type, logo_size_bytes, activation_options, activation_description,
-        visibility_interests, status, payment_status, application_fee_paise, razorpay_order_id)
+        visibility_interests, status, payment_status, application_fee_paise, payment_order_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34)
        RETURNING *`,
       [
@@ -2380,7 +2431,7 @@ class PostgresRepository {
         payload.status || 'SUBMITTED',
         payload.payment_status || 'PENDING',
         payload.application_fee_paise || 0,
-        payload.razorpay_order_id || null,
+        payload.payment_order_id || payload.order_id || null,
       ]
     );
 
@@ -2489,7 +2540,7 @@ class PostgresRepository {
     const result = await this.pool.query(
       `UPDATE partner_applications
        SET payment_status='PAYMENT_VERIFIED', status='PAYMENT_VERIFIED',
-           razorpay_payment_id=$1, razorpay_signature=$2, payment_verified_at=NOW(), updated_at=NOW()
+           payment_id=$1, payment_signature=$2, payment_verified_at=NOW(), updated_at=NOW()
        WHERE id=$3 RETURNING *`,
       [paymentId, signature, id]
     );
@@ -2540,7 +2591,7 @@ class PostgresRepository {
         products_services, description, space_requirement, electricity_required, water_required,
         furniture_required, branding_support_required, vehicle_access_required, staff_count,
         document_key, document_content_type, document_size_bytes, documents,
-        stall_fee_paise, razorpay_order_id, payment_status, status)
+        stall_fee_paise, payment_order_id, payment_status, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)
        RETURNING *`,
       [
@@ -2571,7 +2622,7 @@ class PostgresRepository {
         payload.document_size_bytes || null,
         JSON.stringify(payload.documents || []),
         payload.stall_fee_paise || 0,
-        payload.razorpay_order_id || null,
+        payload.payment_order_id || payload.order_id || null,
         payload.payment_status || 'PENDING',
         payload.status || 'SUBMITTED',
       ]
@@ -2641,7 +2692,7 @@ class PostgresRepository {
     const result = await this.pool.query(
       `UPDATE vendor_applications
        SET payment_status='PAYMENT_VERIFIED',
-           razorpay_payment_id=$1, razorpay_signature=$2, payment_verified_at=NOW(), updated_at=NOW()
+           payment_id=$1, payment_signature=$2, payment_verified_at=NOW(), updated_at=NOW()
        WHERE id=$3 RETURNING *`,
       [paymentId, signature, id]
     );

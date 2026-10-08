@@ -9,11 +9,15 @@
  * 2. Unsigned Upload Preset (Settings -> Upload -> Upload presets -> Add preset -> Signing Mode: 'Unsigned')
  */
 
+// API Base URL for native storage fallback
+const API_BASE_URL = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) || "";
+const API_BASE = `${API_BASE_URL.replace(/\/$/, "")}/api`;
+
 // Default configuration from Vite environment variables
 const DEFAULT_CONFIG = {
   cloudName: (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLOUDINARY_CLOUD_NAME) || "",
   uploadPreset: (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLOUDINARY_UPLOAD_PRESET) || "",
-  folder: (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLOUDINARY_FOLDER) || "nvcyclothon",
+  folder: (typeof import.meta !== "undefined" && import.meta.env?.VITE_CLOUDINARY_FOLDER) || "media",
   maxSizeBytes: 10 * 1024 * 1024, // 10 MB default limit
   allowedMimeTypes: [
     "image/jpeg",
@@ -46,23 +50,23 @@ export function resetCloudinaryConfig() {
 }
 
 /**
- * Check whether Cloudinary credentials are configured.
+ * Check whether Cloudinary or native storage is configured.
+ * Native storage engine is always available at $0 cost on the VPS.
  * @param {Object} [overrides] - Optional overrides to check
- * @returns {{ configured: boolean, cloudName: string, uploadPreset: string, missing: string[] }}
+ * @returns {{ configured: boolean, hasCloudinary: boolean, provider: string, cloudName: string, uploadPreset: string, missing: string[] }}
  */
 export function isCloudinaryConfigured(overrides = {}) {
   const cloudName = overrides.cloudName || activeConfig.cloudName;
   const uploadPreset = overrides.uploadPreset || activeConfig.uploadPreset;
-  const missing = [];
-
-  if (!cloudName) missing.push("VITE_CLOUDINARY_CLOUD_NAME");
-  if (!uploadPreset) missing.push("VITE_CLOUDINARY_UPLOAD_PRESET");
+  const hasCloudinary = Boolean(cloudName && uploadPreset);
 
   return {
-    configured: missing.length === 0,
+    configured: true, // Native VPS storage is always ready and available
+    hasCloudinary,
+    provider: hasCloudinary ? "cloudinary" : "native",
     cloudName,
     uploadPreset,
-    missing,
+    missing: hasCloudinary ? [] : ["VITE_CLOUDINARY_CLOUD_NAME", "VITE_CLOUDINARY_UPLOAD_PRESET"],
   };
 }
 
@@ -142,17 +146,10 @@ export function uploadImage(file, options = {}) {
     const folder = options.folder !== undefined ? options.folder : activeConfig.folder;
     const resourceType = options.resourceType || "image";
 
-    // 1. Verify Configuration
-    if (!cloudName || !uploadPreset) {
-      const missing = [];
-      if (!cloudName) missing.push("VITE_CLOUDINARY_CLOUD_NAME");
-      if (!uploadPreset) missing.push("VITE_CLOUDINARY_UPLOAD_PRESET");
-      return reject(
-        new Error(
-          `Cloudinary configuration missing: ${missing.join(", ")}. Please configure your environment variables or provide options.`
-        )
-      );
-    }
+    // 1. Determine provider: use Cloudinary only if explicitly requested or configured and not overridden
+    const useCloudinary =
+      options.provider === "cloudinary" ||
+      (Boolean(cloudName && uploadPreset) && options.provider !== "native");
 
     // 2. Validate File (if File or Blob)
     if (file instanceof Blob || (typeof File !== "undefined" && file instanceof File)) {
@@ -166,32 +163,42 @@ export function uploadImage(file, options = {}) {
 
     // 3. Build FormData
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
+    if (useCloudinary) {
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
 
-    if (folder) {
-      formData.append("folder", folder);
-    }
+      if (folder) {
+        formData.append("folder", folder);
+      }
 
-    if (options.tags) {
-      const tagsString = Array.isArray(options.tags) ? options.tags.join(",") : options.tags;
-      formData.append("tags", tagsString);
-    }
+      if (options.tags) {
+        const tagsString = Array.isArray(options.tags) ? options.tags.join(",") : options.tags;
+        formData.append("tags", tagsString);
+      }
 
-    if (options.context && typeof options.context === "object") {
-      const contextString = Object.entries(options.context)
-        .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
-        .join("|");
-      formData.append("context", contextString);
-    }
+      if (options.context && typeof options.context === "object") {
+        const contextString = Object.entries(options.context)
+          .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+          .join("|");
+        formData.append("context", contextString);
+      }
 
-    if (options.publicId) {
-      formData.append("public_id", options.publicId);
+      if (options.publicId) {
+        formData.append("public_id", options.publicId);
+      }
+    } else {
+      // Native storage engine on VPS
+      formData.append("file", file);
+      if (folder) {
+        formData.append("folder", folder);
+      }
     }
 
     // 4. Send via XMLHttpRequest for accurate progress tracking
     const xhr = new XMLHttpRequest();
-    const uploadUrl = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${encodeURIComponent(resourceType)}/upload`;
+    const uploadUrl = useCloudinary
+      ? `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${encodeURIComponent(resourceType)}/upload`
+      : `${API_BASE}/uploads/image`;
 
     // Handle cancellation signal
     if (options.signal) {
@@ -228,22 +235,36 @@ export function uploadImage(file, options = {}) {
       }
 
       if (xhr.status >= 200 && xhr.status < 300) {
+        const rawUrl = responseBody.secure_url || responseBody.url;
+        const normalizedUrl =
+          rawUrl && rawUrl.startsWith("/") && API_BASE_URL
+            ? `${API_BASE_URL.replace(/\/$/, "")}${rawUrl}`
+            : rawUrl;
+
         resolve({
           success: true,
-          url: responseBody.secure_url || responseBody.url,
-          secureUrl: responseBody.secure_url,
-          publicId: responseBody.public_id,
-          format: responseBody.format,
-          width: responseBody.width,
-          height: responseBody.height,
-          bytes: responseBody.bytes,
-          originalFilename: responseBody.original_filename,
-          createdAt: responseBody.created_at,
-          resourceType: responseBody.resource_type,
+          url: normalizedUrl,
+          secureUrl: normalizedUrl,
+          secure_url: normalizedUrl,
+          publicId: responseBody.public_id || responseBody.key,
+          key: responseBody.key || responseBody.public_id,
+          format: responseBody.format || "webp",
+          width: responseBody.width || null,
+          height: responseBody.height || null,
+          bytes: responseBody.bytes || responseBody.size_bytes || 0,
+          size_bytes: responseBody.size_bytes || responseBody.bytes || 0,
+          originalFilename:
+            responseBody.original_filename || (file instanceof File ? file.name : "image"),
+          createdAt: responseBody.created_at || new Date().toISOString(),
+          resourceType: responseBody.resource_type || "image",
           raw: responseBody,
         });
       } else {
-        const errorMsg = formatCloudinaryError(responseBody, xhr.status, uploadPreset, cloudName);
+        const errorMsg = useCloudinary
+          ? formatCloudinaryError(responseBody, xhr.status, uploadPreset, cloudName)
+          : responseBody?.detail ||
+            responseBody?.error?.message ||
+            `Upload failed with status ${xhr.status}`;
         const err = new Error(errorMsg);
         err.status = xhr.status;
         err.raw = responseBody;
@@ -253,7 +274,13 @@ export function uploadImage(file, options = {}) {
 
     // Error and Abort handlers
     xhr.addEventListener("error", () => {
-      reject(new Error("Network error during Cloudinary upload. Please check your internet connection."));
+      reject(
+        new Error(
+          useCloudinary
+            ? "Network error during Cloudinary upload. Please check your internet connection."
+            : "Network error during image upload. Please check your internet connection."
+        )
+      );
     });
 
     xhr.addEventListener("abort", () => {

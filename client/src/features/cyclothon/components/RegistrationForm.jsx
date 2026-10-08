@@ -1,16 +1,18 @@
-import { forwardRef, useState, useCallback } from "react";
+import { forwardRef, useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import Confetti from "react-confetti";
 import { useReducedMotion } from "framer-motion";
 import { request } from "../../../api/http";
-import { openRazorpayCheckout } from "../../../api/razorpay";
+import { openCashfreeCheckout } from "../../../api/cashfree";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { EVENT, RIDE_OPTIONS } from "../constants";
 import { useSiteSettings } from "../../../state/SiteSettingsContext";
 import { PolicyModal } from "../../../components/PolicyModal";
+import { ErrorAlert } from "../../../components/ErrorAlert";
+import { normalizeError } from "../../../utils/errorHandler";
 
 const COUNTRY_CODES = [
   { code: "+91", label: "🇮🇳 +91", name: "India" },
@@ -53,7 +55,6 @@ export function RegistrationForm({ initialRoute }) {
     register,
     handleSubmit,
     watch,
-    setError,
     formState: { errors },
   } = useForm({ defaultValues: initialValues(initialRoute) });
 
@@ -61,26 +62,51 @@ export function RegistrationForm({ initialRoute }) {
 
   const reduceMotion = useReducedMotion();
   const { settings, loading: settingsLoading } = useSiteSettings();
-  const [status, setStatus] = useState({ state: "idle", message: "" });
+  const [status, setStatus] = useState({ state: "idle", message: "", error: null });
   const [pendingRegistration, setPendingRegistration] = useState(null);
   const selectedRoute = watch("ride_category");
   const selectedRide =
     RIDE_OPTIONS.find((route) => route.distance === selectedRoute) || RIDE_OPTIONS[0];
-  const enteredAge = Number(watch("age"));
-  const isSeniorMasters = selectedRoute === "25 Km Senior Masters";
+  const requiresSafetyEquipment = ["60 Km Road Challenge", "30 Km MTB Challenge"].includes(selectedRoute);
   const orgType = watch("organization_type");
 
-  const submit = async (form) => {
-    const ageNum = Number(form.age);
-    if (form.ride_category === "25 Km Senior Masters" && ageNum < 50) {
-      setError("age", {
-        type: "manual",
-        message: "Senior Masters Challenge is reserved for riders aged 50 and above.",
-      });
-      toast.error("Senior Masters Challenge is reserved for riders aged 50 and above.");
-      return;
-    }
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentMode = params.get("payment");
+    const returnOrderId = params.get("order_id");
 
+    if (paymentMode === "return" && returnOrderId) {
+      setStatus({ state: "loading", message: "Verifying your payment with Cashfree…", error: null });
+      request("/cyclothon/registrations/verify-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: returnOrderId }),
+      })
+        .then((completedRegistration) => {
+          setStatus({
+            state: "success",
+            message: `You are registered! Your rider ID is #${completedRegistration.id}.`,
+            error: null,
+          });
+          toast.success("Payment verified and registration confirmed!");
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        })
+        .catch((err) => {
+          const normalized = normalizeError(err);
+          setStatus({
+            state: "error",
+            error: normalized,
+            message: normalized.message,
+          });
+          toast.error(normalized.message);
+        });
+    }
+  }, []);
+
+  const submit = async (form) => {
+    let createdPendingRegistration = null;
+    const ageNum = Number(form.age);
     const cleanPhone = String(form.phone_raw || "").trim().replace(/\D+/g, "");
     const fullPhone = `${phoneCountryCode}${cleanPhone}`;
 
@@ -112,15 +138,15 @@ export function RegistrationForm({ initialRoute }) {
       });
 
       if (registration.checkout) {
-        setPendingRegistration({ ...registration, payload });
-        const completedRegistration = await openRazorpayCheckout({
+        createdPendingRegistration = { ...registration, payload };
+        setPendingRegistration(createdPendingRegistration);
+        const completedRegistration = await openCashfreeCheckout({
           checkout: registration.checkout,
-          registration: { ...registration, ...payload },
-          verifyPayment: (payment) =>
+          verifyPayment: () =>
             request(`/cyclothon/registrations/${registration.id}/payment/verify`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payment),
+              body: JSON.stringify({ order_id: registration.checkout.order_id }),
             }),
         });
         setPendingRegistration(null);
@@ -137,15 +163,21 @@ export function RegistrationForm({ initialRoute }) {
       }
       toast.success("Registration confirmed — see you on the road!");
     } catch (error) {
-      if (pendingRegistration?.checkout) {
+      const normalized = normalizeError(error);
+      if (createdPendingRegistration?.checkout) {
         setStatus({
           state: "error",
-          message: "Payment was not completed. You can retry payment below.",
+          error: normalized,
+          message: "Payment was not completed. No registration has been confirmed. You can retry payment below.",
         });
       } else {
-        setStatus({ state: "error", message: error.message });
+        setStatus({
+          state: "error",
+          error: normalized,
+          message: normalized.message,
+        });
       }
-      toast.error(error.message);
+      toast.error(normalized.message);
     }
   };
 
@@ -196,7 +228,7 @@ export function RegistrationForm({ initialRoute }) {
             📅 {tentativeDate}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-white/80">
-            Wave 1 registrations and category allocations are currently in preparation. The next registration window for all race categories (60K, 30K, 10K, Senior Masters, and Kid-o-thon) will open at the tentative time above.
+            Wave 1 registrations and category allocations are currently in preparation. The next registration window for all ride categories (60K, 30K, 10K, and Kid-o-thon) will open at the tentative time above.
           </p>
         </div>
 
@@ -225,23 +257,23 @@ export function RegistrationForm({ initialRoute }) {
 
   return (
     <form noValidate onSubmit={handleSubmit(submit)} className="mx-auto max-w-3xl">
-      <div className="flex items-end justify-between">
+      <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-xs font-black tracking-[.16em] text-[#ff5f3d] uppercase">
             {EVENT.name} 2026
           </p>
           <h2
             id="registration-heading"
-            className="mt-2 text-4xl font-black tracking-[-.07em] uppercase"
+            className="mt-1.5 text-3xl font-black tracking-[-.07em] uppercase sm:mt-2 sm:text-4xl"
           >
             Registration
           </h2>
         </div>
-        <span className="text-xs font-bold">01 / 01</span>
+        <span className="mb-0.5 shrink-0 rounded-full border border-[#071313]/15 bg-white/60 px-2.5 py-1 text-[10px] font-black tracking-wider">01 / 01</span>
       </div>
 
       {/* Rider Personal Information */}
-      <div className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2">
+      <div className="mt-6 grid gap-x-4 gap-y-5 sm:mt-8 sm:grid-cols-2">
         <Field
           label="Full name"
           name="full_name"
@@ -322,6 +354,15 @@ export function RegistrationForm({ initialRoute }) {
             valueAsNumber: true,
             min: { value: 10, message: "You must be at least 10 years old" },
             max: { value: 100, message: "Enter an age of 100 or below" },
+            validate: (value) => {
+              if (selectedRide.minAge && value < selectedRide.minAge) {
+                return `${selectedRide.title} is open to riders aged ${selectedRide.minAge} and above`;
+              }
+              if (selectedRide.maxAge && value > selectedRide.maxAge) {
+                return `${selectedRide.title} is for riders aged ${selectedRide.minAge}–${selectedRide.maxAge}`;
+              }
+              return true;
+            },
           })}
           error={errors.age}
           autoComplete="off"
@@ -362,7 +403,7 @@ export function RegistrationForm({ initialRoute }) {
       </div>
 
       {/* Organization / Affiliation Section */}
-      <fieldset className="mt-7 rounded-2xl border border-[#071313]/15 bg-white/55 p-4 sm:mt-8 sm:p-5">
+      <fieldset className="mt-7 rounded-2xl border border-[#071313]/15 bg-white/55 p-3.5 shadow-sm sm:mt-8 sm:p-5">
         <legend className="sr-only">Affiliation and representation</legend>
         <p className="text-xs font-black tracking-[.15em] text-[#ff5f3d] uppercase">
           Ride together, if you want
@@ -380,7 +421,7 @@ export function RegistrationForm({ initialRoute }) {
             return (
               <label
                 key={option.value}
-                className={`cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#ff5f3d] ${
+                className={`min-h-[6.5rem] cursor-pointer rounded-xl border p-2.5 text-left transition focus-within:ring-2 focus-within:ring-[#ff5f3d] sm:min-h-0 sm:p-3 ${
                   selected
                     ? "border-[#071313] bg-[#d9ff38] shadow-[2px_2px_0_#071313]"
                     : "border-[#071313]/15 bg-white hover:border-[#071313]/45"
@@ -425,7 +466,7 @@ export function RegistrationForm({ initialRoute }) {
       {/* Race Category Selection */}
       <fieldset
         id="ride-category"
-        className="mt-8"
+        className="mt-7 sm:mt-8"
         aria-invalid={Boolean(errors.ride_category)}
         aria-describedby={errors.ride_category ? "ride-category-error" : undefined}
       >
@@ -435,10 +476,15 @@ export function RegistrationForm({ initialRoute }) {
         <div className="grid grid-cols-1 gap-2.5 min-[360px]:grid-cols-2 lg:grid-cols-3">
           {RIDE_OPTIONS.map((route) => {
             const isSelected = selectedRoute === route.distance;
+            const ageRequirement = route.maxAge
+              ? `Ages ${route.minAge}–${route.maxAge}`
+              : route.minAge
+                ? `Age ${route.minAge}+`
+                : null;
             return (
               <label
                 key={route.distance}
-                className={`cursor-pointer rounded-xl border-2 p-3.5 text-center transition ${
+                className={`min-h-[7.5rem] cursor-pointer rounded-xl border-2 p-3.5 text-center transition sm:min-h-0 ${
                   errors.ride_category
                     ? "border-red-600"
                     : isSelected
@@ -456,9 +502,9 @@ export function RegistrationForm({ initialRoute }) {
                 <b className="block text-sm font-black">{route.title}</b>
                 <span className="mt-0.5 block text-xs font-bold text-[#071313]/85">{route.length} · {route.fee}</span>
                 <span className="block text-[10px] text-[#071313]/60">{route.capacity} spots</span>
-                {route.minAge && (
+                {ageRequirement && (
                   <span className="mt-1 inline-block rounded bg-[#ff5f3d]/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-[#9f3126]">
-                    Age 50+ only
+                    {ageRequirement}
                   </span>
                 )}
               </label>
@@ -468,14 +514,9 @@ export function RegistrationForm({ initialRoute }) {
         {errors.ride_category && (
           <FieldError id="ride-category-error" message={errors.ride_category.message} />
         )}
-        {isSeniorMasters && enteredAge > 0 && enteredAge < 50 && (
-          <p className="mt-3 rounded-lg border border-red-300 bg-red-50 p-2.5 text-xs font-bold text-red-800">
-            ⚠️ Note: The Senior Masters category is reserved for riders aged 50 and above. Your entered age is {enteredAge}. Please select another category or update your age.
-          </p>
-        )}
       </fieldset>
 
-      <div className="mt-5 flex flex-col gap-3 rounded-xl border border-[#071313]/15 bg-white/60 p-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="mt-5 flex flex-col gap-3 rounded-xl border border-[#071313]/15 bg-white/60 p-3.5 text-sm shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
         <div>
           <b className="block">
             {selectedRide.title}: {selectedRide.fee}
@@ -485,12 +526,43 @@ export function RegistrationForm({ initialRoute }) {
           </span>
         </div>
         <span className="self-start rounded-full bg-[#071313] px-3 py-1 text-[10px] font-black tracking-wider text-[#d9ff38] uppercase sm:self-auto">
-          Razorpay
+          Secured by Cashfree Payments
         </span>
       </div>
 
+      {requiresSafetyEquipment && (
+        <aside
+          className="mt-4 rounded-2xl border-2 border-[#ff5f3d]/55 bg-[#ff5f3d]/10 p-4 shadow-sm sm:p-5"
+          aria-label="Mandatory safety equipment notice"
+        >
+          <p className="text-xs font-black tracking-[.12em] text-[#9f3126] uppercase">
+            ⚠ Mandatory safety equipment
+          </p>
+          <p className="mt-2 text-sm font-bold leading-5 text-[#071313]">
+            {selectedRide.title} riders must arrive with a certified cycling helmet and all event-required safety equipment. Riders without the required equipment will not be permitted to start.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-[#071313]/75">
+            Please review the rider waiver and safety rules before continuing. The event team’s safety decision is final.
+          </p>
+        </aside>
+      )}
+
+      {selectedRoute === "Kid-o-thon" && (
+        <aside
+          className="mt-4 rounded-2xl border border-sky-300 bg-sky-50 p-4 text-[#071313] shadow-sm sm:p-5"
+          aria-label="Kid-o-thon supervision notice"
+        >
+          <p className="text-xs font-black tracking-[.12em] text-sky-800 uppercase">
+            Kid-o-thon: closed and monitored area
+          </p>
+          <p className="mt-2 text-sm font-bold leading-5">
+            Kid-o-thon is for riders aged 10–13 and takes place in a closed, monitored riding area. A parent or legal guardian must accompany each child.
+          </p>
+        </aside>
+      )}
+
       {selectedRide.jersey ? (
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
           <label htmlFor="t-shirt" className="text-sm font-bold">
             Challenge jersey size
           </label>
@@ -498,7 +570,7 @@ export function RegistrationForm({ initialRoute }) {
             id="t-shirt"
             name="t_shirt_size"
             {...register("t_shirt_size")}
-            className="border-b-2 border-[#071313] bg-transparent p-2 font-bold"
+            className="min-h-11 border-b-2 border-[#071313] bg-transparent px-2 py-2 font-bold"
           >
             {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
               <option key={size}>{size}</option>
@@ -529,7 +601,7 @@ export function RegistrationForm({ initialRoute }) {
       </ConsentCheckbox>
 
       {/* Strict Cancellation & No-Refund Policy Notice */}
-      <div className="rounded-2xl border border-[#ff5f3d]/30 bg-[#ff5f3d]/10 p-3.5 text-xs text-[#071313] dark:text-white/90">
+      <div className="rounded-2xl border border-[#ff5f3d]/30 bg-[#ff5f3d]/10 p-3.5 text-xs text-[#071313] shadow-sm dark:text-white/90 sm:p-4">
         <p className="font-bold uppercase tracking-wider text-[#ff5f3d] text-[11px]">
           ⚠️ Strict Cancellation & Non-Refundable Policy
         </p>
@@ -582,14 +654,29 @@ export function RegistrationForm({ initialRoute }) {
         type="submit"
         size="lg"
         disabled={status.state === "loading"}
-        className="mt-7 w-full disabled:cursor-wait"
+        className="mt-6 w-full disabled:cursor-wait sm:mt-7"
       >
         {status.state === "loading" ? (
           <LoadingIndicator label="OPENING PAYMENT…" className="text-white" />
         ) : (
-          "CONTINUE TO PAYMENT →"
+          "CONTINUE TO SECURE PAYMENT →"
         )}
       </Button>
+
+      {/* Sanitized User-Friendly Error Alert with Standard Error Code */}
+      {status.state === "error" && (
+        <ErrorAlert
+          error={
+            status.error || {
+              code: "ERR_REGISTRATION_FAILED",
+              title: "Registration Unsuccessful",
+              message: status.message,
+            }
+          }
+          onRetry={pendingRegistration?.checkout ? undefined : () => handleSubmit(submit)()}
+          onDismiss={() => setStatus({ state: "idle", message: "", error: null })}
+        />
+      )}
 
       {status.state === "error" && pendingRegistration?.checkout && (
         <Button
@@ -597,30 +684,32 @@ export function RegistrationForm({ initialRoute }) {
           size="lg"
           className="mt-3 w-full border-2 border-[#ff5f3d] bg-transparent text-[#ff5f3d] hover:bg-[#ff5f3d] hover:text-white"
           onClick={async () => {
-            setStatus({ state: "loading", message: "Reopening payment…" });
+            setStatus({ state: "loading", message: "Reopening payment…", error: null });
             try {
-              const completedRegistration = await openRazorpayCheckout({
+              const completedRegistration = await openCashfreeCheckout({
                 checkout: pendingRegistration.checkout,
-                registration: { ...pendingRegistration, ...pendingRegistration.payload },
-                verifyPayment: (payment) =>
+                verifyPayment: () =>
                   request(`/cyclothon/registrations/${pendingRegistration.id}/payment/verify`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payment),
+                    body: JSON.stringify({ order_id: pendingRegistration.checkout.order_id }),
                   }),
               });
               setPendingRegistration(null);
               setStatus({
                 state: "success",
                 message: `You are registered. Your rider ID is #${completedRegistration.id}.`,
+                error: null,
               });
               toast.success("Registration confirmed — see you on the road!");
             } catch (error) {
+              const normalized = normalizeError(error);
               setStatus({
                 state: "error",
-                message: "Payment was not completed. You can retry payment below.",
+                error: normalized,
+                message: "Payment was not completed. No registration has been confirmed. You can retry payment below.",
               });
-              toast.error(error.message);
+              toast.error(normalized.message);
             }
           }}
         >
@@ -628,12 +717,11 @@ export function RegistrationForm({ initialRoute }) {
         </Button>
       )}
 
-      <p
-        aria-live="polite"
-        className={`mt-4 text-center text-xs ${status.state === "error" ? "text-red-700" : "text-[#071313]/65"}`}
-      >
-        {status.message}
-      </p>
+      {status.state === "loading" && (
+        <p aria-live="polite" className="mt-4 text-center text-xs text-[#071313]/65">
+          {status.message}
+        </p>
+      )}
       <ErrorSummary errors={errors} />
 
       <PolicyModal
@@ -661,7 +749,7 @@ const PhoneField = forwardRef(function PhoneField(
           value={countryCode}
           onChange={(e) => onCountryCodeChange(e.target.value)}
           aria-label="Country calling code"
-          className="w-20 shrink-0 cursor-pointer truncate bg-transparent py-3 pr-1 text-sm font-bold text-[#071313] outline-none sm:w-24"
+          className="w-[4.75rem] shrink-0 cursor-pointer truncate bg-transparent py-3 pr-1 text-sm font-bold text-[#071313] outline-none sm:w-24"
         >
           {COUNTRY_CODES.map((c) => (
             <option key={c.code} value={c.code} className="bg-white py-1 text-[#071313]">
@@ -709,7 +797,7 @@ const ConsentCheckbox = forwardRef(function ConsentCheckbox(
   const id = `field-${name}`;
   return (
     <div className="mt-4">
-      <label className="flex gap-3 text-sm leading-5" htmlFor={id}>
+      <label className="flex items-start gap-3 text-[13px] leading-5 sm:text-sm" htmlFor={id}>
         <input
           id={id}
           type="checkbox"
@@ -722,7 +810,9 @@ const ConsentCheckbox = forwardRef(function ConsentCheckbox(
             error ? "outline outline-2 outline-red-600" : ""
           }`}
         />
-        {children}
+        <span className="min-w-0 flex-1">
+          {children}
+        </span>
       </label>
       {error && <FieldError id={`${id}-error`} message={error.message} />}
     </div>

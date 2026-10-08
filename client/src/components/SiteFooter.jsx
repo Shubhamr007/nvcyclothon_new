@@ -53,7 +53,6 @@ export function SiteFooter() {
             >
               Rider Waiver
             </button>
-            <span className="text-white/20">|</span>
             <button
               type="button"
               onClick={() => openPolicy("privacy")}
@@ -61,7 +60,16 @@ export function SiteFooter() {
             >
               Privacy Policy
             </button>
+            <span className="text-white/20">|</span>
+            <button
+              type="button"
+              onClick={() => openPolicy("copyright")}
+              className="transition-colors hover:text-[#ff5f3d] underline decoration-white/30 underline-offset-4"
+            >
+              Copyright & IP
+            </button>
           </div>
+
 
           {/* Association */}
           <div className="flex items-center gap-2">

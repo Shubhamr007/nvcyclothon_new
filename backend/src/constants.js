@@ -7,12 +7,14 @@ const EARLY_BIRD_LIMIT = 50;
 const RACE_CATEGORIES = {
   "60 Km Road Challenge": {
     capacity: 100,
+    min_age: 18,
     early_bird: 89_900,
     regular: 109_900,
     last_week: 129_900,
   },
   "30 Km MTB Challenge": {
     capacity: 150,
+    min_age: 16,
     early_bird: 79_900,
     regular: 99_900,
     last_week: 119_900,
@@ -25,15 +27,11 @@ const RACE_CATEGORIES = {
   },
   "Kid-o-thon": {
     capacity: 50,
+    min_age: 10,
+    max_age: 13,
     early_bird: 29_900,
     regular: 29_900,
     last_week: 29_900,
-  },
-  "25 Km Senior Masters": {
-    capacity: 100,
-    early_bird: 69_900,
-    regular: 89_900,
-    last_week: 109_900,
   },
 };
 

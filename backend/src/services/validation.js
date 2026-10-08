@@ -34,6 +34,54 @@ function normalizeEmail(value) {
   return normalized;
 }
 
+function isPrivateOrReservedHost(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+
+  if (
+    host === "localhost" ||
+    host === "metadata.google.internal" ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return true;
+  }
+
+  // IPv4 check
+  const ipv4Match = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4Match) {
+    const [b0, b1, b2, b3] = ipv4Match.slice(1).map(Number);
+    if (b0 > 255 || b1 > 255 || b2 > 255 || b3 > 255) return true;
+
+    // 0.0.0.0/8
+    if (b0 === 0) return true;
+    // 10.0.0.0/8 (Private)
+    if (b0 === 10) return true;
+    // 127.0.0.0/8 (Loopback)
+    if (b0 === 127) return true;
+    // 169.254.0.0/16 (Link-local / Cloud metadata: 169.254.169.254)
+    if (b0 === 169 && b1 === 254) return true;
+    // 172.16.0.0/12 (Private)
+    if (b0 === 172 && b1 >= 16 && b1 <= 31) return true;
+    // 192.168.0.0/16 (Private)
+    if (b0 === 192 && b1 === 168) return true;
+    // 100.64.0.0/10 (Carrier-grade NAT)
+    if (b0 === 100 && b1 >= 64 && b1 <= 127) return true;
+  }
+
+  // IPv6 check
+  if (
+    host === "::1" ||
+    host === "::" ||
+    host.startsWith("fc00:") ||
+    host.startsWith("fd00:") ||
+    host.startsWith("fe80:")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function validateHttpsUrl(value) {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -46,6 +94,12 @@ function validateHttpsUrl(value) {
   }
   if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
     throw new ValidationError("Image URLs must use HTTPS and may not include credentials");
+  }
+  if (parsed.port && parsed.port !== "443") {
+    throw new ValidationError("Image URLs must use standard HTTPS (port 443)");
+  }
+  if (isPrivateOrReservedHost(parsed.hostname)) {
+    throw new ValidationError("Image URLs must point to a public domain, not a local or private network address");
   }
   return parsed.toString();
 }
@@ -116,13 +170,21 @@ const registrationCreateSchema = z
   })
   .refine(
     (data) => {
-      if (data.ride_category === "25 Km Senior Masters" && data.age < 50) {
-        return false;
-      }
-      return true;
+      const category = RACE_CATEGORIES[data.ride_category];
+      return !category.min_age || data.age >= category.min_age;
     },
     {
-      message: "Senior Masters Challenge is reserved for riders aged 50 and above",
+      message: "You do not meet the minimum age requirement for this ride category",
+      path: ["age"],
+    }
+  )
+  .refine(
+    (data) => {
+      const category = RACE_CATEGORIES[data.ride_category];
+      return !category.max_age || data.age <= category.max_age;
+    },
+    {
+      message: "You exceed the maximum age requirement for this ride category",
       path: ["age"],
     }
   )
@@ -141,10 +203,10 @@ const registrationCreateSchema = z
   );
 
 const paymentVerifySchema = z.object({
-  razorpay_order_id: z.string().trim().min(5).max(100),
-  razorpay_payment_id: z.string().trim().min(5).max(100),
-  razorpay_signature: z.string().trim().min(32).max(128),
+  order_id: z.string().trim().min(3).max(100),
 });
+
+const cashfreePaymentVerifySchema = paymentVerifySchema;
 
 const statusUpdateSchema = z.object({
   status: z.enum(REGISTRATION_STATUSES),
@@ -575,6 +637,7 @@ module.exports = {
   orderCreateSchema,
   registrationCreateSchema,
   paymentVerifySchema,
+  cashfreePaymentVerifySchema,
   statusUpdateSchema,
   bulkStatusUpdateSchema,
   offerSchema,
@@ -606,6 +669,7 @@ module.exports = {
   normalizeDelegationInput,
   normalizePartnerApplicationInput,
   normalizeVendorApplicationInput,
+  validateHttpsUrl,
   VENDOR_CATEGORIES,
   PARTNER_STATUSES,
   VENDOR_STATUSES,

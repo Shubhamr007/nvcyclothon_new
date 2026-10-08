@@ -66,10 +66,8 @@ export function SiteSettingsProvider({ children }) {
         setState((current) => ({ ...current, loading: false, error }));
       });
     loadSettings();
-    const refreshTimer = window.setInterval(loadSettings, 30_000);
     return () => {
       cancelled = true;
-      window.clearInterval(refreshTimer);
     };
   }, []);
 

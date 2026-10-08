@@ -68,9 +68,9 @@ export function RideCards() {
               >
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black tracking-[.18em] uppercase">Category 0{index + 1}</p>
-                  {route.minAge && (
+                  {(route.minAge || route.maxAge) && (
                     <span className="rounded-full bg-[#071313] px-2 py-0.5 text-[9px] font-black uppercase text-[#facc15]">
-                      Age 50+
+                      {route.maxAge ? `Ages ${route.minAge}–${route.maxAge}` : `Age ${route.minAge}+`}
                     </span>
                   )}
                 </div>

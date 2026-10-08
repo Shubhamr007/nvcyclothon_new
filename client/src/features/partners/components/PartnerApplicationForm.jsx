@@ -11,6 +11,8 @@ import {
 } from "../constants";
 import { submitPartnerApplication } from "../../../api/http";
 import { uploadImage, isCloudinaryConfigured } from "../../../services/cloudinary";
+import { normalizeError } from "../../../utils/errorHandler";
+import { ErrorAlert } from "../../../components/ErrorAlert";
 
 const STEPS = [
   { id: 1, label: "01 Company", title: "Company Information" },
@@ -67,6 +69,7 @@ function getInitialPartnerValues(initialPackage) {
 export function PartnerApplicationForm({ initialPackage = null }) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [successData, setSuccessData] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
@@ -171,6 +174,7 @@ export function PartnerApplicationForm({ initialPackage = null }) {
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const socialLinks = {
         instagram: data.instagram || "",
@@ -224,7 +228,9 @@ export function PartnerApplicationForm({ initialPackage = null }) {
       });
       toast.success("Partnership application submitted successfully!");
     } catch (err) {
-      toast.error(err.message || "Failed to submit partner application.");
+      const appErr = normalizeError(err);
+      setSubmitError(appErr);
+      toast.error(appErr.message);
     } finally {
       setSubmitting(false);
     }
@@ -901,6 +907,12 @@ export function PartnerApplicationForm({ initialPackage = null }) {
                 </span>
               </label>
             </div>
+          </div>
+        )}
+
+        {submitError && (
+          <div className="mt-6">
+            <ErrorAlert error={submitError} onDismiss={() => setSubmitError(null)} />
           </div>
         )}
 
