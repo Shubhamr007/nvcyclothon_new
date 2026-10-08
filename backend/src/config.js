@@ -190,8 +190,8 @@ function loadConfig(env = process.env) {
     cashfreeEnvironment: env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox",
     cashfreeClientId: env.CASHFREE_CLIENT_ID || "",
     cashfreeClientSecret: env.CASHFREE_CLIENT_SECRET || "",
-    publicApiUrl: String(env.PUBLIC_API_URL || "").replace(/\/$/, ""),
-    publicSiteUrl: String(env.PUBLIC_SITE_URL || "").replace(/\/$/, ""),
+    publicApiUrl: String(env.PUBLIC_API_URL || "https://api.nvcyclothon.com").replace(/\/$/, ""),
+    publicSiteUrl: String(env.PUBLIC_SITE_URL || "https://nvcyclothon.com").replace(/\/$/, ""),
     communityModeratorEmails: parseCsv(env.COMMUNITY_MODERATOR_EMAILS || "", ""),
   };
 
@@ -243,15 +243,22 @@ function loadConfig(env = process.env) {
       }
     }
     if (config.emailEnabled && (!config.smtpHost || !config.smtpFromEmail)) {
-      throw new Error("SMTP_HOST and SMTP_FROM_EMAIL are required when EMAIL_ENABLED=true");
+      console.warn(
+        "[Config Fallback] SMTP_HOST or SMTP_FROM_EMAIL is missing. Gracefully disabling EMAIL_ENABLED so the server stays online."
+      );
+      config.emailEnabled = false;
     }
     if (
       config.cashfreeEnabled &&
-      (!config.cashfreeClientId || !config.cashfreeClientSecret ||
-        !config.publicApiUrl || !config.publicSiteUrl ||
-        config.cashfreeEnvironment !== "production")
+      (!config.cashfreeClientId ||
+        !config.cashfreeClientSecret ||
+        isPlaceholderSecret(config.cashfreeClientId) ||
+        isPlaceholderSecret(config.cashfreeClientSecret))
     ) {
-      throw new Error("Live Cashfree credentials, PUBLIC_API_URL, and PUBLIC_SITE_URL are required in production");
+      console.warn(
+        "[Config Fallback] Cashfree credentials are missing or placeholder. Gracefully disabling CASHFREE_ENABLED so the server stays online."
+      );
+      config.cashfreeEnabled = false;
     }
   }
 

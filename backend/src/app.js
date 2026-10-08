@@ -67,8 +67,17 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
 
   app.use((req, _res, next) => {
     const hostHeader = String(req.headers.host || "");
-    const host = hostHeader.split(":")[0];
-    if (!config.allowedHosts.includes(host)) {
+    const host = hostHeader.split(":")[0].toLowerCase();
+    const isAllowedHost =
+      !host ||
+      config.allowedHosts.includes(host) ||
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "nvcyclothon.com" ||
+      host.endsWith(".nvcyclothon.com") ||
+      host === "nvcyclothon.in" ||
+      host.endsWith(".nvcyclothon.in");
+    if (!isAllowedHost) {
       next(new ApiError(400, "Invalid host header"));
       return;
     }
@@ -78,16 +87,38 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || config.allowedOrigins.includes(origin)) {
+        if (!origin) {
+          callback(null, true);
+          return;
+        }
+        const isAllowed =
+          config.allowedOrigins.includes(origin) ||
+          /^https?:\/\/([a-z0-9-]+\.)*nvcyclothon\.(com|in)(:\d+)?$/i.test(origin) ||
+          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+        if (isAllowed) {
           callback(null, true);
           return;
         }
         callback(new ApiError(403, "Origin is not allowed"));
       },
       credentials: false,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-      allowedHeaders: ["Authorization", "Content-Type", "X-Request-ID"],
-      maxAge: 600,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Authorization",
+        "Content-Type",
+        "X-Request-ID",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Cache-Control",
+        "Pragma",
+        "x-client-id",
+        "x-api-version",
+        "x-idempotency-key",
+      ],
+      exposedHeaders: ["X-Request-ID", "Content-Disposition", "Content-Length"],
+      optionsSuccessStatus: 200,
+      maxAge: 86400,
     })
   );
 
@@ -121,9 +152,10 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+
     const isMedia = req.path.startsWith("/api/media") || req.path.includes("/media/");
     if (!isMedia) {
-      res.setHeader("Cross-Origin-Resource-Policy", "same-site");
       res.setHeader(
         "Content-Security-Policy",
         "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
@@ -132,8 +164,6 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
         "Cache-Control",
         req.path.startsWith("/api/admin") ? "no-store" : "no-store, max-age=0"
       );
-    } else {
-      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     }
     if (config.environment === "production") {
       res.setHeader(
@@ -284,7 +314,7 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
     })
   );
 
-  app.get("/api/health", (_req, res) => {
+  app.get(["/health", "/api/health"], (_req, res) => {
     res.json({ status: "ok", service: config.appName });
   });
 

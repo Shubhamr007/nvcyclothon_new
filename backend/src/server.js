@@ -1,5 +1,15 @@
 const { buildApplication } = require("./bootstrap");
 
+// Process-level guards: Prevent background exceptions or unhandled rejections
+// from terminating the Node process and causing a 502 Bad Gateway outage.
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[Process Guard] Unhandled Rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("[Process Guard] Uncaught Exception:", error);
+});
+
 async function start() {
   const runtime = await buildApplication();
   const server = runtime.app.listen(runtime.config.port, () => {

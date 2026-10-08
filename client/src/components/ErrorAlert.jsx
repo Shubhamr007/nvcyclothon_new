@@ -10,7 +10,7 @@ import { AlertCircle, Clock, CreditCard, RefreshCw, ShieldAlert, X } from "lucid
  * @param {Function} [props.onDismiss] - Optional dismiss handler
  * @param {string} [props.className] - Additional styling
  */
-export function ErrorAlert({ error, onRetry, onDismiss, className = "" }) {
+export function ErrorAlert({ error, onRetry, onDismiss, showCode = false, className = "" }) {
   if (!error) return null;
 
   const code = error.code || "ERR_UNKNOWN";
@@ -43,17 +43,19 @@ export function ErrorAlert({ error, onRetry, onDismiss, className = "" }) {
         <div className="mt-0.5">{renderIcon()}</div>
 
         <div className="min-w-0 flex-1">
-          {/* Header row with Title and Error Code Badge */}
+          {/* Header row with Title and optional Error Code Badge */}
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-black tracking-tight text-neutral-900 dark:text-white uppercase">
               {title}
             </h4>
-            <span
-              className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/15 px-2 py-0.5 text-[10px] font-black tracking-wider text-rose-700 dark:text-rose-300 uppercase"
-              aria-label={`Error code: ${code}`}
-            >
-              CODE: {code}
-            </span>
+            {showCode && (
+              <span
+                className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/15 px-2 py-0.5 text-[10px] font-black tracking-wider text-rose-700 dark:text-rose-300 uppercase"
+                aria-label={`Error code: ${code}`}
+              >
+                CODE: {code}
+              </span>
+            )}
           </div>
 
           {/* User-friendly sanitized explanation */}
