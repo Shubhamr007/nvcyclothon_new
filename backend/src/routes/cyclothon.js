@@ -46,19 +46,50 @@ function createCyclothonRouter({
     });
   }
 
+  router.get("/webhook/cashfree", (_req, res) => {
+    res.status(200).json({ status: "ok", service: "cashfree-webhook" });
+  });
+
   router.post("/webhook/cashfree", async (req, res) => {
+    const signature = req.header("x-webhook-signature");
+    const timestamp = req.header("x-webhook-timestamp");
+    const rawBody = req.rawBody?.toString("utf8") || JSON.stringify(req.body || {});
+
+    console.log("[Cashfree Webhook] Received:", {
+      hasSignature: Boolean(signature),
+      timestamp,
+      type: req.body?.type || req.body?.event,
+      isTest: Boolean(req.body?.test || req.header("x-webhook-test")),
+    });
+
     if (!config.cashfreeEnabled) {
       res.status(404).json({ detail: "Not found" });
       return;
     }
+
+    // Cashfree Dashboard "Test" button sends a connectivity verification ping
+    const isTestPing =
+      !signature ||
+      req.body?.type === "TEST" ||
+      req.body?.event === "TEST" ||
+      req.header("x-webhook-test") === "true";
+
+    if (isTestPing) {
+      console.log("[Cashfree Webhook] Acknowledged test ping successfully.");
+      res.status(200).json({ status: "ok", message: "Cashfree test ping acknowledged" });
+      return;
+    }
+
     if (!cashfreeService.verifyWebhook({
-      signature: req.header("x-webhook-signature"),
-      timestamp: req.header("x-webhook-timestamp"),
-      rawBody: req.rawBody || Buffer.from(JSON.stringify(req.body || {})),
+      signature,
+      timestamp,
+      rawBody,
     })) {
+      console.warn("[Cashfree Webhook] Signature verification failed!");
       res.status(401).json({ detail: "Invalid webhook signature" });
       return;
     }
+
     const payment = req.body?.data?.payment;
     const order = req.body?.data?.order;
     if (req.body?.type === "PAYMENT_SUCCESS_WEBHOOK" && order?.order_id && payment?.cf_payment_id) {
@@ -71,13 +102,12 @@ function createCyclothonRouter({
           void sendAndRecordRegistrationConfirmation(updated);
         }
       } catch (err) {
-        // If order not found (e.g. test webhook ping from Cashfree Dashboard), log and still return 200 to acknowledge Cashfree
         if (!(err instanceof NotFoundError)) {
           throw err;
         }
       }
     }
-    res.status(204).end();
+    res.status(200).json({ status: "ok" });
   });
 
   router.post(

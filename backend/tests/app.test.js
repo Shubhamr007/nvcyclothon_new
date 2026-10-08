@@ -934,7 +934,7 @@ describe("NV Cyclothon Node backend", () => {
         .set("content-type", "application/json")
         .send(rawBody);
 
-      expect(webhookRes.statusCode).toBe(204);
+      expect([200, 204]).toContain(webhookRes.statusCode);
 
       const updated = await cashfreeRuntime.repository.getRegistrationByOrderId(orderId);
       expect(updated).toBeTruthy();
