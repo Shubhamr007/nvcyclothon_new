@@ -53,6 +53,19 @@ function isPlaceholderSecret(secret) {
   return PLACEHOLDER_SECRET_PATTERNS.some((pattern) => lower.includes(pattern));
 }
 
+function resolveAssetPath(envPath, candidateRelativePaths) {
+  if (envPath) {
+    return path.resolve(__dirname, "..", envPath);
+  }
+  for (const candidate of candidateRelativePaths) {
+    const resolved = path.resolve(__dirname, "..", candidate);
+    if (fs.existsSync(resolved)) {
+      return resolved;
+    }
+  }
+  return path.resolve(__dirname, "..", candidateRelativePaths[0]);
+}
+
 function parseVolunteerCredentials(value) {
   if (!value) {
     return {};
@@ -159,21 +172,20 @@ function loadConfig(env = process.env) {
     smtpPassword: String(env.SMTP_PASSWORD || "").replace(/\s+/g, ""),
     smtpFromEmail: env.SMTP_FROM_EMAIL || "",
     smtpUseTls: parseBool(env.SMTP_USE_TLS, true),
-    emailBannerImagePath: path.resolve(
-      __dirname,
-      "..",
-      env.EMAIL_BANNER_IMAGE_PATH || "../client/assets/email_banner_image.png"
-    ),
-    riderPassTemplatePath: path.resolve(
-      __dirname,
-      "..",
-      env.RIDER_PASS_TEMPLATE_PATH || "../client/assets/NV_Cyclothon_2026_Official_Rider_Pass_Approval.pdf"
-    ),
-    certificateTemplatePath: path.resolve(
-      __dirname,
-      "..",
-      env.CERTIFICATE_TEMPLATE_PATH || "../client/assets/NV_Cyclothon_2026_Certificate_Design_Approval.pdf"
-    ),
+    emailBannerImagePath: resolveAssetPath(env.EMAIL_BANNER_IMAGE_PATH, [
+      "assets/email-banner.png",
+      "assets/email_banner_image.png",
+      "../client/assets/email_banner_image.png",
+    ]),
+    riderPassTemplatePath: resolveAssetPath(env.RIDER_PASS_TEMPLATE_PATH, [
+      "assets/rider-pass-template.png",
+      "assets/rider-pass-original.png",
+      "../client/assets/NV_Cyclothon_2026_Official_Rider_Pass_Approval.pdf",
+    ]),
+    certificateTemplatePath: resolveAssetPath(env.CERTIFICATE_TEMPLATE_PATH, [
+      "assets/certificate-template.pdf",
+      "../client/assets/NV_Cyclothon_2026_Certificate_Design_Approval.pdf",
+    ]),
     cashfreeEnabled: parseBool(env.CASHFREE_ENABLED, false),
     cashfreeEnvironment: env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox",
     cashfreeClientId: env.CASHFREE_CLIENT_ID || "",

@@ -68,14 +68,19 @@ function createCyclothonRouter({
     }
 
     // Cashfree Dashboard "Test" button sends a connectivity verification ping
+    // Note: Cashfree dashboard test ping sends type: "WEBHOOK" with a test signature
+    const eventType = String(req.body?.type || req.body?.event || "").toUpperCase();
     const isTestPing =
       !signature ||
-      req.body?.type === "TEST" ||
-      req.body?.event === "TEST" ||
+      eventType === "WEBHOOK" ||
+      eventType === "TEST" ||
+      eventType === "TEST_WEBHOOK" ||
+      eventType === "TEST_NOTIFICATION" ||
+      req.body?.test === true ||
       req.header("x-webhook-test") === "true";
 
     if (isTestPing) {
-      console.log("[Cashfree Webhook] Acknowledged test ping successfully.");
+      console.log("[Cashfree Webhook] Acknowledged test ping successfully. Event type:", eventType);
       res.status(200).json({ status: "ok", message: "Cashfree test ping acknowledged" });
       return;
     }
