@@ -121,7 +121,10 @@ function loadConfig(env = process.env) {
            !databaseUrl.includes("localhost")),
     databaseSslRejectUnauthorized: parseBool(env.DATABASE_SSL_REJECT_UNAUTHORIZED, true),
     uploadDir: path.resolve(__dirname, "..", env.UPLOAD_DIR || "uploads"),
-    allowedOrigins: parseCsv(env.ALLOWED_ORIGINS, "http://localhost:5173"),
+    allowedOrigins: parseCsv(
+      env.ALLOWED_ORIGINS,
+      "https://nvcyclothon.com,https://www.nvcyclothon.com,https://admin.nvcyclothon.com,https://nvcyclothon.in,https://www.nvcyclothon.in,http://localhost:5173,http://localhost:3000"
+    ),
     allowedHosts: parseCsv(env.ALLOWED_HOSTS, "localhost,127.0.0.1"),
     adminAuthEnabled: parseBool(env.ADMIN_AUTH_ENABLED, true),
     adminUsername: String(env.ADMIN_USERNAME || "admin").trim(),

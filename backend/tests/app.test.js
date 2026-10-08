@@ -1151,4 +1151,63 @@ describe("NV Cyclothon Node backend", () => {
       expect(fetchRes.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
     });
   });
+
+  describe("Strict CORS and Multi-Domain Origin Hardening", () => {
+    const validOrigins = [
+      "https://nvcyclothon.com",
+      "https://www.nvcyclothon.com",
+      "https://admin.nvcyclothon.com",
+      "https://api.nvcyclothon.com",
+      "https://nvcyclothon.in",
+      "https://www.nvcyclothon.in",
+      "https://admin.nvcyclothon.in",
+      "https://preview.nvcyclothon.com",
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://127.0.0.1:5173",
+    ];
+
+    it.each(validOrigins)("allows requests and preflight from valid origin: %s", async (origin) => {
+      // Test GET /health with Origin
+      const res = await request(runtime.app)
+        .get("/health")
+        .set("Origin", origin)
+        .set("Host", "api.nvcyclothon.com");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers["access-control-allow-origin"]).toBe(origin);
+      expect(res.headers["cross-origin-resource-policy"]).toBe("cross-origin");
+
+      // Test preflight OPTIONS
+      const optionsRes = await request(runtime.app)
+        .options("/api/cyclothon/registrations")
+        .set("Origin", origin)
+        .set("Host", "api.nvcyclothon.com")
+        .set("Access-Control-Request-Method", "POST")
+        .set("Access-Control-Request-Headers", "Content-Type, Authorization, Accept, X-Request-ID");
+
+      expect(optionsRes.statusCode).toBe(200);
+      expect(optionsRes.headers["access-control-allow-origin"]).toBe(origin);
+      expect(optionsRes.headers["access-control-allow-methods"]).toContain("POST");
+      expect(optionsRes.headers["access-control-max-age"]).toBe("86400");
+    });
+
+    it("rejects unauthorized foreign origins", async () => {
+      const res = await request(runtime.app)
+        .get("/health")
+        .set("Origin", "https://malicious-website.com")
+        .set("Host", "api.nvcyclothon.com");
+
+      expect(res.statusCode).toBe(403);
+      expect(res.body.detail).toBe("Origin is not allowed");
+    });
+
+    it("permits non-browser server-to-server requests without Origin (e.g. Cashfree webhook)", async () => {
+      const res = await request(runtime.app)
+        .get("/health")
+        .set("Host", "api.nvcyclothon.com");
+
+      expect(res.statusCode).toBe(200);
+    });
+  });
 });

@@ -21,6 +21,8 @@ export async function request(path, options = {}) {
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${API_BASE}${path}`, {
+      mode: 'cors',
+      credentials: 'omit',
       headers: { Accept: 'application/json', ...options.headers },
       ...fetchOptions,
       signal: options.signal || controller.signal,
@@ -50,6 +52,14 @@ export async function request(path, options = {}) {
     }
     if (error.name === 'AbortError') {
       throw new ApiError(408, "The API request timed out.", "ERR_TIMEOUT", "Request aborted or timed out.");
+    }
+    if (error instanceof TypeError && String(error.message || "").toLowerCase().includes("failed to fetch")) {
+      throw new ApiError(
+        0,
+        "Unable to reach NV Cyclothon servers. Please check your internet connection.",
+        "ERR_NETWORK_OFFLINE",
+        error.message
+      );
     }
     throw error;
   } finally {
