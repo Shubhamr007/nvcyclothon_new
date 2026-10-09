@@ -1,46 +1,31 @@
 import React, { useState, useMemo } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import {
-  Search,
-  CheckCircle2,
-  FileText,
-  Award,
-  Eye,
-  Send,
-  Upload,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  Filter,
   Users,
-  QrCode,
-  X,
+  Award,
   AlertCircle,
-  Copy,
-  Check,
-  UserCheck,
-  Clock,
-  Mail,
-  Phone,
-  Shirt,
-  Building,
-  MapPin,
-  ExternalLink,
-  Loader2,
+  X,
 } from "lucide-react";
 import { adminRequest, adminDownload } from "../../../api/http";
 import { useDebouncedValue } from "../../../components/useDebouncedValue";
-import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { bulkDeleteAdminRecords } from "../../../api/http";
-import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
+
+import { ParticipantQrModal } from "../participants/ParticipantQrModal";
+import { BatchManagementModal } from "../participants/BatchManagementModal";
+import { EventDayRaceRoster, AGE_BRACKETS } from "../participants/EventDayRaceRoster";
+import { ParticipantDirectoryToolbar } from "../participants/ParticipantDirectoryToolbar";
+import { ParticipantBulkActionBar } from "../participants/ParticipantBulkActionBar";
+import { ParticipantDirectoryRow } from "../participants/ParticipantDirectoryRow";
+import { TablePagination } from "../components/TablePagination";
 
 function formatStatus(status) {
   return String(status || "").replaceAll("_", " ");
 }
 
 export function ParticipantsTab({ riders = [], adminKey, refresh }) {
+  const [viewMode, setViewMode] = useState("directory"); // "directory" | "roster"
   const [selectedIds, setSelectedIds] = useState([]);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [certificateFile, setCertificateFile] = useState(null);
@@ -55,6 +40,20 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
   const [pageSize, setPageSize] = useState(20);
   const [qrModalRider, setQrModalRider] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Roster-specific state
+  const [rosterRoute, setRosterRoute] = useState("all");
+  const [rosterBatch, setRosterBatch] = useState("all");
+  const [selectedRosterIds, setSelectedRosterIds] = useState([]);
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+  const [isBatchSaving, setIsBatchSaving] = useState(false);
+  const [rosterAgeBracket, setRosterAgeBracket] = useState("all");
+  const [rosterMinAge, setRosterMinAge] = useState("");
+  const [rosterMaxAge, setRosterMaxAge] = useState("");
+  const [rosterGender, setRosterGender] = useState("all");
+  const [rosterStatus, setRosterStatus] = useState("all");
+  const [rosterPage, setRosterPage] = useState(1);
+  const [rosterPageSize, setRosterPageSize] = useState(25);
 
   const debouncedSearchText = useDebouncedValue(searchText.trim().toLowerCase(), 250);
 
@@ -71,6 +70,17 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
     );
   }, [riders]);
 
+  // Unique Batches
+  const uniqueBatches = useMemo(() => {
+    const set = new Set();
+    riders.forEach((r) => {
+      if (r.batch_name && String(r.batch_name).trim()) {
+        set.add(String(r.batch_name).trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [riders]);
+
   // Unique Routes
   const uniqueRoutes = useMemo(() => {
     const set = new Set();
@@ -80,7 +90,7 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
     return Array.from(set);
   }, [riders]);
 
-  // Filtering
+  // Filtering Directory
   const filteredRiders = useMemo(() => {
     return riders.filter((rider) => {
       // Certificate filter
@@ -120,13 +130,177 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
     });
   }, [riders, certificateFilter, routeFilter, statusFilter, debouncedSearchText]);
 
-  // Pagination
+  // Pagination Directory
   const totalPages = Math.max(1, Math.ceil(filteredRiders.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const paginatedRiders = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredRiders.slice(start, start + pageSize);
   }, [filteredRiders, currentPage, pageSize]);
+
+  // Roster filtering (Ultra-optimized in-memory filter)
+  const rosterFilteredRiders = useMemo(() => {
+    return riders.filter((rider) => {
+      // 1. Route / Category
+      if (rosterRoute !== "all" && rider.ride_category !== rosterRoute) {
+        return false;
+      }
+
+      // 1b. Batch / Wave
+      if (rosterBatch !== "all") {
+        if (rosterBatch === "unassigned") {
+          if (rider.batch_name && String(rider.batch_name).trim()) return false;
+        } else {
+          if (rider.batch_name !== rosterBatch) return false;
+        }
+      }
+
+      // 2. Age Bracket / Range
+      const age =
+        rider.age !== null && rider.age !== undefined && rider.age !== ""
+          ? Number(rider.age)
+          : null;
+
+      if (rosterAgeBracket !== "all") {
+        if (rosterAgeBracket === "custom") {
+          const min = rosterMinAge !== "" ? Number(rosterMinAge) : null;
+          const max = rosterMaxAge !== "" ? Number(rosterMaxAge) : null;
+          if (min !== null && !isNaN(min) && (age === null || isNaN(age) || age < min)) return false;
+          if (max !== null && !isNaN(max) && (age === null || isNaN(age) || age > max)) return false;
+        } else {
+          const bracket = AGE_BRACKETS.find((b) => b.id === rosterAgeBracket);
+          if (bracket) {
+            if (bracket.min !== null && (age === null || isNaN(age) || age < bracket.min)) return false;
+            if (bracket.max !== null && (age === null || isNaN(age) || age > bracket.max)) return false;
+          }
+        }
+      }
+
+      // 3. Gender
+      if (rosterGender !== "all") {
+        const g = String(rider.gender || "").toLowerCase();
+        if (rosterGender === "male" && g !== "male" && g !== "m") return false;
+        if (rosterGender === "female" && g !== "female" && g !== "f") return false;
+        if (rosterGender === "other" && g !== "other") return false;
+      }
+
+      // 4. Check-in status
+      if (rosterStatus !== "all") {
+        if (rosterStatus === "checked_in" && rider.status !== "checked_in") return false;
+        if (rosterStatus === "pending_checkin" && rider.status === "checked_in") return false;
+      }
+
+      // 5. Search
+      if (debouncedSearchText) {
+        const match = [
+          rider.id,
+          rider.full_name,
+          rider.email,
+          rider.phone,
+          rider.ride_category,
+          rider.batch_name,
+          rider.city,
+          rider.t_shirt_size,
+          rider.organization_name,
+          rider.emergency_contact,
+        ].some((val) =>
+          String(val || "").toLowerCase().includes(debouncedSearchText)
+        );
+        if (!match) return false;
+      }
+
+      return true;
+    });
+  }, [
+    riders,
+    rosterRoute,
+    rosterBatch,
+    rosterAgeBracket,
+    rosterMinAge,
+    rosterMaxAge,
+    rosterGender,
+    rosterStatus,
+    debouncedSearchText,
+  ]);
+
+  // Roster pagination
+  const rosterTotalPages = Math.max(1, Math.ceil(rosterFilteredRiders.length / rosterPageSize));
+  const rosterCurrentPage = Math.min(rosterPage, rosterTotalPages);
+  const rosterPaginatedRiders = useMemo(() => {
+    const start = (rosterCurrentPage - 1) * rosterPageSize;
+    return rosterFilteredRiders.slice(start, start + rosterPageSize);
+  }, [rosterFilteredRiders, rosterCurrentPage, rosterPageSize]);
+
+  // Roster summary stats
+  const rosterStats = useMemo(() => {
+    const total = rosterFilteredRiders.length;
+    const checkedIn = rosterFilteredRiders.filter((r) => r.status === "checked_in").length;
+    const pending = total - checkedIn;
+    const batched = rosterFilteredRiders.filter(
+      (r) => r.batch_name && String(r.batch_name).trim()
+    ).length;
+    const unbatched = total - batched;
+    const male = rosterFilteredRiders.filter((r) =>
+      String(r.gender || "").toLowerCase().startsWith("m")
+    ).length;
+    const female = rosterFilteredRiders.filter((r) =>
+      String(r.gender || "").toLowerCase().startsWith("f")
+    ).length;
+    return { total, checkedIn, pending, batched, unbatched, male, female };
+  }, [rosterFilteredRiders]);
+
+  // In-browser instant clean CSV export
+  const handleExportRosterCsv = () => {
+    if (rosterFilteredRiders.length === 0) {
+      alert("No riders found matching the selected filters to export.");
+      return;
+    }
+    const headers = [
+      "Rider ID",
+      "Full Name",
+      "Age",
+      "Gender",
+      "Ride Category",
+      "Batch / Wave",
+      "T-Shirt / Jersey Size",
+      "Phone",
+      "Emergency Contact",
+      "City",
+      "Organization / Team",
+      "Payment Status",
+      "Check-in Status",
+    ];
+
+    const rows = rosterFilteredRiders.map((r) => [
+      `"#${r.id}"`,
+      `"${(r.full_name || "").replace(/"/g, '""')}"`,
+      r.age !== null && r.age !== undefined ? r.age : "",
+      `"${(r.gender || "").replace(/"/g, '""')}"`,
+      `"${(r.ride_category || "").replace(/"/g, '""')}"`,
+      `"${(r.batch_name || "Unassigned").replace(/"/g, '""')}"`,
+      `"${(r.t_shirt_size || "N/A").replace(/"/g, '""')}"`,
+      `"${(r.phone || "").replace(/"/g, '""')}"`,
+      `"${(r.emergency_contact || "").replace(/"/g, '""')}"`,
+      `"${(r.city || "").replace(/"/g, '""')}"`,
+      `"${(r.organization_name || r.organization_type || "").replace(/"/g, '""')}"`,
+      `"${(r.payment_status || "").replace(/"/g, '""')}"`,
+      `"${(r.status || "").replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const safeRoute = (rosterRoute || "all_routes").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    const safeBracket = (rosterAgeBracket || "all_ages").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    const safeBatch = (rosterBatch || "all_batches").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    a.download = `nv_cyclothon_race_roster_${safeRoute}_${safeBracket}_${safeBatch}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Selection
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -211,7 +385,7 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  // Actions
+  // Status updates
   const changeStatus = async (id, status) => {
     try {
       await adminRequest(`/registrations/${id}`, adminKey, {
@@ -456,6 +630,99 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
     }
   };
 
+  const toggleSelectRosterRider = (id) => {
+    setSelectedRosterIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllRoster = () => {
+    const visibleIds = rosterPaginatedRiders.map((r) => r.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedRosterIds.includes(id));
+    if (allSelected) {
+      setSelectedRosterIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedRosterIds((prev) => [...new Set([...prev, ...visibleIds])]);
+    }
+  };
+
+  const handleAssignBatch = async ({
+    mode,
+    targetRiders,
+    batchSize,
+    batchPrefix,
+    startNumber,
+    batchName,
+  }) => {
+    if (!targetRiders || targetRiders.length === 0) return;
+    setIsBatchSaving(true);
+    setActionMessage("");
+    try {
+      if (mode === "auto_split") {
+        const total = targetRiders.length;
+        let riderIdx = 0;
+        let bNum = startNumber;
+        let updatedCount = 0;
+        const totalWaves = Math.ceil(total / batchSize);
+
+        while (riderIdx < total) {
+          const chunk = targetRiders.slice(riderIdx, riderIdx + batchSize);
+          const chunkIds = chunk.map((r) => r.id);
+          const currentBatchName = `${batchPrefix} ${bNum}`;
+
+          setBatchProgress({
+            current: Math.min(riderIdx + batchSize, total),
+            total,
+            percent: Math.round(((riderIdx + chunk.length) / total) * 100),
+            label: `Assigning Wave ${bNum - startNumber + 1}/${totalWaves} (${currentBatchName})...`,
+          });
+
+          const res = await adminRequest("/registrations/bulk-batch", adminKey, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              registration_ids: chunkIds,
+              batch_name: currentBatchName,
+            }),
+          });
+          updatedCount += res.updated || chunkIds.length;
+          riderIdx += batchSize;
+          bNum += 1;
+        }
+
+        setActionMessage(
+          `Successfully generated ${totalWaves} batches for ${updatedCount} riders.`
+        );
+      } else {
+        // Single batch name or clear
+        const targetIds = targetRiders.map((r) => r.id);
+        const res = await adminRequest("/registrations/bulk-batch", adminKey, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            registration_ids: targetIds,
+            batch_name: batchName,
+          }),
+        });
+
+        setActionMessage(
+          batchName
+            ? `Successfully assigned ${res.updated || targetIds.length} riders to "${batchName}".`
+            : `Successfully cleared batch assignment for ${res.updated || targetIds.length} riders.`
+        );
+      }
+
+      setBatchModalOpen(false);
+      setSelectedRosterIds([]);
+      await refresh();
+    } catch (err) {
+      setActionMessage(`Batch assignment error: ${err.message}`);
+    } finally {
+      setIsBatchSaving(false);
+      setBatchProgress(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ACTION MESSAGE NOTIFICATION */}
@@ -475,803 +742,238 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
         </div>
       )}
 
-      {/* FILTER & SEARCH TOOLBAR CARD */}
-      <div className="rounded-2xl border border-[#071313]/10 bg-white p-5 shadow-sm space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-[#071313]">Participant Directory</h2>
-            <p className="text-xs text-[#071313]/60">
-              Compact overview of all riders. Click any row or the chevron to expand full logistics & QR details.
-            </p>
-          </div>
-
-          {/* HIGH-CONTRAST TOTAL SUMMARY BADGES */}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-lg bg-[#071313] text-white px-3 py-1 font-mono font-bold">
-              Total: {riders.length}
-            </span>
-            <span className="rounded-lg bg-blue-100 text-blue-900 border border-blue-300 px-3 py-1 font-bold">
-              Approved: {riders.filter((r) => r.status === "approved").length}
-            </span>
-            {/* HUMAN-READABLE CHECKED IN PILL */}
-            <span className="rounded-lg bg-emerald-600 text-white shadow-sm px-3 py-1 font-bold flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Checked In: {riders.filter((r) => r.status === "checked_in").length}
-            </span>
-          </div>
+      {/* VIEW MODE SELECTOR (FULL DIRECTORY VS EVENT-DAY RACE ROSTER) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-4 print:hidden">
+        <div className="flex items-center gap-1.5 rounded-2xl bg-black/5 p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("directory")}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
+              viewMode === "directory"
+                ? "bg-[#071313] text-white shadow-sm"
+                : "text-black/60 hover:text-black"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Full Directory ({riders.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("roster")}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
+              viewMode === "roster"
+                ? "bg-[#d9ff38] text-[#071313] shadow-sm border border-black/20"
+                : "text-black/60 hover:text-black"
+            }`}
+          >
+            <Award className="h-4 w-4 text-[#ff5f3d]" />
+            Event-Day Race Roster
+          </button>
         </div>
+      </div>
 
-        {/* CONTROLS ROW */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {/* SEARCH INPUT */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/40" />
-            <input
-              type="text"
-              value={searchText}
-              onChange={(e) => {
-                setSearchText(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by name, ID, phone, city..."
-              className="h-10 w-full rounded-xl border border-black/15 bg-white pl-9 pr-8 text-xs text-[#071313] placeholder:text-black/40 focus:border-[#071313] focus:outline-none"
-            />
-            {searchText && (
-              <button
-                type="button"
-                onClick={() => setSearchText("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-black/40 hover:text-black"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* ROUTE FILTER */}
-          <select
-            value={routeFilter}
-            onChange={(e) => {
-              setRouteFilter(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-          >
-            <option value="all">All Routes</option>
-            {uniqueRoutes.map((route) => (
-              <option key={route} value={route}>
-                {route}
-              </option>
-            ))}
-          </select>
-
-          {/* STATUS FILTER */}
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="checked_in">Checked In</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-
-          {/* CERTIFICATE FILTER */}
-          <select
-            value={certificateFilter}
-            onChange={(e) => {
-              setCertificateFilter(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-          >
-            <option value="all">Certificate: All ({certificateCounts.all})</option>
-            <option value="sent">Certificate: Sent ({certificateCounts.sent})</option>
-            <option value="failed">Certificate: Failed ({certificateCounts.failed})</option>
-            <option value="not_sent">Certificate: Not Sent ({certificateCounts.not_sent})</option>
-          </select>
-        </div>
-
-        <SelectedDeleteAction
-          count={selectedIds.length}
-          label="participant"
-          busy={busy}
-          onDelete={deleteSelected}
+      {viewMode === "roster" ? (
+        <EventDayRaceRoster
+          riders={rosterFilteredRiders}
+          paginatedRiders={rosterPaginatedRiders}
+          stats={rosterStats}
+          routes={uniqueRoutes}
+          batches={uniqueBatches}
+          searchText={searchText}
+          onSearchChange={(v) => {
+            setSearchText(v);
+            setRosterPage(1);
+          }}
+          route={rosterRoute}
+          onRouteChange={(v) => {
+            setRosterRoute(v);
+            setRosterPage(1);
+          }}
+          batch={rosterBatch}
+          onBatchChange={(v) => {
+            setRosterBatch(v);
+            setRosterPage(1);
+          }}
+          ageBracket={rosterAgeBracket}
+          onAgeBracketChange={(v) => {
+            setRosterAgeBracket(v);
+            setRosterPage(1);
+          }}
+          minAge={rosterMinAge}
+          onMinAgeChange={(v) => {
+            setRosterMinAge(v);
+            setRosterPage(1);
+          }}
+          maxAge={rosterMaxAge}
+          onMaxAgeChange={(v) => {
+            setRosterMaxAge(v);
+            setRosterPage(1);
+          }}
+          gender={rosterGender}
+          onGenderChange={(v) => {
+            setRosterGender(v);
+            setRosterPage(1);
+          }}
+          status={rosterStatus}
+          onStatusChange={(v) => {
+            setRosterStatus(v);
+            setRosterPage(1);
+          }}
+          selectedRosterIds={selectedRosterIds}
+          onToggleSelectRider={toggleSelectRosterRider}
+          onToggleSelectAll={toggleSelectAllRoster}
+          onOpenBatchModal={() => setBatchModalOpen(true)}
+          onExport={handleExportRosterCsv}
+          onPrint={() => window.print()}
+          onShowQr={setQrModalRider}
+          page={rosterCurrentPage}
+          pageSize={rosterPageSize}
+          totalPages={rosterTotalPages}
+          onPageChange={setRosterPage}
         />
+      ) : (
+        <>
+          {/* FILTER & SEARCH TOOLBAR CARD */}
+          <ParticipantDirectoryToolbar
+            totalCount={riders.length}
+            approvedCount={riders.filter((r) => r.status === "approved").length}
+            checkedInCount={riders.filter((r) => r.status === "checked_in").length}
+            searchText={searchText}
+            onSearchTextChange={(v) => {
+              setSearchText(v);
+              setPage(1);
+            }}
+            routeFilter={routeFilter}
+            onRouteChange={(v) => {
+              setRouteFilter(v);
+              setPage(1);
+            }}
+            uniqueRoutes={uniqueRoutes}
+            statusFilter={statusFilter}
+            onStatusChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+            }}
+            certificateFilter={certificateFilter}
+            onCertificateChange={(v) => {
+              setCertificateFilter(v);
+              setPage(1);
+            }}
+            certificateCounts={certificateCounts}
+            selectedCount={selectedIds.length}
+            busy={busy}
+            onDeleteSelected={deleteSelected}
+            onExpandAll={expandAllVisible}
+            onCollapseAll={collapseAll}
+            expandedCount={expandedIds.size}
+            visibleCount={paginatedRiders.length}
+          />
 
-        {/* EXPAND ALL / COLLAPSE ALL TOGGLES */}
-        <div className="flex items-center justify-between pt-2 border-t border-black/5 text-xs text-black/60">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={expandAllVisible}
-              className="font-bold text-[#071313] hover:text-[#ff5f3d] flex items-center gap-1"
-            >
-              <ChevronDown className="h-3.5 w-3.5" /> Expand All on Page
-            </button>
-            <span>•</span>
-            <button
-              type="button"
-              onClick={collapseAll}
-              className="font-bold text-[#071313] hover:text-[#ff5f3d] flex items-center gap-1"
-            >
-              <ChevronUp className="h-3.5 w-3.5" /> Collapse All
-            </button>
-          </div>
-          <span className="font-mono text-[11px] text-black/40">
-            {expandedIds.size} of {paginatedRiders.length} expanded
-          </span>
-        </div>
-      </div>
+          {/* FLOATING CONTEXTUAL BULK ACTIONS BAR */}
+          <ParticipantBulkActionBar
+            selectedCount={selectedIds.length}
+            busy={busy}
+            batchProgress={batchProgress}
+            riderPassSelectedCount={riderPassSelected.length}
+            checkedInSelectedCount={checkedInSelected.length}
+            certificateFile={certificateFile}
+            onClearSelection={clearSelection}
+            onBulkSetStatus={bulkSetStatus}
+            onPreviewRiderPass={previewRiderPass}
+            onGenerateRiderPasses={generateRiderPasses}
+            onPreviewCertificate={previewCertificate}
+            onGenerateCertificates={generateCertificates}
+            onCertificateFileChange={setCertificateFile}
+            onSendUploadedCertificates={sendUploadedCertificates}
+          />
 
-      {/* FLOATING CONTEXTUAL BULK ACTIONS BAR */}
-      {selectedIds.length > 0 && (
-        <div className="sticky top-20 z-30 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[#071313] p-4 text-white shadow-xl">
-          <div className="flex items-center gap-3">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d9ff38] text-xs font-black text-[#071313]">
-              {selectedIds.length}
-            </span>
-            <span className="text-xs font-bold tracking-wide">
-              participant{selectedIds.length === 1 ? "" : "s"} selected
-            </span>
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="text-xs text-white/50 hover:text-white underline underline-offset-2 ml-2"
-            >
-              Clear selection
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* APPROVE BUTTON */}
-            <Button
-              size="sm"
-              variant="accent"
-              onClick={() => bulkSetStatus("approved")}
-              disabled={busy}
-              className="h-8 text-xs font-bold px-3"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-              Approve ({selectedIds.length})
-            </Button>
-
-            {/* RIDER PASS BUTTONS */}
-            {riderPassSelected.length === 1 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => previewRiderPass()}
-                disabled={busy}
-                className="h-8 border-white/20 bg-white/5 text-xs text-white hover:bg-white/10 px-2.5"
-              >
-                <Eye className="h-3.5 w-3.5 mr-1" />
-                Pass Preview
-              </Button>
-            )}
-
-            {riderPassSelected.length > 0 && (
-              <Button
-                size="sm"
-                onClick={() => generateRiderPasses()}
-                disabled={busy}
-                className="h-8 bg-[#ff5f3d] text-white hover:bg-[#e04f2f] text-xs px-3 font-bold"
-              >
-                {busy && batchProgress ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                ) : (
-                  <Send className="h-3.5 w-3.5 mr-1" />
-                )}
-                {busy && batchProgress
-                  ? `Passes (${batchProgress.current}/${batchProgress.total})`
-                  : `Send Pass (${riderPassSelected.length})`}
-              </Button>
-            )}
-
-            {/* CERTIFICATE BUTTONS */}
-            {checkedInSelected.length === 1 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => previewCertificate()}
-                disabled={busy}
-                className="h-8 border-white/20 bg-white/5 text-xs text-white hover:bg-white/10 px-2.5"
-              >
-                <Eye className="h-3.5 w-3.5 mr-1" />
-                Cert Preview
-              </Button>
-            )}
-
-            {checkedInSelected.length > 0 && (
-              <>
-                <Button
-                  size="sm"
-                  onClick={() => generateCertificates()}
-                  disabled={busy}
-                  className="h-8 bg-emerald-600 text-white hover:bg-emerald-700 text-xs px-3 font-bold"
-                >
-                  {busy && batchProgress ? (
-                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+          {/* PARTICIPANTS DATA TABLE WITH EXPANDABLE ROWS */}
+          <div className="overflow-hidden rounded-2xl border border-[#071313]/10 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-black/10 bg-[#fbf8ef] text-[#071313] font-mono">
+                  <tr>
+                    <th className="p-4 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleSelectPage}
+                        className="accent-[#071313] h-4 w-4 rounded"
+                        aria-label="Select all on this page"
+                      />
+                    </th>
+                    <th className="p-4 w-10 text-center">
+                      <span className="sr-only">Expand</span>
+                    </th>
+                    <th className="p-4 uppercase tracking-wider font-bold">Rider ID & Name</th>
+                    <th className="p-4 uppercase tracking-wider font-bold">Contact</th>
+                    <th className="p-4 uppercase tracking-wider font-bold">Route & Payment</th>
+                    <th className="p-4 uppercase tracking-wider font-bold">Status / Check-in</th>
+                    <th className="p-4 uppercase tracking-wider font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#071313]/5">
+                  {paginatedRiders.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-12 text-center text-xs text-black/50">
+                        No participants matched the active search or filters.
+                      </td>
+                    </tr>
                   ) : (
-                    <Award className="h-3.5 w-3.5 mr-1" />
+                    paginatedRiders.map((rider) => (
+                      <ParticipantDirectoryRow
+                        key={rider.id}
+                        rider={rider}
+                        isChecked={selectedSet.has(rider.id)}
+                        isExpanded={expandedIds.has(rider.id)}
+                        copiedId={copiedId}
+                        busy={busy}
+                        onToggleSelect={toggleSelect}
+                        onToggleExpand={toggleExpand}
+                        onCopyId={copyToClipboard}
+                        onChangeStatus={changeStatus}
+                        onShowQr={setQrModalRider}
+                        previewRiderPass={previewRiderPass}
+                        generateRiderPasses={generateRiderPasses}
+                        previewCertificate={previewCertificate}
+                        generateCertificates={generateCertificates}
+                      />
+                    ))
                   )}
-                  {busy && batchProgress
-                    ? `Certs (${batchProgress.current}/${batchProgress.total})`
-                    : `Generate Certs (${checkedInSelected.length})`}
-                </Button>
-
-                <label
-                  htmlFor="p-cert-file"
-                  className="cursor-pointer inline-flex items-center h-8 rounded-full border border-white/20 bg-white/5 px-3 text-xs font-bold text-white hover:bg-white/10"
-                >
-                  <Upload className="h-3.5 w-3.5 mr-1" />
-                  {certificateFile ? certificateFile.name.slice(0, 12) + "…" : "Upload PDF"}
-                </label>
-                <input
-                  id="p-cert-file"
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  className="sr-only"
-                  onChange={(e) => setCertificateFile(e.target.files?.[0] || null)}
-                />
-
-                {certificateFile && (
-                  <Button
-                    size="sm"
-                    onClick={sendUploadedCertificates}
-                    disabled={busy}
-                    className="h-8 bg-[#ff5f3d] text-white text-xs px-3 font-bold"
-                  >
-                    Send Uploaded
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* REAL-TIME BATCH PROGRESS BAR */}
-          {batchProgress && (
-            <div className="w-full mt-2 pt-2 border-t border-white/10 flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-[11px] font-mono text-[#d9ff38]">
-                <span className="flex items-center gap-1.5">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#d9ff38]" />
-                  {batchProgress.label}
-                </span>
-                <span className="font-bold">{batchProgress.percent}%</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-                <div
-                  className="h-full bg-[#d9ff38] transition-all duration-300 rounded-full"
-                  style={{ width: `${batchProgress.percent}%` }}
-                />
-              </div>
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+
+            {/* PAGINATION FOOTER */}
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filteredRiders.length}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              itemLabel="participants"
+            />
+          </div>
+        </>
       )}
-
-      {/* PARTICIPANTS DATA TABLE WITH EXPANDABLE ROWS */}
-      <div className="overflow-hidden rounded-2xl border border-[#071313]/10 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-black/10 bg-[#fbf8ef] text-[#071313] font-mono">
-              <tr>
-                <th className="p-4 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleSelectPage}
-                    className="accent-[#071313] h-4 w-4 rounded"
-                    aria-label="Select all on this page"
-                  />
-                </th>
-                <th className="p-4 w-10 text-center">
-                  <span className="sr-only">Expand</span>
-                </th>
-                <th className="p-4 uppercase tracking-wider font-bold">Rider ID & Name</th>
-                <th className="p-4 uppercase tracking-wider font-bold">Contact</th>
-                <th className="p-4 uppercase tracking-wider font-bold">Route & Payment</th>
-                <th className="p-4 uppercase tracking-wider font-bold">Status / Check-in</th>
-                <th className="p-4 uppercase tracking-wider font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#071313]/5">
-              {paginatedRiders.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-12 text-center text-xs text-black/50">
-                    No participants matched the active search or filters.
-                  </td>
-                </tr>
-              ) : (
-                paginatedRiders.map((rider) => {
-                  const isChecked = selectedSet.has(rider.id);
-                  const isExpanded = expandedIds.has(rider.id);
-                  const isCheckedIn = rider.status === "checked_in";
-
-                  return (
-                    <React.Fragment key={rider.id}>
-                      {/* COMPACT MAIN ROW */}
-                      <tr
-                        className={`transition-colors cursor-pointer hover:bg-black/[0.02] ${
-                          isChecked ? "bg-[#d9ff38]/10" : isExpanded ? "bg-[#fbf8ef]/50" : ""
-                        }`}
-                        onClick={(e) => {
-                          // Prevent toggling expand when clicking checkbox or select dropdown
-                          if (
-                            e.target.tagName === "INPUT" ||
-                            e.target.tagName === "SELECT" ||
-                            e.target.tagName === "BUTTON" ||
-                            e.target.closest("button")
-                          ) {
-                            return;
-                          }
-                          toggleExpand(rider.id);
-                        }}
-                      >
-                        {/* 1. Selection Checkbox */}
-                        <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleSelect(rider.id)}
-                            className="accent-[#071313] h-4 w-4 rounded"
-                            aria-label={`Select rider ${rider.full_name}`}
-                          />
-                        </td>
-
-                        {/* 2. Expand Toggle Button */}
-                        <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(rider.id)}
-                            className={`flex h-7 w-7 items-center justify-center rounded-lg border border-black/10 bg-white text-black/60 transition-all hover:bg-black/5 ${
-                              isExpanded ? "rotate-90 bg-black/5 text-[#071313]" : ""
-                            }`}
-                            aria-label={isExpanded ? "Collapse row" : "Expand row"}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </button>
-                        </td>
-
-                        {/* 3. Rider ID & Name */}
-                        <td className="p-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-[#071313]/50 text-[11px]">
-                              #{rider.id}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyToClipboard(rider.id, `id-${rider.id}`);
-                              }}
-                              title="Copy ID"
-                              className="text-black/30 hover:text-black"
-                            >
-                              {copiedId === `id-${rider.id}` ? (
-                                <Check className="h-3 w-3 text-green-600" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </button>
-                          </div>
-                          <p className="font-black text-sm text-[#071313]">{rider.full_name}</p>
-                          <span className="text-[10px] text-[#071313]/50 capitalize">
-                            {rider.gender || "Gender unstated"} • {rider.city || "Rewa"}
-                          </span>
-                        </td>
-
-                        {/* 4. Contact */}
-                        <td className="p-4 text-xs font-mono">
-                          <p className="text-[#071313] font-medium">{rider.phone || "—"}</p>
-                          <p className="text-[#071313]/60 text-[11px] truncate max-w-[200px]">
-                            {rider.email || "—"}
-                          </p>
-                        </td>
-
-                        {/* 5. Route Category & Payment */}
-                        <td className="p-4">
-                          <span className="font-bold text-[#071313] block">
-                            {rider.ride_category}
-                          </span>
-                          {rider.payment_status === "paid" ? (
-                            <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
-                              ✓ PAID
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
-                              UNPAID
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 6. Status & High-Contrast Check-in Badge */}
-                        <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                          {isCheckedIn ? (
-                            /* HIGH CONTRAST, HUMAN READABLE CHECKED IN BADGE */
-                            <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-black uppercase text-white shadow-sm">
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-white" />
-                              <span>Checked In</span>
-                            </div>
-                          ) : (
-                            <select
-                              value={rider.status}
-                              onChange={(e) => changeStatus(rider.id, e.target.value)}
-                              className="h-8 rounded-lg border border-black/20 bg-white px-2 text-xs font-bold text-[#071313] focus:border-[#071313] focus:outline-none"
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="approved">Approved</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          )}
-                        </td>
-
-                        {/* 7. Action Button */}
-                        <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleExpand(rider.id)}
-                            className="h-8 text-xs font-bold px-3 gap-1"
-                          >
-                            <span>{isExpanded ? "Hide" : "Details"}</span>
-                            {isExpanded ? (
-                              <ChevronUp className="h-3.5 w-3.5" />
-                            ) : (
-                              <ChevronDown className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        </td>
-                      </tr>
-
-                      {/* EXPANDED DETAIL DRAWER ROW */}
-                      {isExpanded && (
-                        <tr className="bg-[#fbf8ef] border-b border-black/10">
-                          <td colSpan={7} className="p-0">
-                            <div className="p-6 border-l-4 border-l-[#071313] space-y-6">
-                              {/* 3-COLUMN LOGISTICS GRID */}
-                              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                {/* CARD 1: CHECK-IN & QR TOKEN */}
-                                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-                                  <div className="flex items-center justify-between border-b border-black/10 pb-2">
-                                    <span className="text-[11px] font-black uppercase tracking-wider text-black/50 font-mono flex items-center gap-1.5">
-                                      <UserCheck className="h-3.5 w-3.5 text-[#071313]" />
-                                      Race-Day Check-in
-                                    </span>
-                                    {isCheckedIn ? (
-                                      <span className="rounded-md bg-emerald-600 text-white px-2 py-0.5 text-[10px] font-black uppercase">
-                                        Verified
-                                      </span>
-                                    ) : (
-                                      <span className="rounded-md bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 text-[10px] font-bold">
-                                        Not Checked In
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {isCheckedIn ? (
-                                    <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-emerald-950 text-xs space-y-1">
-                                      <p className="font-bold flex items-center gap-1.5">
-                                        <CheckCircle2 className="h-4 w-4 text-emerald-700" />
-                                        Checked in on{" "}
-                                        {new Date(rider.checked_in_at).toLocaleString()}
-                                      </p>
-                                      {rider.checked_in_by && (
-                                        <p className="text-[11px] text-emerald-900/80">
-                                          Station / Staff: <strong>{rider.checked_in_by}</strong>
-                                        </p>
-                                      )}
-                                      <p className="text-[11px] text-emerald-900/80">
-                                        Method:{" "}
-                                        <span className="uppercase font-mono">
-                                          {rider.checkin_method || "manual"}
-                                        </span>
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <div className="rounded-xl bg-black/5 p-3 text-xs text-black/60">
-                                      Pending race-day arrival. Volunteer will scan this rider's QR pass or look up by ID.
-                                    </div>
-                                  )}
-
-                                  {/* QR Code Pass Preview */}
-                                  <div className="pt-2 flex items-center gap-4">
-                                    {rider.checkin_token ? (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={() => setQrModalRider(rider)}
-                                          className="p-1.5 rounded-xl border border-black/15 bg-white shadow-sm hover:scale-105 transition-transform"
-                                          title="Click to enlarge QR pass"
-                                        >
-                                          <QRCodeSVG
-                                            value={`nvcyclothon-checkin:${rider.checkin_token}`}
-                                            size={64}
-                                            level="M"
-                                          />
-                                        </button>
-                                        <div className="text-xs space-y-1">
-                                          <span className="font-bold text-[#071313] block">
-                                            Rider QR Pass
-                                          </span>
-                                          <button
-                                            type="button"
-                                            onClick={() => setQrModalRider(rider)}
-                                            className="text-[11px] font-bold text-[#ff5f3d] hover:underline flex items-center gap-1"
-                                          >
-                                            <Eye className="h-3 w-3" /> View full screen
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              copyToClipboard(
-                                                rider.checkin_token,
-                                                `token-${rider.id}`
-                                              )
-                                            }
-                                            className="text-[10px] font-mono text-black/50 hover:text-black flex items-center gap-1"
-                                          >
-                                            <Copy className="h-2.5 w-2.5" />
-                                            {copiedId === `token-${rider.id}`
-                                              ? "Copied!"
-                                              : "Copy Token"}
-                                          </button>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <p className="text-xs text-black/40">No QR token issued</p>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* CARD 2: RIDER APPAREL & PROFILE */}
-                                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-                                  <div className="border-b border-black/10 pb-2">
-                                    <span className="text-[11px] font-black uppercase tracking-wider text-black/50 font-mono flex items-center gap-1.5">
-                                      <Shirt className="h-3.5 w-3.5 text-[#071313]" />
-                                      Apparel & Profile
-                                    </span>
-                                  </div>
-
-                                  <div className="space-y-2 text-xs">
-                                    <div className="flex items-center justify-between py-1 border-b border-black/5">
-                                      <span className="text-black/50">T-Shirt Size</span>
-                                      <span className="font-mono font-bold text-[#071313] bg-[#fbf8ef] px-2 py-0.5 rounded border border-black/10">
-                                        {rider.t_shirt_size || "Not specified"}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between py-1 border-b border-black/5">
-                                      <span className="text-black/50">City / Location</span>
-                                      <span className="font-bold text-[#071313]">
-                                        {rider.city || "Rewa (M.P.)"}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between py-1 border-b border-black/5">
-                                      <span className="text-black/50">Gender</span>
-                                      <span className="font-bold text-[#071313] capitalize">
-                                        {rider.gender || "Unspecified"}
-                                      </span>
-                                    </div>
-
-                                    {rider.organization_name && (
-                                      <div className="pt-1">
-                                        <span className="text-[10px] text-black/50 uppercase font-mono block">
-                                          Delegation / Club
-                                        </span>
-                                        <p className="font-bold text-[#071313] text-xs">
-                                          🏛️ {rider.organization_name} (
-                                          {rider.organization_type || "Club"})
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* CARD 3: DOCUMENT & EMAIL DELIVERY LOG */}
-                                <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-                                  <div className="border-b border-black/10 pb-2">
-                                    <span className="text-[11px] font-black uppercase tracking-wider text-black/50 font-mono flex items-center gap-1.5">
-                                      <Mail className="h-3.5 w-3.5 text-[#071313]" />
-                                      Email & Document Logs
-                                    </span>
-                                  </div>
-
-                                  <div className="space-y-2 text-xs">
-                                    <div className="flex items-center justify-between py-1 border-b border-black/5">
-                                      <span className="text-black/50">Registration Email</span>
-                                      <span className="font-bold text-[#071313]">
-                                        {rider.registration_email_status || "not sent"}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center justify-between py-1 border-b border-black/5">
-                                      <span className="text-black/50">Official Rider Pass</span>
-                                      <span className="font-bold text-[#071313]">
-                                        {rider.rider_pass_status || "not sent"}
-                                      </span>
-                                    </div>
-
-                                    <div className="py-1">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-black/50">Finisher Certificate</span>
-                                        <span className="font-bold text-[#071313]">
-                                          {rider.certificate_delivery_status ||
-                                            rider.certificate_status ||
-                                            "not sent"}
-                                        </span>
-                                      </div>
-                                      {rider.certificate_sent_at && (
-                                        <p className="text-[10px] text-black/40 font-mono mt-0.5">
-                                          Sent {new Date(rider.certificate_sent_at).toLocaleString()}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Quick Actions for this single rider */}
-                                  <div className="pt-2 flex flex-wrap gap-2 border-t border-black/5">
-                                    {rider.payment_status === "paid" &&
-                                      rider.status !== "cancelled" && (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => previewRiderPass(rider.id)}
-                                            className="h-7 text-[11px] px-2.5"
-                                          >
-                                            <FileText className="h-3 w-3 mr-1" /> Pass Preview
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            onClick={() => generateRiderPasses([rider.id])}
-                                            disabled={busy}
-                                            className="h-7 text-[11px] px-2.5 bg-[#ff5f3d] text-white hover:bg-[#e04f2f] font-bold"
-                                          >
-                                            <Send className="h-3 w-3 mr-1" />
-                                            {rider.rider_pass_status === "sent" ? "Re-send Pass" : "Send Pass"}
-                                          </Button>
-                                        </>
-                                      )}
-
-                                    {isCheckedIn && (
-                                      <>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => previewCertificate(rider.id)}
-                                          className="h-7 text-[11px] px-2.5 text-emerald-800 border-emerald-300 bg-emerald-50"
-                                        >
-                                          <Award className="h-3 w-3 mr-1" /> Cert Preview
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          onClick={() => generateCertificates([rider.id])}
-                                          disabled={busy}
-                                          className="h-7 text-[11px] px-2.5 bg-emerald-600 text-white hover:bg-emerald-700 font-bold"
-                                        >
-                                          <Send className="h-3 w-3 mr-1" />
-                                          {rider.certificate_delivery_status === "sent" ? "Re-send Cert" : "Send Cert"}
-                                        </Button>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION FOOTER */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-black/10 bg-[#fbf8ef] p-4 text-xs">
-          <div className="flex items-center gap-2 text-black/60">
-            <span>
-              Showing {filteredRiders.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{" "}
-              {Math.min(currentPage * pageSize, filteredRiders.length)} of {filteredRiders.length}{" "}
-              participants
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              className="h-7 rounded border border-black/15 bg-white px-1.5 text-xs text-[#071313]"
-            >
-              <option value={15}>15 per page</option>
-              <option value={25}>25 per page</option>
-              <option value={50}>50 per page</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="h-8 px-2.5 text-xs"
-            >
-              <ChevronLeft className="h-4 w-4 mr-0.5" /> Prev
-            </Button>
-            <span className="font-mono font-bold text-xs px-2 text-[#071313]">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="h-8 px-2.5 text-xs"
-            >
-              Next <ChevronRight className="h-4 w-4 ml-0.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
 
       {/* QR CODE MODAL LIGHTBOX */}
-      {qrModalRider && (
-        <div
-          onClick={() => setQrModalRider(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl text-[#071313]"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-black/10">
-              <span className="text-xs font-mono font-bold text-black/50">
-                #{qrModalRider.id} CHECK-IN PASS
-              </span>
-              <button
-                type="button"
-                onClick={() => setQrModalRider(null)}
-                className="text-black/40 hover:text-black"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <ParticipantQrModal
+        rider={qrModalRider}
+        onClose={() => setQrModalRider(null)}
+      />
 
-            <div className="my-6 flex justify-center">
-              <div className="p-4 rounded-2xl border-2 border-[#071313] bg-white shadow-inner">
-                <QRCodeSVG
-                  value={`nvcyclothon-checkin:${qrModalRider.checkin_token}`}
-                  size={190}
-                  level="H"
-                />
-              </div>
-            </div>
-
-            <h3 className="text-base font-black">{qrModalRider.full_name}</h3>
-            <p className="text-xs text-black/60 font-semibold">{qrModalRider.ride_category}</p>
-            <p className="mt-1 text-[11px] font-mono text-black/40">
-              Token: {qrModalRider.checkin_token?.slice(0, 16)}…
-            </p>
-
-            <Button
-              onClick={() => setQrModalRider(null)}
-              className="mt-6 w-full"
-              variant="default"
-            >
-              Close Pass
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* BATCH / WAVE MANAGEMENT MODAL */}
+      <BatchManagementModal
+        isOpen={batchModalOpen}
+        onClose={() => setBatchModalOpen(false)}
+        filteredRiders={rosterFilteredRiders}
+        selectedRiders={rosterFilteredRiders.filter((r) => selectedRosterIds.includes(r.id))}
+        existingBatches={uniqueBatches}
+        onAssignBatch={handleAssignBatch}
+        isSaving={isBatchSaving}
+      />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 const nodemailer = require("nodemailer");
 const fs = require("fs/promises");
-const QRCode = require("qrcode");
 const { generateRiderPassPdf, riderId } = require("./eventDocuments");
 
 function formatRupees(totalPaise) {
@@ -216,53 +215,23 @@ function createEmailService(config, logger = console) {
   }
 
   return {
-    async sendRegistrationConfirmation({ recipient, registration, checkinQrPrefix = "", eventDate = "2026-11-22", eventLocation = "Rewa, Madhya Pradesh", eventStartTime = "5:30 AM" }) {
+    async sendRegistrationConfirmation({ recipient, registration, eventDate = "2026-11-22", eventLocation = "Rewa, Madhya Pradesh", eventStartTime = "5:30 AM" }) {
       const passRiderId = riderId(registration);
       const name = registration?.full_name || "Rider";
       const route = registration?.ride_category || "NV Cyclothon ride";
       const amount = formatRupees(registration?.registration_fee_paise);
-      const checkinToken = registration?.checkin_token || "";
-      const checkinPayload = checkinToken
-        ? `${String(checkinQrPrefix || "nvcyclothon-checkin:")}${checkinToken}`
-        : "";
-
-      let qrAttachment = null;
-      if (checkinPayload) {
-        try {
-          const qrBuffer = await QRCode.toBuffer(checkinPayload, {
-            errorCorrectionLevel: "M",
-            margin: 1,
-            width: 240,
-            type: "png",
-          });
-          qrAttachment = {
-            filename: "nv-cyclothon-checkin-qr.png",
-            content: qrBuffer,
-            contentType: "image/png",
-            cid: "nv-cyclothon-checkin-qr",
-            contentDisposition: "inline",
-          };
-        } catch (error) {
-          logger.error("Unable to generate check-in QR code", error);
-        }
-      }
 
       const subject = "Your NV Cyclothon 2026 registration is confirmed";
       const formattedDate = new Date(`${eventDate}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-      const text = `Hi ${name},\n\nYour NV Cyclothon registration is confirmed after successful payment.\n\nRider ID: ${passRiderId}\nRoute: ${route}\nAmount paid: ${amount}\nRace day: ${formattedDate}\nReporting time: ${eventStartTime}\nVenue: ${eventLocation}\n\nRace-day check-in code: ${checkinPayload || "Will be shared by event desk"}\n\nPlease keep this email handy on race day.\n\nNV Cyclothon, in association with Rewa Cycling Federation`;
-      const qrMarkup = qrAttachment
-        ? `<p style="margin:20px 0;text-align:center"><img src="cid:nv-cyclothon-checkin-qr" alt="Race day check-in QR code" width="220" height="220" style="display:inline-block;width:220px;height:220px;border:0" /></p>`
-        : "";
+      const text = `Hi ${name},\n\nYour NV Cyclothon registration is confirmed after successful payment.\n\nRider ID: ${passRiderId}\nRoute: ${route}\nAmount paid: ${amount}\nRace day: ${formattedDate}\nReporting time: ${eventStartTime}\nVenue: ${eventLocation}\n\nNote: Your official Rider Pass with event check-in details will be sent separately to your email.\n\nPlease keep this email handy for your records.\n\nNV Cyclothon, in association with Rewa Cycling Federation`;
       const banner = await bannerAttachment();
       const html = emailShell({
         title: "Your registration is confirmed",
         greeting: name,
         banner: !!banner,
-        body: `<p>Your NV Cyclothon registration and payment are confirmed. Your rider pass will be sent separately by the event team.</p><ul><li><strong>Rider ID:</strong> ${escapeHtml(passRiderId)}</li><li><strong>Route:</strong> ${escapeHtml(route)}</li><li><strong>Amount paid:</strong> ${escapeHtml(amount)}</li><li><strong>Event date:</strong> ${escapeHtml(formattedDate)}</li><li><strong>Reporting time:</strong> ${escapeHtml(eventStartTime)}</li><li><strong>Venue:</strong> ${escapeHtml(eventLocation)}</li></ul>${qrMarkup}<p>Please retain this confirmation for your records.</p>`,
+        body: `<p>Your NV Cyclothon registration and payment are confirmed. Your official rider pass with race-day check-in instructions will be sent to you separately by the organizing team.</p><ul><li><strong>Rider ID:</strong> ${escapeHtml(passRiderId)}</li><li><strong>Route:</strong> ${escapeHtml(route)}</li><li><strong>Amount paid:</strong> ${escapeHtml(amount)}</li><li><strong>Event date:</strong> ${escapeHtml(formattedDate)}</li><li><strong>Reporting time:</strong> ${escapeHtml(eventStartTime)}</li><li><strong>Venue:</strong> ${escapeHtml(eventLocation)}</li></ul><div style="background:#f4f6f8;border-left:4px solid #071313;padding:12px 16px;margin:20px 0;border-radius:8px;"><p style="margin:0;font-size:13px;color:#333;"><strong>Rider Pass Notice:</strong> Your official race-day Rider Pass (containing your QR pass and bib details) will be emailed to you separately before event day.</p></div><p>Please retain this confirmation for your records.</p>`,
       });
-      const attachments = [];
-      if (banner) attachments.push(banner);
-      if (qrAttachment) attachments.push(qrAttachment);
+      const attachments = banner ? [banner] : [];
       return send({ recipient, subject, text, html, attachments });
     },
 
@@ -271,7 +240,12 @@ function createEmailService(config, logger = console) {
       const banner = await bannerAttachment();
       const subject = "Your official NV Cyclothon 2026 rider pass";
       const text = `Hi ${name},\n\nYour official rider pass is attached. Please carry it along with a valid photo ID on event day.\n\nRider ID: ${riderId(registration)}\nRoute: ${registration.ride_category}\n\nNV Cyclothon`;
-      const html = emailShell({ title: "Your rider pass is ready", greeting: name, banner, body: `<p>Your official rider pass is attached to this email. Please carry it, along with a valid photo ID, for event-day check-in.</p><p><strong>Rider ID:</strong> ${escapeHtml(riderId(registration))}<br/><strong>Route:</strong> ${escapeHtml(registration.ride_category)}</p>` });
+      const html = emailShell({
+        title: "Your rider pass is ready",
+        greeting: name,
+        banner: !!banner,
+        body: `<p>Your official rider pass is attached to this email. Please carry it, along with a valid photo ID, for event-day check-in.</p><p><strong>Rider ID:</strong> ${escapeHtml(riderId(registration))}<br/><strong>Route:</strong> ${escapeHtml(registration.ride_category)}</p>`,
+      });
       return send({ recipient, subject, text, html, attachments: [...(banner ? [banner] : []), { filename: `nv-cyclothon-rider-pass-${registration.id}.pdf`, content: riderPassPdf, contentType: "application/pdf" }] });
     },
 
@@ -290,12 +264,19 @@ function createEmailService(config, logger = console) {
     },
 
     async sendEventUpdate({ recipients, subject, message }) {
+      const banner = await bannerAttachment();
       for (const recipient of recipients) {
         await send({
           recipient,
           subject,
           text: message,
-          html: emailShell({ title: subject, greeting: "Rider", body: `<p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>` }),
+          html: emailShell({
+            title: subject,
+            greeting: "Rider",
+            banner: !!banner,
+            body: `<p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>`,
+          }),
+          attachments: banner ? [banner] : [],
         });
       }
     },
@@ -304,7 +285,12 @@ function createEmailService(config, logger = console) {
       const subject = "Congratulations on completing NV Cyclothon 2026";
       const text = `Hi ${name},\n\nCongratulations and thank you for participating in NV Cyclothon 2026. Your participation certificate for the ${route} route is attached. Rider ID: #${riderId}.\n\nWe hope to see you on the road again soon!\n\nNV Cyclothon`;
       const banner = await bannerAttachment();
-      const html = emailShell({ title: "Congratulations, rider!", greeting: name, banner, body: `<p>Thank you for participating in NV Cyclothon 2026. Your participation certificate for the <strong>${escapeHtml(route)}</strong> route is attached.</p><p>Your rider ID is <strong>${escapeHtml(riderId)}</strong>.</p><p>We hope to see you on the road again soon.</p>` });
+      const html = emailShell({
+        title: "Congratulations, rider!",
+        greeting: name,
+        banner: !!banner,
+        body: `<p>Thank you for participating in NV Cyclothon 2026. Your participation certificate for the <strong>${escapeHtml(route)}</strong> route is attached.</p><p>Your rider ID is <strong>${escapeHtml(riderId)}</strong>.</p><p>We hope to see you on the road again soon.</p>`,
+      });
       return send({
         recipient,
         subject,
@@ -326,7 +312,7 @@ function createEmailService(config, logger = console) {
       const html = emailShell({
         title: "Volunteer Team Access",
         greeting: name,
-        banner,
+        banner: !!banner,
         body: `<p>Thank you for stepping up to power <strong>NV Cyclothon 2026</strong>! Your dedication and hard work make this grand athletic event possible.</p>
         <div style="background:#f4f6f8;border-left:4px solid #071313;padding:16px;margin:20px 0;border-radius:8px;">
           <p style="margin:0 0 8px 0;font-size:12px;text-transform:uppercase;color:#555;font-weight:bold;">Your Event-Day Credentials</p>
@@ -349,7 +335,7 @@ function createEmailService(config, logger = console) {
       const html = emailShell({
         title: "Certificate of Appreciation",
         greeting: name,
-        banner,
+        banner: !!banner,
         body: `<p>On behalf of the entire organizing committee and riders, we extend our deepest gratitude for your selfless contribution and support during <strong>NV Cyclothon 2026</strong>.</p>
         <p>Your official <strong>Certificate of Appreciation</strong> is attached to this email in recognition of your dedicated service in the role of <strong>${escapeHtml(role || "Event Operations")}</strong>.</p>
         <p>We are proud to have had you on the team!</p>`,

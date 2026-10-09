@@ -134,36 +134,47 @@ export function ManagePanel({
                   />
                 ) : name === "image_url" && adminKey ? (
                   <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer w-fit rounded-lg border border-black/15 bg-[#fbf8ef] px-3 py-1.5 text-xs font-bold text-black/70 hover:bg-black/5">
-                      <Upload className="h-3.5 w-3.5" />
-                      <span>{uploadingPhoto ? "Uploading photo…" : value ? "Replace Photo" : "Upload Photo"}</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="sr-only"
-                        disabled={uploadingPhoto}
-                        onChange={async (event) => {
-                          const input = event.currentTarget;
-                          const file = input.files?.[0];
-                          if (!file) return;
-                          setUploadingPhoto(true);
-                          try {
-                            if (isCloudinaryConfigured().configured) {
-                              const result = await uploadImage(file, { folder: "nvcyclothon/profiles" });
-                              setForm((current) => ({ ...current, image_url: result.secureUrl }));
-                            } else {
-                              const result = await uploadAdminProfileImage(adminKey, file);
-                              setForm((current) => ({ ...current, image_url: result.image_url }));
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer w-fit rounded-lg border border-black/15 bg-[#fbf8ef] px-3 py-1.5 text-xs font-bold text-black/70 hover:bg-black/5">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>{uploadingPhoto ? "Uploading photo…" : value ? "Replace Photo" : "Upload Photo"}</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          disabled={uploadingPhoto}
+                          onChange={async (event) => {
+                            const input = event.currentTarget;
+                            const file = input.files?.[0];
+                            if (!file) return;
+                            setUploadingPhoto(true);
+                            try {
+                              if (isCloudinaryConfigured().hasCloudinary) {
+                                const result = await uploadImage(file, { folder: "nvcyclothon/profiles" });
+                                setForm((current) => ({ ...current, image_url: result.secureUrl }));
+                              } else {
+                                const result = await uploadAdminProfileImage(adminKey, file);
+                                setForm((current) => ({ ...current, image_url: result.image_url }));
+                              }
+                            } catch (error) {
+                              window.alert(error.message);
+                            } finally {
+                              input.value = "";
+                              setUploadingPhoto(false);
                             }
-                          } catch (error) {
-                            window.alert(error.message);
-                          } finally {
-                            input.value = "";
-                            setUploadingPhoto(false);
-                          }
-                        }}
-                      />
-                    </label>
+                          }}
+                        />
+                      </label>
+                      {value && (
+                        <button
+                          type="button"
+                          onClick={() => setForm((current) => ({ ...current, image_url: "" }))}
+                          className="text-xs text-red-600 hover:text-red-700 font-bold hover:underline"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[11px] text-black/50">
                       Choose an image from your device. The app uploads it and stores its URL automatically.
                     </p>
@@ -171,6 +182,9 @@ export function ManagePanel({
                       <img
                         src={resolveApiAssetUrl(value)}
                         alt="Preview"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
                         className="h-16 w-16 rounded-xl object-cover border border-black/10 mt-1"
                       />
                     )}

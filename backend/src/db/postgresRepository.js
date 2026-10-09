@@ -113,6 +113,7 @@ class PostgresRepository {
         checkin_device VARCHAR(200),
         organization_type VARCHAR(64) DEFAULT 'Individual',
         organization_name VARCHAR(200),
+        batch_name VARCHAR(64) DEFAULT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         CONSTRAINT uq_cyclothon_payment_order UNIQUE (payment_order_id),
         CONSTRAINT uq_cyclothon_payment_id UNIQUE (payment_id)
@@ -120,6 +121,9 @@ class PostgresRepository {
 
       ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS organization_type VARCHAR(64) DEFAULT 'Individual';
       ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS organization_name VARCHAR(200);
+      ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS batch_name VARCHAR(64);
+
+      CREATE INDEX IF NOT EXISTS cyclothon_registrations_batch_name_idx ON cyclothon_registrations (batch_name);
 
       CREATE UNIQUE INDEX IF NOT EXISTS uq_cyclothon_registrations_email_normalized
       ON cyclothon_registrations (lower(email));
@@ -628,6 +632,9 @@ class PostgresRepository {
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS checkin_device VARCHAR(200)"
     );
     await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS batch_name VARCHAR(64)"
+    );
+    await this.pool.query(
       "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS email VARCHAR(150)"
     );
     await this.pool.query(
@@ -1083,7 +1090,7 @@ class PostgresRepository {
                       status, registration_fee_paise, payment_status, payment_order_id,
                       payment_id, payment_signature, payment_provider, payment_verified_at,
                       checkin_token, checked_in_at, checked_in_by, checkin_method,
-                      checkin_device, created_at`,
+                      checkin_device, batch_name, created_at`,
           [
             payload.full_name,
             payload.email.toLowerCase(),
@@ -1133,7 +1140,7 @@ class PostgresRepository {
                      status, registration_fee_paise, payment_status,
                      payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                      checkin_token, checked_in_at, checked_in_by, checkin_method,
-                     checkin_device, created_at`,
+                     checkin_device, batch_name, created_at`,
           [order.id, registration.id]
         );
         registration = updateResult.rows[0];
@@ -1314,7 +1321,7 @@ class PostgresRepository {
              cr.status, cr.registration_fee_paise, cr.payment_status, cr.payment_order_id,
              cr.payment_id, cr.payment_signature, cr.payment_provider, cr.payment_verified_at,
              cr.checkin_token, cr.checked_in_at, cr.checked_in_by, cr.checkin_method,
-             cr.checkin_device, cr.created_at,
+             cr.checkin_device, cr.batch_name, cr.created_at,
              rp.status AS rider_pass_status,
              pc.status AS certificate_status,
              red_cert.recipient AS certificate_recipient,
@@ -1456,7 +1463,7 @@ class PostgresRepository {
               status, registration_fee_paise, payment_status, payment_order_id,
               payment_id, payment_signature, payment_provider, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
-              checkin_device, created_at
+              checkin_device, batch_name, created_at
        FROM cyclothon_registrations
        WHERE id = $1
        LIMIT 1`,
@@ -1545,6 +1552,35 @@ class PostgresRepository {
     };
   }
 
+  async bulkAssignCyclothonBatch(registrationIds, batchName) {
+    const ids = [...new Set(registrationIds)].sort((a, b) => a - b);
+    if (!ids.length) {
+      return { updated: 0, batch_name: null, missing_ids: [] };
+    }
+    const foundRows = await this.pool.query(
+      `SELECT id
+       FROM cyclothon_registrations
+       WHERE id = ANY($1::int[])`,
+      [ids]
+    );
+    const foundIds = new Set(foundRows.rows.map((item) => item.id));
+
+    const normalizedBatch = batchName && String(batchName).trim() ? String(batchName).trim() : null;
+
+    const updateResult = await this.pool.query(
+      `UPDATE cyclothon_registrations
+       SET batch_name = $1
+       WHERE id = ANY($2::int[])`,
+      [normalizedBatch, ids]
+    );
+
+    return {
+      updated: updateResult.rowCount,
+      batch_name: normalizedBatch,
+      missing_ids: ids.filter((id) => !foundIds.has(id)),
+    };
+  }
+
   async searchRegistrationsForCheckin(query, limit = 25) {
     const trimmed = String(query || "").trim();
     if (!trimmed) {
@@ -1566,7 +1602,7 @@ class PostgresRepository {
       querySql = `
         SELECT id, full_name, email, phone, city, ride_category, status,
                payment_status, checked_in_at, checked_in_by, checkin_method,
-               payment_verified_at, created_at
+               payment_verified_at, batch_name, created_at
         FROM cyclothon_registrations
         WHERE id = $1
            OR (phone IS NOT NULL AND phone LIKE $2)
@@ -1579,7 +1615,7 @@ class PostgresRepository {
       querySql = `
         SELECT id, full_name, email, phone, city, ride_category, status,
                payment_status, checked_in_at, checked_in_by, checkin_method,
-               payment_verified_at, created_at
+               payment_verified_at, batch_name, created_at
         FROM cyclothon_registrations
         WHERE phone LIKE $1
            OR ($2::int IS NOT NULL AND id = $2)
@@ -1592,7 +1628,7 @@ class PostgresRepository {
       querySql = `
         SELECT id, full_name, email, phone, city, ride_category, status,
                payment_status, checked_in_at, checked_in_by, checkin_method,
-               payment_verified_at, created_at
+               payment_verified_at, batch_name, created_at
         FROM cyclothon_registrations
         WHERE lower(full_name) LIKE $1
            OR lower(email) LIKE $1
@@ -1717,7 +1753,7 @@ class PostgresRepository {
                 status, registration_fee_paise, payment_status, payment_order_id,
                 payment_id, payment_signature, payment_provider, payment_verified_at,
                 checkin_token, checked_in_at, checked_in_by, checkin_method,
-                checkin_device, created_at
+                checkin_device, batch_name, created_at
          FROM cyclothon_registrations
          WHERE checkin_token = $1
          LIMIT 1
@@ -1741,7 +1777,7 @@ class PostgresRepository {
                 status, registration_fee_paise, payment_status, payment_order_id,
                 payment_id, payment_signature, payment_provider, payment_verified_at,
                 checkin_token, checked_in_at, checked_in_by, checkin_method,
-                checkin_device, created_at
+                checkin_device, batch_name, created_at
          FROM cyclothon_registrations
          WHERE id = $1
          LIMIT 1
@@ -1764,7 +1800,7 @@ class PostgresRepository {
               status, registration_fee_paise, payment_status, payment_order_id,
               payment_id, payment_signature, payment_provider, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
-              checkin_device, created_at
+              checkin_device, batch_name, created_at
        FROM cyclothon_registrations
        WHERE id = ANY($1::int[])
        ORDER BY id ASC`,

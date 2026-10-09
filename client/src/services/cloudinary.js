@@ -236,10 +236,7 @@ export function uploadImage(file, options = {}) {
 
       if (xhr.status >= 200 && xhr.status < 300) {
         const rawUrl = responseBody.secure_url || responseBody.url;
-        const normalizedUrl =
-          rawUrl && rawUrl.startsWith("/") && API_BASE_URL
-            ? `${API_BASE_URL.replace(/\/$/, "")}${rawUrl}`
-            : rawUrl;
+        const normalizedUrl = rawUrl;
 
         resolve({
           success: true,

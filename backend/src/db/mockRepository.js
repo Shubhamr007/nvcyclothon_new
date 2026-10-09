@@ -424,6 +424,7 @@ class MockRepository {
       checked_in_by: null,
       checkin_method: null,
       checkin_device: null,
+      batch_name: null,
       created_at: this.now(),
     };
 
@@ -648,6 +649,26 @@ class MockRepository {
 
     return {
       updated,
+      missing_ids: ids.filter((id) => !found.has(id)),
+    };
+  }
+
+  async bulkAssignCyclothonBatch(registrationIds, batchName) {
+    const ids = [...new Set(registrationIds)].sort((a, b) => a - b);
+    let updated = 0;
+    const found = new Set();
+    const normalizedBatch = batchName && String(batchName).trim() ? String(batchName).trim() : null;
+    for (const registration of this.tables.cyclothon_registrations) {
+      if (ids.includes(registration.id)) {
+        registration.batch_name = normalizedBatch;
+        found.add(registration.id);
+        updated += 1;
+      }
+    }
+
+    return {
+      updated,
+      batch_name: normalizedBatch,
       missing_ids: ids.filter((id) => !found.has(id)),
     };
   }

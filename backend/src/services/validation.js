@@ -82,16 +82,46 @@ function isPrivateOrReservedHost(hostname) {
   return false;
 }
 
+function isLocalOrInternalMediaPath(path) {
+  if (!path || typeof path !== "string") return false;
+  const trimmed = path.trim();
+  return (
+    /^\/api\/(media|content\/profile-media|uploads)(\/[a-zA-Z0-9._-]+)+$/.test(trimmed) ||
+    /^\/uploads(\/[a-zA-Z0-9._-]+)+$/.test(trimmed)
+  );
+}
+
+function extractInternalMediaPath(value) {
+  if (!value || typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (isLocalOrInternalMediaPath(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (isLocalOrInternalMediaPath(parsed.pathname)) {
+      return parsed.pathname;
+    }
+  } catch {}
+  return null;
+}
+
 function validateHttpsUrl(value) {
   if (value === null || value === undefined || value === "") {
     return null;
   }
+  const str = String(value).trim();
+  const internalPath = extractInternalMediaPath(str);
+  if (internalPath) {
+    return internalPath;
+  }
   let parsed;
   try {
-    parsed = new URL(String(value));
+    parsed = new URL(str);
   } catch {
     throw new ValidationError("Image URLs must use HTTPS and may not include credentials");
   }
+
   if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
     throw new ValidationError("Image URLs must use HTTPS and may not include credentials");
   }
@@ -107,13 +137,10 @@ function validateHttpsUrl(value) {
 function validateProfileImageUrl(value) {
   if (value === null || value === undefined || value === "") return null;
 
-  const imagePath = String(value);
-  // Profile uploads are stored by this API and intentionally returned as a
-  // same-origin path. It works through Vite's /api proxy locally and resolves
-  // against the configured API host in production; it does not need HTTPS in
-  // the database value itself.
-  if (/^\/api\/content\/profile-media\/[a-zA-Z0-9._-]+$/.test(imagePath)) {
-    return imagePath;
+  const imagePath = String(value).trim();
+  const internalPath = extractInternalMediaPath(imagePath);
+  if (internalPath) {
+    return internalPath;
   }
 
   return validateHttpsUrl(imagePath);
@@ -232,6 +259,13 @@ const bulkStatusUpdateSchema = z.object({
   status: z.enum(REGISTRATION_STATUSES),
 });
 
+const bulkBatchSchema = z.object({
+  registration_ids: z.array(z.number().int().positive()).min(1).max(5000),
+  batch_name: z
+    .union([z.string().trim().max(64), z.null(), z.undefined()])
+    .transform((val) => (val && typeof val === "string" && val.trim().length > 0 ? val.trim() : null)),
+});
+
 const offerSchema = z.object({
   title: z.string().trim().min(2).max(160),
   description: z.string().max(2000).nullable().optional(),
@@ -330,13 +364,16 @@ const siteSettingsPatchSchema = z
     registration_open: z.boolean().optional(),
     partner_applications_open: z.boolean().optional(),
     vendor_applications_open: z.boolean().optional(),
-    hero_images: z.array(z.string().url().startsWith("https://")).max(5).optional(),
+    hero_images: z.array(z.string().max(1000).refine((v) => isLocalOrInternalMediaPath(v) || v.startsWith("https://"))).max(5).optional(),
     feature_section: z.object({
       enabled: z.boolean().optional(),
       eyebrow: z.string().trim().max(80).optional(),
       title: z.string().trim().max(160).optional(),
       body: z.string().trim().max(1000).optional(),
-      image_url: z.union([z.literal(""), z.string().url().startsWith("https://")]).optional(),
+      image_url: z.union([
+        z.literal(""),
+        z.string().max(1000).refine((v) => isLocalOrInternalMediaPath(v) || v.startsWith("https://"))
+      ]).optional(),
     }).optional(),
     prize_pool: z.object({
       enabled: z.boolean().optional(),
@@ -370,7 +407,11 @@ const communityPostSchema = z.object({
     const str = String(v).trim().toLowerCase();
     return str === "true" || str === "1" || str === "on" || str === "yes";
   }),
-  image_url: z.union([z.string().url().max(1000), z.literal(""), z.null()]).optional(),
+  image_url: z.union([
+    z.string().max(1000).refine((v) => !v || isLocalOrInternalMediaPath(v) || v.startsWith("https://") || v.startsWith("http://localhost") || v.startsWith("http://127.0.0.1")),
+    z.literal(""),
+    z.null()
+  ]).optional(),
 });
 
 const communityModerationSchema = z.object({
@@ -655,6 +696,7 @@ module.exports = {
   cashfreePaymentVerifySchema,
   statusUpdateSchema,
   bulkStatusUpdateSchema,
+  bulkBatchSchema,
   offerSchema,
   chiefGuestSchema,
   organizingMemberSchema,

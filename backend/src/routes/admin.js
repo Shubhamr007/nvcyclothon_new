@@ -18,6 +18,7 @@ const {
 const {
   parseSchema,
   bulkStatusUpdateSchema,
+  bulkBatchSchema,
   statusUpdateSchema,
   offerSchema,
   chiefGuestSchema,
@@ -889,6 +890,15 @@ function createAdminRouter({ config, repository, emailService }) {
     const result = await repository.bulkUpdateRegistrationStatus(
       payload.registration_ids,
       payload.status
+    );
+    res.json(result);
+  });
+
+  router.post("/registrations/bulk-batch", async (req, res) => {
+    const payload = parseSchema(bulkBatchSchema, req.body);
+    const result = await repository.bulkAssignCyclothonBatch(
+      payload.registration_ids,
+      payload.batch_name
     );
     res.json(result);
   });

@@ -39,6 +39,9 @@ describe("NV Cyclothon Node backend", () => {
   it("accepts API-generated profile image paths for organizing members without allowing arbitrary HTTP URLs", () => {
     const imageUrl = "/api/content/profile-media/mv0q8lwb-6f15d073c5e875e1.webp";
     expect(normalizeOrganizingMemberInput({ image_url: imageUrl }).image_url).toBe(imageUrl);
+    expect(normalizeOrganizingMemberInput({ image_url: `http://127.0.0.1:8000${imageUrl}` }).image_url).toBe(imageUrl);
+    expect(normalizeOrganizingMemberInput({ image_url: "http://localhost:8000/api/media/media/test.webp" }).image_url).toBe("/api/media/media/test.webp");
+    expect(normalizeOrganizingMemberInput({ image_url: `https://api.nvcyclothon.com${imageUrl}` }).image_url).toBe(imageUrl);
     expect(() => normalizeOrganizingMemberInput({ image_url: "http://127.0.0.1:8000/photo.webp" })).toThrow(
       "Image URLs must use HTTPS and may not include credentials"
     );
@@ -295,6 +298,34 @@ describe("NV Cyclothon Node backend", () => {
     expect(qrCheckin.statusCode).toBe(200);
     expect(qrCheckin.body.already_checked_in).toBe(false);
     expect(qrCheckin.body.participant.status).toBe("checked_in");
+
+    const batchAssignRes = await request(runtime.app)
+      .post("/api/admin/registrations/bulk-batch")
+      .set("Authorization", `Bearer ${adminSession.body.access_token}`)
+      .send({
+        registration_ids: [qrParticipant.id],
+        batch_name: "Batch 1 - 06:00 AM",
+      });
+    expect(batchAssignRes.statusCode).toBe(200);
+    expect(batchAssignRes.body.updated).toBe(1);
+    expect(batchAssignRes.body.batch_name).toBe("Batch 1 - 06:00 AM");
+
+    const verifyBatchRes = await request(runtime.app)
+      .get("/api/admin/registrations")
+      .set("Authorization", `Bearer ${adminSession.body.access_token}`);
+    const updatedRider = verifyBatchRes.body.find((item) => item.id === qrParticipant.id);
+    expect(updatedRider?.batch_name).toBe("Batch 1 - 06:00 AM");
+
+    const clearBatchRes = await request(runtime.app)
+      .post("/api/admin/registrations/bulk-batch")
+      .set("Authorization", `Bearer ${adminSession.body.access_token}`)
+      .send({
+        registration_ids: [qrParticipant.id],
+        batch_name: null,
+      });
+    expect(clearBatchRes.statusCode).toBe(200);
+    expect(clearBatchRes.body.updated).toBe(1);
+    expect(clearBatchRes.body.batch_name).toBeNull();
   });
 
   it("enforces per-volunteer credentials when configured", async () => {

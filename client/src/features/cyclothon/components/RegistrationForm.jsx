@@ -64,6 +64,7 @@ export function RegistrationForm({ initialRoute }) {
   const { settings, loading: settingsLoading } = useSiteSettings();
   const [status, setStatus] = useState({ state: "idle", message: "", error: null });
   const [pendingRegistration, setPendingRegistration] = useState(null);
+  const [policyModal, setPolicyModal] = useState({ isOpen: false, tab: "refund" });
   const selectedRoute = watch("ride_category");
   const selectedRide =
     RIDE_OPTIONS.find((route) => route.distance === selectedRoute) || RIDE_OPTIONS[0];
@@ -195,8 +196,6 @@ export function RegistrationForm({ initialRoute }) {
         <Success message={status.message} />
       </>
     );
-
-  const [policyModal, setPolicyModal] = useState({ isOpen: false, tab: "refund" });
 
   if (settingsLoading || !settings.registration_open) {
     const tentativeDate =
