@@ -104,6 +104,21 @@ function validateHttpsUrl(value) {
   return parsed.toString();
 }
 
+function validateProfileImageUrl(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const imagePath = String(value);
+  // Profile uploads are stored by this API and intentionally returned as a
+  // same-origin path. It works through Vite's /api proxy locally and resolves
+  // against the configured API host in production; it does not need HTTPS in
+  // the database value itself.
+  if (/^\/api\/content\/profile-media\/[a-zA-Z0-9._-]+$/.test(imagePath)) {
+    return imagePath;
+  }
+
+  return validateHttpsUrl(imagePath);
+}
+
 const productCreateSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/),
   name: z.string().trim().min(2).max(160),
@@ -449,14 +464,14 @@ function normalizeChiefGuestInput(payload) {
   return {
     ...payload,
     bio: payload.bio ?? null,
-    image_url: validateHttpsUrl(payload.image_url),
+    image_url: validateProfileImageUrl(payload.image_url),
   };
 }
 
 function normalizeOrganizingMemberInput(payload) {
   return {
     ...payload,
-    image_url: validateHttpsUrl(payload.image_url),
+    image_url: validateProfileImageUrl(payload.image_url),
   };
 }
 
@@ -670,6 +685,7 @@ module.exports = {
   normalizePartnerApplicationInput,
   normalizeVendorApplicationInput,
   validateHttpsUrl,
+  validateProfileImageUrl,
   VENDOR_CATEGORIES,
   PARTNER_STATUSES,
   VENDOR_STATUSES,

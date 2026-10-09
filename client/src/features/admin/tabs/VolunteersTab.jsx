@@ -34,10 +34,12 @@ import {
   sendVolunteerCredentials,
   previewVolunteerCertificate,
   sendVolunteerCertificate,
+  bulkDeleteAdminRecords,
 } from "../../../api/http";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 
 const ROLE_OPTIONS = [
   "Check-in Desk",
@@ -60,6 +62,7 @@ function makeFriendlyPassword() {
 
 export function VolunteersTab({ accessToken, onFeedback }) {
   const [volunteers, setVolunteers] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -107,6 +110,21 @@ export function VolunteersTab({ accessToken, onFeedback }) {
       setErrorMessage(error.message || "Unable to load volunteers.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteSelected = async () => {
+    setBusy(true);
+    setErrorMessage("");
+    try {
+      const result = await bulkDeleteAdminRecords(accessToken, "volunteer", selectedIds);
+      setSelectedIds([]);
+      setSuccessMessage(`${result.deleted} volunteer record(s) deleted.`);
+      await load();
+    } catch (error) {
+      setErrorMessage(error.message || "Unable to delete selected volunteers.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -499,6 +517,12 @@ export function VolunteersTab({ accessToken, onFeedback }) {
       </div>
 
       {/* 3. VOLUNTEERS DIRECTORY TABLE */}
+      <SelectedDeleteAction
+        count={selectedIds.length}
+        label="volunteer"
+        busy={busy}
+        onDelete={deleteSelected}
+      />
       <div className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
         {loading ? (
           <div className="py-16 flex justify-center">
@@ -509,6 +533,14 @@ export function VolunteersTab({ accessToken, onFeedback }) {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-black/10 bg-[#fbf8ef] text-[#071313] font-mono">
                 <tr>
+                  <th className="p-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={filteredVolunteers.length > 0 && filteredVolunteers.every((vol) => selectedIds.includes(vol.id))}
+                      onChange={(event) => setSelectedIds(event.target.checked ? filteredVolunteers.map((vol) => vol.id) : [])}
+                      aria-label="Select all visible volunteers"
+                    />
+                  </th>
                   <th className="p-4 uppercase font-bold">Volunteer & College</th>
                   <th className="p-4 uppercase font-bold">Assigned Duty</th>
                   <th className="p-4 uppercase font-bold">Volunteer ID</th>
@@ -521,6 +553,14 @@ export function VolunteersTab({ accessToken, onFeedback }) {
               <tbody className="divide-y divide-black/5">
                 {filteredVolunteers.map((vol) => (
                   <tr key={vol.id} className="hover:bg-black/[0.015] transition-colors">
+                    <td className="p-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(vol.id)}
+                        onChange={() => setSelectedIds((current) => current.includes(vol.id) ? current.filter((id) => id !== vol.id) : [...current, vol.id])}
+                        aria-label={`Select volunteer ${vol.display_name}`}
+                      />
+                    </td>
                     {/* Volunteer & College */}
                     <td className="p-4">
                       <p className="font-black text-sm text-[#071313]">{vol.display_name}</p>
@@ -685,7 +725,7 @@ export function VolunteersTab({ accessToken, onFeedback }) {
 
                 {filteredVolunteers.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-12 text-center text-xs text-black/50">
+                    <td colSpan={8} className="p-12 text-center text-xs text-black/50">
                       No volunteers match the current search or filters.
                     </td>
                   </tr>

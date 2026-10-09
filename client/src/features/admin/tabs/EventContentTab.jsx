@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { uploadAdminProfileImage } from "../../../api/http";
+import { resolveApiAssetUrl, uploadAdminProfileImage } from "../../../api/http";
 import { uploadImage, isCloudinaryConfigured } from "../../../services/cloudinary";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { Edit2, Trash2, Plus, Upload, Sparkles, Award, UsersRound, Tag, Flag } from "lucide-react";
+import { Edit2, Plus, Upload, Sparkles, Award, UsersRound, Tag, Flag } from "lucide-react";
+import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 
 function toEditableForm(fields, item) {
   const next = { ...fields };
@@ -21,6 +22,7 @@ export function ManagePanel({
   items = [],
   onSave,
   onRemove,
+  onBulkRemove,
   render,
   adminKey,
   icon: Icon = Sparkles,
@@ -28,6 +30,8 @@ export function ManagePanel({
 }) {
   const [form, setForm] = useState(fields);
   const [editing, setEditing] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const reset = () => {
     setForm(fields);
@@ -68,6 +72,15 @@ export function ManagePanel({
           {items.length} Record{items.length === 1 ? "" : "s"}
         </Badge>
       </div>
+
+      <SelectedDeleteAction
+        count={selectedIds.length}
+        label={title.toLowerCase()}
+        onDelete={async () => {
+          await onBulkRemove?.(selectedIds);
+          setSelectedIds([]);
+        }}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
         {/* FORM */}
@@ -121,23 +134,19 @@ export function ManagePanel({
                   />
                 ) : name === "image_url" && adminKey ? (
                   <div className="space-y-2">
-                    <input
-                      type="url"
-                      value={value}
-                      onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                      className="h-9 w-full rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-                      placeholder="Paste image URL or choose file below"
-                    />
                     <label className="flex items-center gap-2 cursor-pointer w-fit rounded-lg border border-black/15 bg-[#fbf8ef] px-3 py-1.5 text-xs font-bold text-black/70 hover:bg-black/5">
                       <Upload className="h-3.5 w-3.5" />
-                      <span>Upload Photo</span>
+                      <span>{uploadingPhoto ? "Uploading photo…" : value ? "Replace Photo" : "Upload Photo"}</span>
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         className="sr-only"
+                        disabled={uploadingPhoto}
                         onChange={async (event) => {
-                          const file = event.target.files?.[0];
+                          const input = event.currentTarget;
+                          const file = input.files?.[0];
                           if (!file) return;
+                          setUploadingPhoto(true);
                           try {
                             if (isCloudinaryConfigured().configured) {
                               const result = await uploadImage(file, { folder: "nvcyclothon/profiles" });
@@ -148,13 +157,19 @@ export function ManagePanel({
                             }
                           } catch (error) {
                             window.alert(error.message);
+                          } finally {
+                            input.value = "";
+                            setUploadingPhoto(false);
                           }
                         }}
                       />
                     </label>
+                    <p className="text-[11px] text-black/50">
+                      Choose an image from your device. The app uploads it and stores its URL automatically.
+                    </p>
                     {value && (
                       <img
-                        src={value}
+                        src={resolveApiAssetUrl(value)}
                         alt="Preview"
                         className="h-16 w-16 rounded-xl object-cover border border-black/10 mt-1"
                       />
@@ -176,7 +191,7 @@ export function ManagePanel({
           </div>
 
           <div className="pt-2 flex items-center gap-2">
-            <Button type="submit" variant="default" className="w-full font-bold">
+            <Button type="submit" variant="default" disabled={uploadingPhoto} className="w-full font-bold">
               {editing ? "Save Changes" : `Create ${title}`}
             </Button>
           </div>
@@ -197,6 +212,12 @@ export function ManagePanel({
                 <div className="flex items-center gap-3">{render(item)}</div>
 
                 <div className="flex shrink-0 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={() => setSelectedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
+                    aria-label={`Select ${title} record`}
+                  />
                   <Button
                     size="sm"
                     variant="outline"
@@ -205,15 +226,6 @@ export function ManagePanel({
                   >
                     <Edit2 className="h-3 w-3 mr-1" />
                     Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => onRemove(item.id)}
-                    className="h-8 px-2.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Delete
                   </Button>
                 </div>
               </article>

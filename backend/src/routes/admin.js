@@ -320,6 +320,40 @@ function createCrudHandlers({
 function createAdminRouter({ config, repository, emailService }) {
   const router = express.Router();
 
+  router.post("/bulk-delete", async (req, res) => {
+    const entity = String(req.body?.entity || "");
+    const rawIds = req.body?.ids;
+    if (!Array.isArray(rawIds) || rawIds.length === 0 || rawIds.length > 500) {
+      throw new ValidationError("Select between 1 and 500 records to delete");
+    }
+    const ids = [...new Set(rawIds.map((id) => parsePositiveInt(id, "record id")))];
+    const result = await repository.deleteAdminRecords(entity, ids);
+
+    for (const key of result.mediaKeys || []) {
+      if (!key || key.startsWith("http")) continue;
+      if (entity === "community") {
+        deleteCommunityImage(config, key);
+        continue;
+      }
+      const media = createPartnerVendorMediaService(config);
+      const filePath = path.resolve(media.getFilePath(key));
+      const uploadRoot = path.resolve(config.uploadDir) + path.sep;
+      if (filePath.startsWith(uploadRoot) && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    res.json({
+      deleted: result.deleted.length,
+      deleted_ids: result.deleted,
+      skipped: result.skipped.length,
+      skipped_ids: result.skipped,
+      message: result.skipped.length
+        ? "Some selected records were retained because they are paid, approved, reviewed, or otherwise protected."
+        : "Selected records deleted.",
+    });
+  });
+
   async function recordDelivery(registration, emailType, subject, sent) {
     await repository.recordEmailDelivery({
       registrationId: registration.id,

@@ -4,11 +4,13 @@ import {
   reviewVendorApplication,
   getAdminVendorDocument,
   exportAdminVendorsCsv,
+  bulkDeleteAdminRecords,
 } from "../../../api/http";
 import { useDebouncedValue } from "../../../components/useDebouncedValue";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 import {
   Store,
   Download,
@@ -25,6 +27,8 @@ import {
 export function VendorsTab({ accessToken, onFeedback }) {
   const [subTab, setSubTab] = useState("applications"); // applications, allocations
   const [apps, setApps] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleting, setDeleting] = useState(false);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -74,6 +78,20 @@ export function VendorsTab({ accessToken, onFeedback }) {
       setReviewModal(null);
     } catch (error) {
       onFeedback?.(error.message);
+    }
+  };
+
+  const deleteSelected = async () => {
+    setDeleting(true);
+    try {
+      const result = await bulkDeleteAdminRecords(accessToken, "vendor", selectedIds);
+      setSelectedIds([]);
+      onFeedback?.(`${result.deleted} vendor application(s) deleted${result.skipped ? `; ${result.skipped} paid, reviewed, or approved record(s) were kept` : ""}.`);
+      fetchVendors();
+    } catch (error) {
+      onFeedback?.(error.message || "Unable to delete selected vendor applications.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -161,6 +179,7 @@ export function VendorsTab({ accessToken, onFeedback }) {
 
       {subTab === "applications" && (
         <div className="rounded-2xl border border-[#071313]/10 bg-white p-5 shadow-sm space-y-4">
+          <SelectedDeleteAction count={selectedIds.length} label="vendor application" busy={deleting} onDelete={deleteSelected} />
           {/* SEARCH & FILTERS */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-black/10 pb-4">
             <div className="relative min-w-[280px]">
@@ -203,6 +222,9 @@ export function VendorsTab({ accessToken, onFeedback }) {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-black/10 bg-[#fbf8ef] font-mono text-[#071313]">
                   <tr>
+                    <th className="p-3.5 text-center">
+                      <input type="checkbox" aria-label="Select all visible vendor applications" checked={apps.length > 0 && apps.every((app) => selectedIds.includes(app.id))} onChange={(event) => setSelectedIds(event.target.checked ? apps.map((app) => app.id) : [])} />
+                    </th>
                     <th className="p-3.5 uppercase font-bold">Ref / Date</th>
                     <th className="p-3.5 uppercase font-bold">Business Name</th>
                     <th className="p-3.5 uppercase font-bold">Category</th>
@@ -215,6 +237,9 @@ export function VendorsTab({ accessToken, onFeedback }) {
                 <tbody className="divide-y divide-black/5">
                   {apps.map((app) => (
                     <tr key={app.id} className="hover:bg-black/[0.01]">
+                      <td className="p-3.5 text-center">
+                        <input type="checkbox" aria-label={`Select vendor application ${app.application_number || app.id}`} checked={selectedIds.includes(app.id)} onChange={() => setSelectedIds((current) => current.includes(app.id) ? current.filter((id) => id !== app.id) : [...current, app.id])} />
+                      </td>
                       <td className="p-3.5 whitespace-nowrap">
                         <span className="font-mono font-bold text-[#071313]">
                           {app.application_number || `NV-26-V-${app.id}`}

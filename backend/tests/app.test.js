@@ -1,5 +1,7 @@
 const request = require("supertest");
 const { buildApplication } = require("../src/bootstrap");
+const { MockRepository } = require("../src/db/mockRepository");
+const { normalizeOrganizingMemberInput } = require("../src/services/validation");
 
 describe("NV Cyclothon Node backend", () => {
   let runtime;
@@ -34,6 +36,40 @@ describe("NV Cyclothon Node backend", () => {
     expect(runtime.config.dbBackend).toBe("mock");
   });
 
+  it("accepts API-generated profile image paths for organizing members without allowing arbitrary HTTP URLs", () => {
+    const imageUrl = "/api/content/profile-media/mv0q8lwb-6f15d073c5e875e1.webp";
+    expect(normalizeOrganizingMemberInput({ image_url: imageUrl }).image_url).toBe(imageUrl);
+    expect(() => normalizeOrganizingMemberInput({ image_url: "http://127.0.0.1:8000/photo.webp" })).toThrow(
+      "Image URLs must use HTTPS and may not include credentials"
+    );
+    expect(() => normalizeOrganizingMemberInput({ image_url: "/api/other/path.webp" })).toThrow(
+      "Image URLs must use HTTPS and may not include credentials"
+    );
+  });
+
+  it("does not count unpaid pending registrations toward the early-bird threshold", () => {
+    const repository = new MockRepository();
+    repository.tables.cyclothon_registrations = Array.from({ length: 50 }, (_, index) => ({
+      id: index + 1,
+      ride_category: "10 Km Green Ride",
+      status: "pending",
+      payment_status: "pending",
+    }));
+
+    expect(
+      repository.calculateRegistrationFee("10 Km Green Ride", "2099-11-22")
+    ).toBe(39_900);
+
+    repository.tables.cyclothon_registrations.forEach((registration) => {
+      registration.status = "approved";
+      registration.payment_status = "paid";
+    });
+
+    expect(
+      repository.calculateRegistrationFee("10 Km Green Ride", "2099-11-22")
+    ).toBe(49_900);
+  });
+
   it("returns health check response", async () => {
     const response = await request(runtime.app).get("/api/health");
     expect(response.statusCode).toBe(200);
@@ -59,6 +95,37 @@ describe("NV Cyclothon Node backend", () => {
   it("denies admin route access without a token", async () => {
     const response = await request(runtime.app).get("/api/admin/registrations");
     expect(response.statusCode).toBe(401);
+  });
+
+  it("bulk-deletes selected unpaid registrations but protects paid/approved riders", async () => {
+    runtime.resetRateLimits();
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    runtime.resetRateLimits();
+    const pending = {
+      id: 99001,
+      email: "unpaid-delete@example.com",
+      status: "pending",
+      payment_status: "pending",
+    };
+    const paid = {
+      id: 99002,
+      email: "paid-protect@example.com",
+      status: "approved",
+      payment_status: "paid",
+    };
+    runtime.repository.tables.cyclothon_registrations.push(pending, paid);
+
+    const response = await request(runtime.app)
+      .post("/api/admin/bulk-delete")
+      .set("Authorization", `Bearer ${login.body.access_token}`)
+      .send({ entity: "registration", ids: [pending.id, paid.id] });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.deleted_ids).toEqual([pending.id]);
+    expect(response.body.skipped_ids).toEqual([paid.id]);
+    expect(await runtime.repository.getRegistrationById(paid.id)).toBeTruthy();
   });
 
   it("creates and prevents duplicate registrations", async () => {

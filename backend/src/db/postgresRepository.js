@@ -1045,7 +1045,8 @@ class PostgresRepository {
       const activeCountResult = await client.query(
         `SELECT COUNT(*)::int AS count
          FROM cyclothon_registrations
-         WHERE status <> 'cancelled'`
+         WHERE status <> 'cancelled'
+           AND payment_status = 'paid'`
       );
       const activeCount = activeCountResult.rows[0].count;
 
@@ -1335,6 +1336,116 @@ class PostgresRepository {
 
     const result = await this.pool.query(query, params);
     return result.rows;
+  }
+
+  async deleteAdminRecords(entity, ids) {
+    const tableByEntity = {
+      volunteer: "volunteer_accounts",
+      community: "community_posts",
+      offer: "event_offers",
+      guest: "chief_guests",
+      member: "organizing_members",
+      delegation: "delegations",
+    };
+    const uniqueIds = [...new Set(ids.map(Number))];
+    if (!uniqueIds.length) return { deleted: [], skipped: [], mediaKeys: [] };
+
+    if (entity === "registration") {
+      return this.withTransaction(async (client) => {
+        await client.query(
+          `DELETE FROM registration_email_deliveries
+           WHERE registration_id = ANY($1::int[])
+             AND registration_id IN (
+               SELECT id FROM cyclothon_registrations
+               WHERE id = ANY($1::int[])
+                 AND payment_status <> 'paid'
+                 AND status NOT IN ('approved', 'checked_in')
+             )`,
+          [uniqueIds]
+        );
+        const result = await client.query(
+          `DELETE FROM cyclothon_registrations
+           WHERE id = ANY($1::int[])
+             AND payment_status <> 'paid'
+             AND status NOT IN ('approved', 'checked_in')
+           RETURNING id`,
+          [uniqueIds]
+        );
+        const deleted = result.rows.map((row) => row.id);
+        return { deleted, skipped: uniqueIds.filter((id) => !deleted.includes(id)), mediaKeys: [] };
+      });
+    }
+
+    if (entity === "partner" || entity === "vendor") {
+      const table = entity === "partner" ? "partner_applications" : "vendor_applications";
+      const statusGuard = entity === "partner"
+        ? "AND UPPER(status) NOT IN ('APPROVED', 'EVENT_READY', 'COMPLETED')"
+        : "AND UPPER(status) NOT IN ('APPROVED', 'EVENT_READY', 'COMPLETED')";
+      const childPaymentGuard = entity === "partner"
+        ? `AND NOT EXISTS (
+             SELECT 1 FROM partner_payments pp
+             WHERE pp.partner_id = partner_applications.id
+               AND UPPER(pp.payment_status) IN ('PAID', 'PAYMENT_VERIFIED', 'SUCCESS')
+           )`
+        : "";
+      return this.withTransaction(async (client) => {
+        const result = await client.query(
+          `DELETE FROM ${table}
+           WHERE id = ANY($1::int[])
+             AND UPPER(payment_status) NOT IN ('PAID', 'PAYMENT_VERIFIED', 'SUCCESS')
+             AND payment_id IS NULL
+             AND reviewed_at IS NULL
+             ${statusGuard}
+             ${childPaymentGuard}
+           RETURNING id, ${entity === "partner" ? "logo_key" : "document_key"} AS media_key`,
+          [uniqueIds]
+        );
+        const deleted = result.rows.map((row) => row.id);
+        return {
+          deleted,
+          skipped: uniqueIds.filter((id) => !deleted.includes(id)),
+          mediaKeys: result.rows.map((row) => row.media_key).filter(Boolean),
+        };
+      });
+    }
+
+    const table = tableByEntity[entity];
+    if (!table) throw new ValidationError("Unsupported record type for deletion");
+    return this.withTransaction(async (client) => {
+      if (entity === "volunteer") {
+        const result = await client.query(
+          `DELETE FROM volunteer_accounts
+           WHERE id = ANY($1::int[])
+             AND COALESCE(certificate_status, 'not_issued') <> 'issued'
+             AND credentials_sent_at IS NULL
+           RETURNING id`,
+          [uniqueIds]
+        );
+        const deleted = result.rows.map((row) => row.id);
+        return { deleted, skipped: uniqueIds.filter((id) => !deleted.includes(id)), mediaKeys: [] };
+      }
+      if (entity === "delegation") {
+        const result = await client.query(
+          `DELETE FROM delegations
+           WHERE id = ANY($1::int[])
+             AND status = 'invited'
+           RETURNING id`,
+          [uniqueIds]
+        );
+        const deleted = result.rows.map((row) => row.id);
+        return { deleted, skipped: uniqueIds.filter((id) => !deleted.includes(id)), mediaKeys: [] };
+      }
+      const result = await client.query(
+        `DELETE FROM ${table} WHERE id = ANY($1::int[]) RETURNING id${entity === "community" ? ", image_key AS media_key" : ""}`,
+        [uniqueIds]
+      );
+      const deleted = result.rows.map((row) => row.id);
+      return {
+        deleted,
+        skipped: uniqueIds.filter((id) => !deleted.includes(id)),
+        mediaKeys: result.rows.map((row) => row.media_key).filter(Boolean),
+      };
+    });
   }
 
   async getRegistrationById(registrationId) {

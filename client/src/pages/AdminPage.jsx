@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Award, Flag, Tag, UsersRound, AlertCircle, RefreshCw } from "lucide-react";
-import { adminRequest, createAdminSession } from "../api/http";
+import { adminRequest, createAdminSession, bulkDeleteAdminRecords, resolveApiAssetUrl } from "../api/http";
 import { LoadingScreen } from "../components/LoadingIndicator";
 import {
   AdminHeader,
@@ -103,16 +103,13 @@ export function AdminPage() {
     }
   };
 
-  const remove = async (path) => {
-    if (!window.confirm("Are you sure you want to remove this record?")) {
-      return;
-    }
+  const removeSelected = async (entity, ids) => {
     try {
-      await adminRequest(path, accessToken, { method: "DELETE" });
+      const result = await bulkDeleteAdminRecords(accessToken, entity, ids);
       await load();
-      setMessage("Record removed.");
+      setMessage(`${result.deleted} record(s) deleted${result.skipped ? `; ${result.skipped} protected or missing record(s) were kept` : ""}.`);
     } catch (error) {
-      setMessage(error.message);
+      setMessage(error.message || "Unable to delete selected records.");
     }
   };
 
@@ -252,6 +249,7 @@ export function AdminPage() {
               {tab === "delegations" && (
                 <ManagePanel
                   title="Delegation"
+                  onBulkRemove={(ids) => removeSelected("delegation", ids)}
                   icon={Flag}
                   description="Manage institutional, corporate, and club cycling teams"
                   fields={emptyDelegation}
@@ -265,7 +263,6 @@ export function AdminPage() {
                       id ? "PUT" : "POST"
                     )
                   }
-                  onRemove={(id) => remove(`/delegations/${id}`)}
                   render={(item) => (
                     <div>
                       <p className="font-black text-sm text-[#071313]">{item.organization}</p>
@@ -292,6 +289,7 @@ export function AdminPage() {
               {tab === "offers" && (
                 <ManagePanel
                   title="Promo Offer"
+                  onBulkRemove={(ids) => removeSelected("offer", ids)}
                   icon={Tag}
                   description="Configure coupon codes, discount campaigns, and promotional tiers"
                   fields={emptyOffer}
@@ -299,7 +297,6 @@ export function AdminPage() {
                   onSave={(value, reset, id) =>
                     save(id ? `/offers/${id}` : "/offers", value, reset, id ? "PUT" : "POST")
                   }
-                  onRemove={(id) => remove(`/offers/${id}`)}
                   render={(item) => (
                     <div>
                       <p className="font-black text-sm text-[#071313]">{item.title}</p>
@@ -314,6 +311,7 @@ export function AdminPage() {
               {tab === "guests" && (
                 <ManagePanel
                   title="Chief Guest"
+                  onBulkRemove={(ids) => removeSelected("guest", ids)}
                   icon={Award}
                   description="Distinguished guests, dignitaries, and VIPs attending NV Cyclothon"
                   fields={emptyGuest}
@@ -327,12 +325,11 @@ export function AdminPage() {
                       id ? "PUT" : "POST"
                     )
                   }
-                  onRemove={(id) => remove(`/chief-guests/${id}`)}
                   render={(item) => (
                     <div className="flex items-center gap-3">
                       {item.image_url ? (
                         <img
-                          src={item.image_url}
+                          src={resolveApiAssetUrl(item.image_url)}
                           alt=""
                           className="h-12 w-12 rounded-xl object-cover border border-black/10"
                         />
@@ -354,6 +351,7 @@ export function AdminPage() {
               {tab === "members" && (
                 <ManagePanel
                   title="Organizing Member"
+                  onBulkRemove={(ids) => removeSelected("member", ids)}
                   icon={UsersRound}
                   description="Executive leadership, race directors, and organizing committee"
                   fields={emptyMember}
@@ -367,12 +365,11 @@ export function AdminPage() {
                       id ? "PUT" : "POST"
                     )
                   }
-                  onRemove={(id) => remove(`/organizing-members/${id}`)}
                   render={(item) => (
                     <div className="flex items-center gap-3">
                       {item.image_url ? (
                         <img
-                          src={item.image_url}
+                          src={resolveApiAssetUrl(item.image_url)}
                           alt=""
                           className="h-12 w-12 rounded-xl object-cover border border-black/10"
                         />

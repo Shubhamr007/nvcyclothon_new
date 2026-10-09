@@ -6,7 +6,7 @@ import { EDITIONS, EVENT } from "../constants";
 import { Reveal } from "../../../components/Reveal";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { request } from "../../../api/http";
+import { request, resolveApiAssetUrl } from "../../../api/http";
 
 const gallery = [
   [
@@ -220,7 +220,7 @@ export function OrganizingMembers() {
             <Reveal key={member.id} delay={index * 0.06}>
               <article className="member-profile-card group relative h-full overflow-hidden rounded-3xl bg-[#071313] shadow-[6px_6px_0_#d9ff38]">
                 {member.image_url ? (
-                  <img src={member.image_url} alt={`Portrait of ${member.name}`} className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
+                  <img src={resolveApiAssetUrl(member.image_url)} alt={`Portrait of ${member.name}`} className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
                 ) : (
                   <div className="grid aspect-[4/5] w-full place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-label={`Profile image unavailable for ${member.name}`}>{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>
                 )}
@@ -253,7 +253,7 @@ function MemberProfileDialog({ member, onClose }) {
         <motion.div className="fixed inset-0 z-50 grid place-items-center bg-[#071313]/75 px-5 py-8 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
           <motion.section role="dialog" aria-modal="true" aria-labelledby="member-profile-title" aria-describedby="member-profile-message" data-theme="dark" className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/30 bg-white/10 text-white shadow-[0_28px_100px_rgba(0,0,0,.5)] backdrop-blur-2xl" initial={{ opacity: 0, rotateX: -12, y: 36, scale: 0.94 }} animate={{ opacity: 1, rotateX: 0, y: 0, scale: 1 }} exit={{ opacity: 0, rotateX: 8, y: 24, scale: 0.96 }} transition={{ type: "spring", stiffness: 260, damping: 22 }} style={{ transformPerspective: 1200 }}>
             <div className="grid md:grid-cols-[.8fr_1.2fr]">
-              {member.image_url ? <img src={member.image_url} alt={`Portrait of ${member.name}`} className="h-64 w-full object-cover md:h-full" /> : <div className="grid min-h-64 place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-hidden="true">{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}
+              {member.image_url ? <img src={resolveApiAssetUrl(member.image_url)} alt={`Portrait of ${member.name}`} className="h-64 w-full object-cover md:h-full" /> : <div className="grid min-h-64 place-items-center bg-[#071313] text-5xl font-black text-[#d9ff38]" aria-hidden="true">{member.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</div>}
               <div className="relative p-7 md:p-9">
                 <button ref={closeButtonRef} type="button" onClick={onClose} className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full border border-white/25 text-xl font-bold text-white transition hover:bg-white/15 focus:outline-none focus:ring-4 focus:ring-[#d9ff38]" aria-label="Close profile">×</button>
                 <p className="pr-12 text-xs font-black tracking-[.14em] text-[#d9ff38] uppercase">Organising team</p>

@@ -5,6 +5,23 @@ export function apiUrl(path) {
   return `${API_BASE}${path}`;
 }
 
+export function resolveApiAssetUrl(url) {
+  if (!url || /^(data:|blob:)/i.test(url)) return url;
+
+  const parsed = new URL(url, API_BASE_URL || window.location.origin);
+  const isApiAsset = parsed.pathname === "/api" || parsed.pathname.startsWith("/api/");
+  if (!isApiAsset) return url;
+
+  const isLocalApiHost = ["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+  if (import.meta.env.DEV && (isLocalApiHost || !/^(https?:)?\/\//i.test(url))) {
+    // Use Vite's existing /api proxy so local image loads stay same-origin under CSP.
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  }
+
+  const apiOrigin = API_BASE_URL || window.location.origin;
+  return new URL(`${parsed.pathname}${parsed.search}${parsed.hash}`, apiOrigin).toString();
+}
+
 export class ApiError extends Error {
   constructor(status, message, code = null, rawDetail = null) {
     super(message);
@@ -104,6 +121,14 @@ export async function updateSiteSettings(accessToken, patch) {
 
 export async function getAdminSettings(accessToken) {
   return adminRequest("/settings", accessToken);
+}
+
+export async function bulkDeleteAdminRecords(accessToken, entity, ids) {
+  return adminRequest("/bulk-delete", accessToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entity, ids }),
+  });
 }
 
 export async function listVolunteers(accessToken) {

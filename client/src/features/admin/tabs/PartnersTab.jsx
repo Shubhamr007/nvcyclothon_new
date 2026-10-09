@@ -6,11 +6,13 @@ import {
   getAdminPartnerDeliverables,
   updateAdminPartnerDeliverable,
   exportAdminPartnersCsv,
+  bulkDeleteAdminRecords,
 } from "../../../api/http";
 import { useDebouncedValue } from "../../../components/useDebouncedValue";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 import {
   Building2,
   Download,
@@ -26,6 +28,8 @@ import {
 export function PartnersTab({ accessToken, onFeedback }) {
   const [subTab, setSubTab] = useState("applications"); // applications, approved
   const [apps, setApps] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleting, setDeleting] = useState(false);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -78,6 +82,20 @@ export function PartnersTab({ accessToken, onFeedback }) {
       setReviewModal(null);
     } catch (error) {
       onFeedback?.(error.message);
+    }
+  };
+
+  const deleteSelected = async () => {
+    setDeleting(true);
+    try {
+      const result = await bulkDeleteAdminRecords(accessToken, "partner", selectedIds);
+      setSelectedIds([]);
+      onFeedback?.(`${result.deleted} partner application(s) deleted${result.skipped ? `; ${result.skipped} paid, reviewed, or approved record(s) were kept` : ""}.`);
+      fetchApps();
+    } catch (error) {
+      onFeedback?.(error.message || "Unable to delete selected partner applications.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -211,6 +229,7 @@ export function PartnersTab({ accessToken, onFeedback }) {
 
       {subTab === "applications" && (
         <div className="rounded-2xl border border-[#071313]/10 bg-white p-5 shadow-sm space-y-4">
+          <SelectedDeleteAction count={selectedIds.length} label="partner application" busy={deleting} onDelete={deleteSelected} />
           {/* SEARCH & STATUS PILLS */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-black/10 pb-4">
             <div className="relative min-w-[280px]">
@@ -255,6 +274,9 @@ export function PartnersTab({ accessToken, onFeedback }) {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-black/10 bg-[#fbf8ef] font-mono text-[#071313]">
                   <tr>
+                    <th className="p-3.5 text-center">
+                      <input type="checkbox" aria-label="Select all visible partner applications" checked={apps.length > 0 && apps.every((app) => selectedIds.includes(app.id))} onChange={(event) => setSelectedIds(event.target.checked ? apps.map((app) => app.id) : [])} />
+                    </th>
                     <th className="p-3.5 uppercase font-bold">Reference / Date</th>
                     <th className="p-3.5 uppercase font-bold">Company / Brand</th>
                     <th className="p-3.5 uppercase font-bold">Contact Person</th>
@@ -266,6 +288,9 @@ export function PartnersTab({ accessToken, onFeedback }) {
                 <tbody className="divide-y divide-black/5">
                   {apps.map((app) => (
                     <tr key={app.id} className="hover:bg-black/[0.01]">
+                      <td className="p-3.5 text-center">
+                        <input type="checkbox" aria-label={`Select partner application ${app.application_number || app.id}`} checked={selectedIds.includes(app.id)} onChange={() => setSelectedIds((current) => current.includes(app.id) ? current.filter((id) => id !== app.id) : [...current, app.id])} />
+                      </td>
                       <td className="p-3.5 whitespace-nowrap">
                         <span className="font-mono font-bold text-[#071313]">
                           {app.application_number || `NV-26-P-${app.id}`}

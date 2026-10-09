@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { MessageSquare, Check, X, AlertCircle, Image as ImageIcon, Trash2 } from "lucide-react";
+import { MessageSquare, Check, X, AlertCircle, Image as ImageIcon } from "lucide-react";
 import {
   listAdminCommunityPosts,
   moderateCommunityPost,
-  deleteAdminCommunityPost,
+  bulkDeleteAdminRecords,
   getAdminCommunityMedia,
 } from "../../../api/http";
 import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 
-function CommunityModerationItem({ item, accessToken, working, onModerate, onDelete }) {
+function CommunityModerationItem({ item, accessToken, working, selected, onSelect, onModerate }) {
   const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
@@ -39,7 +40,10 @@ function CommunityModerationItem({ item, accessToken, working, onModerate, onDel
       : "bg-amber-100 text-amber-800 border-amber-200";
 
   return (
-    <article className="grid gap-4 rounded-2xl border border-black/10 bg-white p-5 md:grid-cols-[160px_1fr_auto] hover:border-black/20 transition-colors shadow-sm">
+    <article className="grid gap-4 rounded-2xl border border-black/10 bg-white p-5 md:grid-cols-[28px_160px_1fr_auto] hover:border-black/20 transition-colors shadow-sm">
+      <div className="pt-1">
+        <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Select community post by ${item.name || "user"}`} />
+      </div>
       <div className="min-h-28 rounded-xl bg-[#fbf8ef] flex items-center justify-center overflow-hidden border border-black/5">
         {imageUrl ? (
           <img
@@ -98,16 +102,6 @@ function CommunityModerationItem({ item, accessToken, working, onModerate, onDel
             Reject
           </Button>
         )}
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={working}
-          onClick={() => onDelete(item.id, item.name)}
-          className="h-8 text-xs font-bold px-3 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-        >
-          <Trash2 className="h-3.5 w-3.5 mr-1" />
-          Delete
-        </Button>
       </div>
     </article>
   );
@@ -118,6 +112,7 @@ export function CommunityTab({ accessToken, onFeedback }) {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [state, setState] = useState({ loading: true, error: "" });
   const [workingId, setWorkingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const load = async () => {
     setState({ loading: true, error: "" });
@@ -154,19 +149,13 @@ export function CommunityTab({ accessToken, onFeedback }) {
     }
   };
 
-  const removePost = async (id, name) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to permanently delete the post by "${name || 'User'}"? This removes the entry and any associated photo permanently.`
-      )
-    ) {
-      return;
-    }
-    setWorkingId(id);
+  const removeSelected = async () => {
+    setWorkingId("bulk");
     try {
-      await deleteAdminCommunityPost(accessToken, id);
-      setItems((current) => current.filter((item) => item.id !== id));
-      onFeedback?.("Community post permanently deleted.");
+      const result = await bulkDeleteAdminRecords(accessToken, "community", selectedIds);
+      setSelectedIds([]);
+      setItems((current) => current.filter((item) => !result.deleted_ids.includes(item.id)));
+      onFeedback?.(`${result.deleted} community post(s) permanently deleted.`);
     } catch (error) {
       setState((current) => ({
         ...current,
@@ -222,6 +211,8 @@ export function CommunityTab({ accessToken, onFeedback }) {
         </div>
       )}
 
+      <SelectedDeleteAction count={selectedIds.length} label="community post" busy={workingId === "bulk"} onDelete={removeSelected} />
+
       {state.loading ? (
         <div className="py-16 flex justify-center">
           <LoadingIndicator label="Loading moderation queue…" />
@@ -238,8 +229,9 @@ export function CommunityTab({ accessToken, onFeedback }) {
               item={item}
               accessToken={accessToken}
               working={workingId === item.id}
+              selected={selectedIds.includes(item.id)}
+              onSelect={() => setSelectedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
               onModerate={moderate}
-              onDelete={removePost}
             />
           ))}
         </div>

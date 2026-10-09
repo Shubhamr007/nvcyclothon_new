@@ -33,6 +33,8 @@ import { adminRequest, adminDownload } from "../../../api/http";
 import { useDebouncedValue } from "../../../components/useDebouncedValue";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
+import { bulkDeleteAdminRecords } from "../../../api/http";
+import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 
 function formatStatus(status) {
   return String(status || "").replaceAll("_", " ");
@@ -164,6 +166,23 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
   };
 
   const clearSelection = () => setSelectedIds([]);
+
+  const deleteSelected = async () => {
+    setBusy(true);
+    setActionMessage("");
+    try {
+      const result = await bulkDeleteAdminRecords(adminKey, "registration", selectedIds);
+      setActionMessage(
+        `${result.deleted} unpaid participant${result.deleted === 1 ? "" : "s"} deleted${result.skipped ? `; ${result.skipped} protected or missing record(s) were kept` : ""}.`
+      );
+      setSelectedIds([]);
+      await refresh();
+    } catch (error) {
+      setActionMessage(error.message || "Unable to delete selected participants.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // Expand / Collapse Row Handlers
   const toggleExpand = (id) => {
@@ -556,6 +575,13 @@ export function ParticipantsTab({ riders = [], adminKey, refresh }) {
             <option value="not_sent">Certificate: Not Sent ({certificateCounts.not_sent})</option>
           </select>
         </div>
+
+        <SelectedDeleteAction
+          count={selectedIds.length}
+          label="participant"
+          busy={busy}
+          onDelete={deleteSelected}
+        />
 
         {/* EXPAND ALL / COLLAPSE ALL TOGGLES */}
         <div className="flex items-center justify-between pt-2 border-t border-black/5 text-xs text-black/60">

@@ -364,7 +364,7 @@ class MockRepository {
     }
 
     const activeRegistrations = this.tables.cyclothon_registrations.filter(
-      (item) => item.status !== "cancelled"
+      (item) => item.status !== "cancelled" && item.payment_status === "paid"
     ).length;
     return activeRegistrations < EARLY_BIRD_LIMIT
       ? category.early_bird
@@ -1646,6 +1646,59 @@ class MockRepository {
       (item) => !expired.includes(item)
     );
     return expired.map((item) => ({ id: item.id, email: item.email }));
+  }
+
+  async deleteAdminRecords(entity, ids) {
+    const tableByEntity = {
+      volunteer: "volunteer_accounts",
+      community: "community_posts",
+      offer: "event_offers",
+      guest: "chief_guests",
+      member: "organizing_members",
+      delegation: "delegations",
+      registration: "cyclothon_registrations",
+      partner: "partner_applications",
+      vendor: "vendor_applications",
+    };
+    const table = tableByEntity[entity];
+    if (!table) throw new ValidationError("Unsupported record type for deletion");
+    const requested = [...new Set(ids.map(Number))];
+    const mediaKeys = [];
+    const deletable = (item) => {
+      if (entity === "registration") {
+        return item.payment_status !== "paid" && !["approved", "checked_in"].includes(item.status);
+      }
+      if (entity === "partner" || entity === "vendor") {
+        return !["PAID", "PAYMENT_VERIFIED", "SUCCESS"].includes(String(item.payment_status).toUpperCase()) &&
+          !item.payment_id && !item.reviewed_at &&
+          !["APPROVED", "EVENT_READY", "COMPLETED"].includes(String(item.status).toUpperCase());
+      }
+      if (entity === "volunteer") {
+        return item.certificate_status !== "issued" && !item.credentials_sent_at;
+      }
+      if (entity === "delegation") {
+        return item.status === "invited";
+      }
+      return true;
+    };
+    const found = this.tables[table].filter((item) => requested.includes(Number(item.id)) && deletable(item));
+    for (const item of found) {
+      if (entity === "community" && item.image_key) mediaKeys.push(item.image_key);
+      if (entity === "partner") {
+        this.tables.partner_brand_assets = this.tables.partner_brand_assets.filter((child) => child.partner_id !== item.id);
+        this.tables.partner_deliverables = this.tables.partner_deliverables.filter((child) => child.partner_id !== item.id);
+        this.tables.partner_payments = this.tables.partner_payments.filter((child) => child.partner_id !== item.id);
+      }
+      if (entity === "registration") {
+        this.tables.volunteer_checkin_logs = this.tables.volunteer_checkin_logs.filter((child) => child.registration_id !== item.id);
+        this.tables.rider_passes = this.tables.rider_passes.filter((child) => child.registration_id !== item.id);
+        this.tables.participation_certificates = this.tables.participation_certificates.filter((child) => child.registration_id !== item.id);
+        this.tables.registration_email_deliveries = this.tables.registration_email_deliveries.filter((child) => child.registration_id !== item.id);
+      }
+      this.tables[table] = this.tables[table].filter((record) => record !== item);
+    }
+    const deleted = found.map((item) => Number(item.id));
+    return { deleted, skipped: requested.filter((id) => !deleted.includes(id)), mediaKeys };
   }
 }
 
