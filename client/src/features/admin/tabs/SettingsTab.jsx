@@ -17,13 +17,18 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { DEFAULT_SECTIONS } from "../../../state/SiteSettingsContext";
+
 const SECTION_LABELS = [
+  ["experience", "Stats & Experience Highlights"],
   ["editions", "Editions Timeline"],
   ["about", "About / Mission"],
-  ["routes", "Route Categories"],
+  ["members", "Organizing Committee Members"],
+  ["routes", "Route Categories & Maps"],
   ["updates", "Event Updates"],
   ["gallery", "Photo Gallery"],
   ["why_sport", "Why Cycling Section"],
+  ["faq", "Frequently Asked Questions (FAQ)"],
   ["community", "Community Wall"],
   ["contact", "Point of Contact + Map"],
   ["sponsors", "Association & Commercial Collaborations"],
@@ -42,7 +47,8 @@ export function SettingsTab({ accessToken, onFeedback }) {
     getAdminSettings(accessToken)
       .then((data) => {
         if (cancelled) return;
-        setSettings(data);
+        const mergedSections = { ...DEFAULT_SECTIONS, ...(data?.sections || {}) };
+        setSettings({ ...data, sections: mergedSections });
         setLoading(false);
       })
       .catch((error) => {
@@ -67,10 +73,17 @@ export function SettingsTab({ accessToken, onFeedback }) {
     setSettings((current) => ({ ...current, [key]: value }));
 
   const toggleSection = (key) =>
-    setSettings((current) => ({
-      ...current,
-      sections: { ...current.sections, [key]: !current.sections?.[key] },
-    }));
+    setSettings((current) => {
+      const currentSections = current?.sections || DEFAULT_SECTIONS;
+      const isEnabled = currentSections[key] !== false;
+      return {
+        ...current,
+        sections: {
+          ...currentSections,
+          [key]: !isEnabled,
+        },
+      };
+    });
 
   const updatePrizePool = (key, value) =>
     updateField("prize_pool", { ...settings.prize_pool, [key]: value });
@@ -103,9 +116,18 @@ export function SettingsTab({ accessToken, onFeedback }) {
         participant_kit: settings.participant_kit || {},
         sections: settings.sections,
       });
-      setSettings(updated);
+      const mergedUpdated = {
+        ...updated,
+        sections: { ...DEFAULT_SECTIONS, ...(updated?.sections || {}) },
+      };
+      setSettings(mergedUpdated);
       setLocalFeedback("Site settings updated successfully.");
       onFeedback?.("Site settings updated.");
+
+      try {
+        localStorage.setItem("nv_site_settings_updated", String(Date.now()));
+        window.dispatchEvent(new CustomEvent("nv:settings-updated", { detail: mergedUpdated }));
+      } catch {}
     } catch (error) {
       setLocalFeedback(error.message || "Failed to save settings.");
     } finally {

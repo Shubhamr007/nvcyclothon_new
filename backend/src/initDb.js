@@ -14,6 +14,7 @@ async function initDb() {
     await repository.seedProducts(CATALOGUE);
     await repository.seedOrganizingMembers();
     await repository.seedSponsorshipTiers();
+    await repository.seedGalleryItems();
     await repository.ensureAdminUser(config.adminUsername, config.adminBootstrapPassword);
     console.log("Database schema initialized and seed data applied.");
   } finally {

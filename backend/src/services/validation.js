@@ -284,6 +284,15 @@ const chiefGuestSchema = z.object({
   display_order: z.number().int().min(0).default(0),
 });
 
+const galleryItemSchema = z.object({
+  title: z.string().trim().max(160).optional().default(""),
+  caption: z.string().max(2000).nullable().optional().default(""),
+  category: z.string().trim().max(80).default("Event"),
+  image_url: z.string().max(1000),
+  featured: z.boolean().default(true),
+  display_order: z.number().int().min(0).default(0),
+});
+
 const organizingMemberSchema = z.object({
   name: z.string().trim().min(2).max(160),
   role: z.string().trim().min(2).max(200),
@@ -341,12 +350,15 @@ const visitorEventSchema = z.object({ path: z.string().trim().min(1).max(160), t
 
 const siteSectionsPatchSchema = z
   .object({
+    experience: z.boolean().optional(),
     editions: z.boolean().optional(),
     about: z.boolean().optional(),
+    members: z.boolean().optional(),
     routes: z.boolean().optional(),
     updates: z.boolean().optional(),
     gallery: z.boolean().optional(),
     why_sport: z.boolean().optional(),
+    faq: z.boolean().optional(),
     contact: z.boolean().optional(),
     sponsors: z.boolean().optional(),
     community: z.boolean().optional(),
@@ -506,6 +518,18 @@ function normalizeChiefGuestInput(payload) {
     ...payload,
     bio: payload.bio ?? null,
     image_url: validateProfileImageUrl(payload.image_url),
+  };
+}
+
+function normalizeGalleryItemInput(payload) {
+  return {
+    ...payload,
+    title: payload.title?.trim() || "",
+    caption: payload.caption?.trim() || "",
+    category: payload.category?.trim() || "Event",
+    image_url: validateProfileImageUrl(payload.image_url),
+    featured: payload.featured !== false,
+    display_order: Number.isInteger(payload.display_order) ? payload.display_order : 0,
   };
 }
 
@@ -699,6 +723,7 @@ module.exports = {
   bulkBatchSchema,
   offerSchema,
   chiefGuestSchema,
+  galleryItemSchema,
   organizingMemberSchema,
   sponsorshipTierSchema,
   delegationSchema,
@@ -722,6 +747,7 @@ module.exports = {
   normalizeRegistrationInput,
   normalizeOfferInput,
   normalizeChiefGuestInput,
+  normalizeGalleryItemInput,
   normalizeOrganizingMemberInput,
   normalizeDelegationInput,
   normalizePartnerApplicationInput,

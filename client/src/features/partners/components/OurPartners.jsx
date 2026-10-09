@@ -132,7 +132,11 @@ function PartnerCard({ partner, isTitle, small }) {
     >
       {partner.logo_key ? (
         <img
-          src={apiUrl(`/admin/partner-applications/${partner.id}/logo`)}
+          src={
+            partner.logo_key.startsWith('http://') || partner.logo_key.startsWith('https://')
+              ? partner.logo_key
+              : apiUrl(`/partners/${partner.id}/logo`)
+          }
           alt={partner.brand_name || partner.company_name}
           className="max-h-16 w-auto object-contain"
         />

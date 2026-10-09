@@ -673,6 +673,73 @@ describe("NV Cyclothon Node backend", () => {
     expect(publicAfterDelete.body.total_approved).toBe(0);
   });
 
+  it("supports public photo gallery listing and admin CRUD management", async () => {
+    const publicList = await request(runtime.app).get("/api/gallery");
+    expect(publicList.statusCode).toBe(200);
+    expect(Array.isArray(publicList.body)).toBe(true);
+
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    const created = await request(runtime.app)
+      .post("/api/admin/gallery")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        title: "Sunset Peloton Test",
+        category: "Organizers",
+        caption: "Testing the photo gallery management",
+        image_url: "https://images.unsplash.com/photo-1544717305-2782549b5136",
+        display_order: 1,
+        featured: true,
+      });
+    expect(created.statusCode).toBe(201);
+    expect(created.body.id).toBeTruthy();
+    expect(created.body.title).toBe("Sunset Peloton Test");
+    const itemId = created.body.id;
+
+    const updated = await request(runtime.app)
+      .put(`/api/admin/gallery/${itemId}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        title: "Updated Sunset Peloton",
+        category: "Partners",
+        caption: "Updated caption",
+        image_url: "https://images.unsplash.com/photo-1544717305-2782549b5136",
+        display_order: 2,
+        featured: true,
+      });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.body.title).toBe("Updated Sunset Peloton");
+
+    const deleted = await request(runtime.app)
+      .delete(`/api/admin/gallery/${itemId}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(deleted.statusCode).toBe(204);
+
+    const batchRes = await request(runtime.app)
+      .post("/api/admin/gallery/batch")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        items: [
+          {
+            title: "Batch Photo 1",
+            category: "Riders",
+            image_url: "https://images.unsplash.com/photo-1544717305-2782549b5136",
+          },
+          {
+            title: "Batch Photo 2",
+            category: "Riders",
+            image_url: "https://images.unsplash.com/photo-1544717305-2782549b5136",
+          },
+        ],
+      });
+    expect(batchRes.statusCode).toBe(201);
+    expect(batchRes.body.count).toBe(2);
+    expect(batchRes.body.items).toHaveLength(2);
+  });
+
 
   it("submits partner application, verifies reference number format, and allows admin review", async () => {
     // 1. Check public packages

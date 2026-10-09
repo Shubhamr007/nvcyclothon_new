@@ -4,9 +4,10 @@ import detailedHeroImage from "../../../../assets/detailed_hero_image.png";
 import nvCyclothonHero from "../../../assets/nv-cyclothon-hero.webp";
 import { EDITIONS, EVENT } from "../constants";
 import { Reveal } from "../../../components/Reveal";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { request, resolveApiAssetUrl } from "../../../api/http";
+import { ChevronLeft, ChevronRight, Pause, Play, Maximize2, X, Camera } from "lucide-react";
 
 const gallery = [
   [
@@ -91,48 +92,495 @@ export function Editions() {
   );
 }
 
-export function Gallery() {
+const FALLBACK_GALLERY = [
+  {
+    id: 1,
+    title: "Vindhya Sunrise Flag-Off",
+    category: "Organizers",
+    caption: "Official race directors and organizing committee flagging off the inaugural peloton at sunrise.",
+    image_url: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80",
+    display_order: 1,
+  },
+  {
+    id: 2,
+    title: "Road Challenge Lead Pack",
+    category: "Riders",
+    caption: "60 Km Road Challenge cyclists pushing the pace across the scenic Vindhya highway.",
+    image_url: "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?auto=format&fit=crop&w=1200&q=80",
+    display_order: 2,
+  },
+  {
+    id: 3,
+    title: "Official Hydration & Energy Station",
+    category: "Partners",
+    caption: "Our hydration and nutrition partners ensuring riders stay refueled and energized throughout the route.",
+    image_url: "https://images.unsplash.com/photo-1516726817505-f5ed825624d8?auto=format&fit=crop&w=1200&q=80",
+    display_order: 3,
+  },
+  {
+    id: 4,
+    title: "Vindhya Mountain Trail Breakers",
+    category: "Riders",
+    caption: "30 Km MTB Challenge riders tackling the rugged terrain and rolling hills of Rewa.",
+    image_url: "https://images.unsplash.com/photo-1474962558142-9ca83af74bb7?auto=format&fit=crop&w=1200&q=80",
+    display_order: 4,
+  },
+  {
+    id: 5,
+    title: "Community Green Ride & Families",
+    category: "Highlights",
+    caption: "10 Km Green Ride bringing families, students, and citizens together for cleaner, greener streets.",
+    image_url: "https://images.unsplash.com/photo-1502744688674-c619d1586c9e?auto=format&fit=crop&w=1200&q=80",
+    display_order: 5,
+  },
+  {
+    id: 6,
+    title: "Partner Expo & Brand Zone",
+    category: "Partners",
+    caption: "Title sponsors and wellness partners engaging with cycling enthusiasts at the race village.",
+    image_url: "https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?auto=format&fit=crop&w=1200&q=80",
+    display_order: 6,
+  },
+  {
+    id: 7,
+    title: "Finish Line Glory & Medal Ceremony",
+    category: "Organizers",
+    caption: "Organizing committee presenting custom finisher medals and celebrating rider achievements.",
+    image_url: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80",
+    display_order: 7,
+  },
+  {
+    id: 8,
+    title: "Rewa Cycling Marshals on Course",
+    category: "Organizers",
+    caption: "Safety marshals and emergency pilot teams keeping the circuit secure and seamless.",
+    image_url: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=1200&q=80",
+    display_order: 8,
+  },
+];
+
+const CATEGORY_COLORS = {
+  Organizers: "bg-[#d9ff38] text-[#071313]",
+  Partners: "bg-[#ff5f3d] text-white",
+  Riders: "bg-[#38bdf8] text-[#071313]",
+  Highlights: "bg-white text-[#071313]",
+  Event: "bg-[#f4f1e9] text-[#071313]",
+};
+
+function GalleryPhotoTile({ item, onClick }) {
+  const badgeStyle = CATEGORY_COLORS[item.category] || CATEGORY_COLORS.Event;
+
   return (
-    <section
-      aria-labelledby="gallery-heading"
-      className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden"
+    <div
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      aria-label={`View photo: ${item.title || "NV Cyclothon moment"}`}
+      className="group relative h-64 sm:h-72 lg:h-80 w-[300px] sm:w-[380px] lg:w-[440px] shrink-0 overflow-hidden rounded-3xl border-2 border-[#071313] bg-[#071313] shadow-[4px_4px_0_#071313] cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[8px_8px_0_#ff5f3d] select-none"
     >
-      <div className="mx-auto max-w-[1400px]">
-        <div className="max-w-2xl">
-          <div>
-            <p className="text-xs font-black tracking-[.2em] text-[#ff5f3d] uppercase">
-              Official event gallery
-            </p>
-            <h2
-              id="gallery-heading"
-              className="mt-4 text-5xl font-black tracking-[-.08em] uppercase md:text-7xl"
-            >
-              See the
-              <br />
-              ride.
-            </h2>
-          </div>
-          <p className="mt-6 max-w-sm text-sm leading-6 text-[#071313]/70">
-            A preview of the routes, riders and race-day energy that make NV
-            Cyclothon special.
-          </p>
-        </div>
-        <div className="mt-12 grid gap-4 md:auto-rows-[16rem] md:grid-cols-[1.2fr_.8fr_.8fr]">
-          {gallery.map(([src, alt], index) => (
-            <figure
-              key={src}
-              className={`aspect-[4/3] overflow-hidden rounded-2xl bg-[#071313]/10 md:aspect-auto ${index === 0 ? "md:row-span-2" : ""}`}
-            >
-              <img
-                loading="lazy"
-                className="h-full w-full object-cover transition duration-700 hover:scale-105"
-                src={src}
-                alt={alt}
-              />
-            </figure>
-          ))}
+      <img
+        src={resolveApiAssetUrl(item.image_url)}
+        alt={item.title || "NV Cyclothon moment"}
+        loading="lazy"
+        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+      />
+
+      <div className="absolute inset-0 bg-gradient-to-t from-[#071313] via-[#071313]/30 to-black/20 opacity-80 group-hover:opacity-95 transition-opacity" />
+
+      {/* TOP BADGES */}
+      <div className="absolute left-4 top-4 right-4 flex items-center justify-between">
+        <span
+          className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm ${badgeStyle}`}
+        >
+          {item.category || "Event"}
+        </span>
+        <div className="grid h-8 w-8 place-items-center rounded-full bg-[#071313]/70 text-white backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100 group-hover:bg-[#d9ff38] group-hover:text-[#071313]">
+          <Maximize2 className="h-3.5 w-3.5" />
         </div>
       </div>
+
+      {/* BOTTOM INFO */}
+      <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+        <h3 className="text-base sm:text-lg font-black uppercase tracking-tight text-white group-hover:text-[#d9ff38] transition-colors line-clamp-1">
+          {item.title || "NV Cyclothon Moment"}
+        </h3>
+        {item.caption && (
+          <p className="mt-1 text-xs text-white/80 line-clamp-1">
+            {item.caption}
+          </p>
+        )}
+        <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-2 text-[10px] font-bold text-white/60">
+          <span>NV Cyclothon · Rewa</span>
+          <span className="text-[#d9ff38] group-hover:translate-x-0.5 transition-transform">
+            Tap to expand ↗
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Gallery() {
+  const [items, setItems] = useState(FALLBACK_GALLERY);
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [direction, setDirection] = useState("left-to-right"); // 'left-to-right' | 'right-to-left'
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    request("/content/gallery")
+      .then((data) => {
+        if (cancelled) return;
+        if (Array.isArray(data) && data.length > 0) {
+          setItems(data);
+        }
+      })
+      .catch(() => {
+        // Keeps FALLBACK_GALLERY if offline or error
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categories = ["All", "Organizers", "Partners", "Riders", "Highlights", "Event"];
+
+  const filteredItems = useMemo(() => {
+    if (activeCategory === "All") return items;
+    return items.filter(
+      (item) => (item.category || "").toLowerCase() === activeCategory.toLowerCase()
+    );
+  }, [items, activeCategory]);
+
+  // If there are many photos (>= 8), split into two floating tracks
+  const isDualTrack = filteredItems.length >= 8;
+  const track1Items = useMemo(() => {
+    if (!isDualTrack) return filteredItems;
+    return filteredItems.filter((_, idx) => idx % 2 === 0);
+  }, [filteredItems, isDualTrack]);
+
+  const track2Items = useMemo(() => {
+    if (!isDualTrack) return [];
+    return filteredItems.filter((_, idx) => idx % 2 !== 0);
+  }, [filteredItems, isDualTrack]);
+
+  // Helper to ensure loop has enough width to scroll continuously
+  const buildLoop = (list) => {
+    if (list.length === 0) return [];
+    let looped = [...list];
+    while (looped.length < 6) {
+      looped = [...looped, ...list];
+    }
+    return [...looped, ...looped];
+  };
+
+  const loopTrack1 = useMemo(() => buildLoop(track1Items), [track1Items]);
+  const loopTrack2 = useMemo(() => buildLoop(track2Items), [track2Items]);
+
+  // Lightbox keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (lightboxIndex === null) return;
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowLeft") {
+        setLightboxIndex((prev) =>
+          prev <= 0 ? filteredItems.length - 1 : prev - 1
+        );
+      }
+      if (e.key === "ArrowRight") {
+        setLightboxIndex((prev) =>
+          prev >= filteredItems.length - 1 ? 0 : prev + 1
+        );
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, filteredItems.length]);
+
+  const currentLightboxItem =
+    lightboxIndex !== null ? filteredItems[lightboxIndex] : null;
+
+  return (
+    <section
+      id="gallery"
+      aria-labelledby="gallery-heading"
+      className="accessible-light-surface bg-[#f4f1e9] py-20 sm:py-28 text-[#071313] overflow-hidden"
+    >
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">
+        {/* HEADER SECTION */}
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <Reveal>
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#071313]/15 bg-white/60 px-3 py-1 text-[11px] font-black tracking-[.2em] text-[#ff5f3d] uppercase backdrop-blur-sm">
+                <Camera className="h-3.5 w-3.5" />
+                <span>Official event gallery</span>
+              </div>
+              <h2
+                id="gallery-heading"
+                className="mt-4 text-5xl font-black leading-none tracking-[-.08em] uppercase md:text-7xl"
+              >
+                See the
+                <br />
+                <span className="text-[#ff5f3d]">ride.</span>
+              </h2>
+              <p className="mt-4 max-w-lg text-sm leading-6 text-[#071313]/70">
+                Continuous auto-floating stream of race-day energy, route moments, organizers, and proud commercial partners.
+              </p>
+            </Reveal>
+          </div>
+
+          {/* STREAM CONTROLS */}
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-end">
+            <button
+              type="button"
+              onClick={() => setIsPlaying((prev) => !prev)}
+              aria-label={isPlaying ? "Pause photo stream" : "Play photo stream"}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#071313] bg-white px-4 py-2.5 text-xs font-black uppercase text-[#071313] shadow-[3px_3px_0_#071313] transition hover:bg-[#d9ff38] active:translate-x-0.5 active:translate-y-0.5"
+            >
+              {isPlaying ? (
+                <>
+                  <Pause className="h-3.5 w-3.5 text-[#ff5f3d]" />
+                  <span>Pause Stream</span>
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5 text-[#071313]" />
+                  <span>Auto-Float</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setDirection((prev) =>
+                  prev === "left-to-right" ? "right-to-left" : "left-to-right"
+                )
+              }
+              aria-label="Toggle float direction"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-[#071313] bg-white px-4 py-2.5 text-xs font-black uppercase text-[#071313] shadow-[3px_3px_0_#071313] transition hover:bg-[#d9ff38] active:translate-x-0.5 active:translate-y-0.5"
+            >
+              <span>{direction === "left-to-right" ? "Float Left → Right" : "Float Right → Left"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* CATEGORY TABS */}
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-b border-black/10 pb-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {categories.map((cat) => {
+              const count =
+                cat === "All"
+                  ? items.length
+                  : items.filter(
+                      (x) => (x.category || "").toLowerCase() === cat.toLowerCase()
+                    ).length;
+              const isSelected = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
+                    isSelected
+                      ? "bg-[#071313] text-[#d9ff38] shadow-[3px_3px_0_#ff5f3d]"
+                      : "bg-white text-[#071313]/70 hover:bg-[#071313]/5 hover:text-[#071313] border border-black/10"
+                  }`}
+                >
+                  <span>{cat}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      isSelected
+                        ? "bg-white/20 text-[#d9ff38]"
+                        : "bg-black/5 text-black/60"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-[11px] font-bold text-black/50">
+            {filteredItems.length} photos in view · Hover to pause
+          </div>
+        </div>
+      </div>
+
+      {/* AUTO-FLOATING STREAM CONTAINER (FULL WIDTH RIBBON) */}
+      <div className="mt-8 w-full overflow-hidden gallery-stream-container">
+        {filteredItems.length === 0 ? (
+          <div className="mx-auto max-w-[1400px] px-4">
+            <div className="rounded-3xl border-2 border-dashed border-[#071313]/20 bg-white p-12 text-center text-sm font-bold text-black/50">
+              No photographs in “{activeCategory}” yet.
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* TRACK 1 (FLOATS LEFT TO RIGHT BY DEFAULT) */}
+            <div className="overflow-hidden py-2">
+              <div
+                className={`flex gap-6 ${
+                  direction === "left-to-right"
+                    ? "gallery-stream-l2r"
+                    : "gallery-stream-r2l"
+                } ${!isPlaying ? "gallery-stream-paused" : ""}`}
+              >
+                {loopTrack1.map((item, idx) => (
+                  <GalleryPhotoTile
+                    key={`t1-${item.id || idx}-${idx}`}
+                    item={item}
+                    onClick={() => {
+                      const realIndex = filteredItems.findIndex(
+                        (x) => x.id === item.id
+                      );
+                      setLightboxIndex(realIndex >= 0 ? realIndex : 0);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* TRACK 2 (IF DUAL TRACK: FLOATS IN COUNTER-DIRECTION FOR AMAZING DYNAMIC EFFECT) */}
+            {isDualTrack && (
+              <div className="overflow-hidden py-2">
+                <div
+                  className={`flex gap-6 ${
+                    direction === "left-to-right"
+                      ? "gallery-stream-r2l"
+                      : "gallery-stream-l2r"
+                  } ${!isPlaying ? "gallery-stream-paused" : ""}`}
+                >
+                  {loopTrack2.map((item, idx) => (
+                    <GalleryPhotoTile
+                      key={`t2-${item.id || idx}-${idx}`}
+                      item={item}
+                      onClick={() => {
+                        const realIndex = filteredItems.findIndex(
+                          (x) => x.id === item.id
+                        );
+                        setLightboxIndex(realIndex >= 0 ? realIndex : 0);
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* FULL-SCREEN LIGHTBOX MODAL WITH NAVIGATION */}
+      <AnimatePresence>
+        {currentLightboxItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+            onClick={() => setLightboxIndex(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-3xl border-2 border-white/20 bg-[#071313] text-white shadow-2xl flex flex-col"
+            >
+              {/* CLOSE BUTTON */}
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(null)}
+                aria-label="Close modal"
+                className="absolute right-4 top-4 z-20 grid h-10 w-10 place-items-center rounded-full bg-[#071313]/80 text-white backdrop-blur-md hover:bg-[#ff5f3d] transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* IMAGE CONTAINER WITH PREV / NEXT CONTROLS */}
+              <div className="relative aspect-[16/10] w-full bg-black overflow-hidden max-h-[66vh] flex items-center justify-center">
+                <img
+                  src={resolveApiAssetUrl(currentLightboxItem.image_url)}
+                  alt={currentLightboxItem.title || "Gallery photograph"}
+                  className="max-h-full max-w-full object-contain"
+                />
+
+                {filteredItems.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxIndex((prev) =>
+                          prev <= 0 ? filteredItems.length - 1 : prev - 1
+                        );
+                      }}
+                      aria-label="Previous photograph"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#071313]/80 text-white backdrop-blur-md border border-white/20 hover:bg-[#d9ff38] hover:text-[#071313] transition-colors"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxIndex((prev) =>
+                          prev >= filteredItems.length - 1 ? 0 : prev + 1
+                        );
+                      }}
+                      aria-label="Next photograph"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 z-10 grid h-11 w-11 place-items-center rounded-full bg-[#071313]/80 text-white backdrop-blur-md border border-white/20 hover:bg-[#d9ff38] hover:text-[#071313] transition-colors"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* CAPTION & DETAILS */}
+              <div className="p-6 bg-[#071313] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-white/10">
+                <div className="max-w-2xl">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wider ${
+                        CATEGORY_COLORS[currentLightboxItem.category] ||
+                        CATEGORY_COLORS.Event
+                      }`}
+                    >
+                      {currentLightboxItem.category || "Event"}
+                    </span>
+                    <span className="text-xs text-white/50">
+                      Photo {(lightboxIndex ?? 0) + 1} of {filteredItems.length}
+                    </span>
+                  </div>
+                  <h3 className="mt-2 text-xl sm:text-2xl font-black uppercase tracking-tight text-white">
+                    {currentLightboxItem.title || "NV Cyclothon Moment"}
+                  </h3>
+                  {currentLightboxItem.caption && (
+                    <p className="mt-1 text-xs sm:text-sm text-white/80">
+                      {currentLightboxItem.caption}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-right text-xs text-white/40 shrink-0">
+                  <span>NV Cyclothon 2026 · Rewa</span>
+                  <p className="text-[10px] mt-0.5">Use ← / → keys to flip</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

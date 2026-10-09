@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const fs = require('fs');
 const multer = require('multer');
 const { ApiError, NotFoundError, ValidationError } = require('../errors');
 const { parseSchema, partnerApplicationSchema, paymentVerifySchema, normalizePartnerApplicationInput } = require('../services/validation');
@@ -51,6 +52,31 @@ function createPartnersRouter({ config, repository, emailService, cashfreeServic
     try {
       const partners = await repository.listApprovedPartners();
       res.json(partners);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Public partner logo endpoint for approved partners
+  router.get('/:id/logo', async (req, res, next) => {
+    try {
+      const id = Number.parseInt(req.params.id, 10);
+      if (!Number.isInteger(id) || id <= 0) throw new NotFoundError('Partner not found');
+      const item = await repository.getPartnerApplicationById(id);
+      if (!item || !['APPROVED', 'EVENT_READY', 'COMPLETED'].includes(item.status) || !item.logo_key) {
+        throw new NotFoundError('Logo not found');
+      }
+      if (item.logo_key.startsWith('http://') || item.logo_key.startsWith('https://')) {
+        return res.redirect(item.logo_key);
+      }
+      const cleanKey = item.logo_key.replace(/^\/api\/media\//, '');
+      const mediaService = createPartnerVendorMediaService(config);
+      const filePath = mediaService.getFilePath(cleanKey);
+      if (!fs.existsSync(filePath)) throw new NotFoundError('Logo not found');
+      res.setHeader('Content-Type', item.logo_content_type || 'image/webp');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.sendFile(filePath);
     } catch (error) {
       next(error);
     }

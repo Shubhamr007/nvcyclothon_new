@@ -108,7 +108,7 @@ export async function getCheckinStatus() {
 }
 
 export async function getSiteSettings() {
-  return request("/content/settings");
+  return request(`/content/settings?_t=${Date.now()}`);
 }
 
 export async function updateSiteSettings(accessToken, patch) {
@@ -121,6 +121,14 @@ export async function updateSiteSettings(accessToken, patch) {
 
 export async function getAdminSettings(accessToken) {
   return adminRequest("/settings", accessToken);
+}
+
+export async function createGalleryBatch(accessToken, items) {
+  return adminRequest("/gallery/batch", accessToken, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items }),
+  });
 }
 
 export async function bulkDeleteAdminRecords(accessToken, entity, ids) {

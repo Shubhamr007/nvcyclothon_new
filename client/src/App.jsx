@@ -16,8 +16,13 @@ const VendorPage = lazy(() => import('./pages/VendorPage').then((module) => ({ d
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
 const PageFallback = () => <LoadingScreen label="Gearing up for the ride…" />;
 
-const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://nvcyclothon.in").replace(/\/$/, "");
-const DEFAULT_IMAGE = `${SITE_URL}/og-preview.png`;
+const SITE_URL = (
+  import.meta.env.VITE_SITE_URL ||
+  (typeof window !== "undefined" && window.location.origin && !window.location.origin.includes("localhost")
+    ? window.location.origin
+    : "https://nvcyclothon.com")
+).replace(/\/$/, "");
+const DEFAULT_IMAGE = `${SITE_URL}/og-preview.jpg`;
 const metadata = {
   "/": {
     title: "NV Cyclothon 2026 | Cycling Event in Rewa, Madhya Pradesh",

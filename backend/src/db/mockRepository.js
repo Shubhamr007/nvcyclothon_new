@@ -4,24 +4,13 @@ const {
   EARLY_BIRD_LIMIT,
   LAST_WEEK_START,
   RACE_CATEGORIES,
+  SITE_SECTIONS,
 } = require("../constants");
 const {
   ConflictError,
   NotFoundError,
   ValidationError,
 } = require("../errors");
-
-const SITE_SECTIONS = [
-  "editions",
-  "about",
-  "routes",
-  "updates",
-  "gallery",
-  "why_sport",
-  "contact",
-  "sponsors",
-  "community",
-];
 
 function defaultSiteSettings() {
   const sections = {};
@@ -86,7 +75,7 @@ function mergeSiteSettings(current, patch) {
     }
   }
   if (patch.sections && typeof patch.sections === "object") {
-    const nextSections = { ...current.sections };
+    const nextSections = { ...defaultSiteSettings().sections, ...(current.sections || {}) };
     for (const key of SITE_SECTIONS) {
       if (patch.sections[key] !== undefined) {
         nextSections[key] = Boolean(patch.sections[key]);
@@ -129,6 +118,7 @@ class MockRepository {
       partner_deliverables: [],
       partner_payments: [],
       vendor_applications: [],
+      gallery_items: [],
     };
     this.ids = {
       products: 1,
@@ -155,6 +145,7 @@ class MockRepository {
       partner_deliverables: 1,
       partner_payments: 1,
       vendor_applications: 1,
+      gallery_items: 1,
     };
     this.siteSettings = defaultSiteSettings();
   }
@@ -1092,6 +1083,56 @@ class MockRepository {
     return true;
   }
 
+  async listGalleryItems() {
+    return this.tables.gallery_items
+      .slice()
+      .sort((a, b) => a.display_order - b.display_order || a.id - b.id)
+      .map((item) => this.clone(item));
+  }
+
+  async listPublicGalleryItems() {
+    return (await this.listGalleryItems()).filter((item) => item.featured);
+  }
+
+  async createGalleryItem(payload) {
+    const item = {
+      id: this.nextId("gallery_items"),
+      created_at: this.now(),
+      updated_at: this.now(),
+      title: "",
+      caption: "",
+      category: "Event",
+      image_url: "",
+      display_order: 0,
+      featured: true,
+      ...payload,
+    };
+    this.tables.gallery_items.push(item);
+    return this.clone(item);
+  }
+
+  async updateGalleryItem(id, payload) {
+    const item = this.tables.gallery_items.find((x) => x.id === id);
+    if (!item) return null;
+    Object.assign(item, payload, { updated_at: this.now() });
+    return this.clone(item);
+  }
+
+  async deleteGalleryItem(id) {
+    const index = this.tables.gallery_items.findIndex((x) => x.id === id);
+    if (index < 0) return false;
+    this.tables.gallery_items.splice(index, 1);
+    return true;
+  }
+
+  async seedGalleryItems() {
+    if (this.tables.gallery_items.length > 0) return;
+    const { DEFAULT_GALLERY_ITEMS } = require("../constants");
+    for (const item of DEFAULT_GALLERY_ITEMS) {
+      await this.createGalleryItem(item);
+    }
+  }
+
   async listDelegations() {
     return this.listByCreatedAt("delegations");
   }
@@ -1680,6 +1721,7 @@ class MockRepository {
       registration: "cyclothon_registrations",
       partner: "partner_applications",
       vendor: "vendor_applications",
+      gallery: "gallery_items",
     };
     const table = tableByEntity[entity];
     if (!table) throw new ValidationError("Unsupported record type for deletion");

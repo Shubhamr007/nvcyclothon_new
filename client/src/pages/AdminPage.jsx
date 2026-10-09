@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Award, Flag, Tag, UsersRound, AlertCircle, RefreshCw } from "lucide-react";
+import { Award, Flag, Tag, UsersRound, Camera, AlertCircle, RefreshCw } from "lucide-react";
 import { adminRequest, createAdminSession, bulkDeleteAdminRecords, resolveApiAssetUrl } from "../api/http";
 import { LoadingScreen } from "../components/LoadingIndicator";
 import {
@@ -18,7 +18,16 @@ import {
   SettingsTab,
   NAVIGATION_GROUPS,
 } from "../features/admin";
+import { GalleryManager } from "../features/admin/tabs/GalleryManager";
 
+const emptyGalleryItem = {
+  title: "",
+  caption: "",
+  category: "Event",
+  image_url: "",
+  display_order: 0,
+  featured: true,
+};
 const emptyOffer = { title: "", description: "", code: "", active: true };
 const emptyGuest = {
   name: "",
@@ -61,7 +70,7 @@ export function AdminPage() {
     setMessage("");
 
     try {
-      const [analytics, registrations, offers, guests, delegations, members] =
+      const [analytics, registrations, offers, guests, delegations, members, gallery] =
         await Promise.all([
           adminRequest("/analytics", accessToken),
           adminRequest("/registrations", accessToken),
@@ -69,9 +78,10 @@ export function AdminPage() {
           adminRequest("/chief-guests", accessToken),
           adminRequest("/delegations", accessToken),
           adminRequest("/organizing-members", accessToken),
+          adminRequest("/gallery", accessToken),
         ]);
 
-      setData({ analytics, registrations, offers, guests, delegations, members });
+      setData({ analytics, registrations, offers, guests, delegations, members, gallery });
     } catch (error) {
       setMessage(error.message);
       if (error.message?.includes("expired")) {
@@ -286,6 +296,15 @@ export function AdminPage() {
               )}
 
               {/* EVENT CONTENT */}
+              {tab === "gallery" && (
+                <GalleryManager
+                  items={data.gallery || []}
+                  accessToken={accessToken}
+                  onRefresh={load}
+                  onBulkRemove={(ids) => removeSelected("gallery", ids)}
+                  onFeedback={(msg) => setMessage(msg)}
+                />
+              )}
               {tab === "offers" && (
                 <ManagePanel
                   title="Promo Offer"

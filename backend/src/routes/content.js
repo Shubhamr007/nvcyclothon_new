@@ -21,13 +21,20 @@ function createContentRouter({ repository, config }) {
     res.json(members);
   });
 
+  router.get("/gallery", async (_req, res) => {
+    const items = await repository.listPublicGalleryItems();
+    res.json(items);
+  });
+
   router.get("/sponsorship-tiers", async (_req, res) => {
     res.json(await repository.listPublicSponsorshipTiers());
   });
 
   router.get("/settings", async (_req, res) => {
     const settings = await repository.getSiteSettings();
-    res.set("Cache-Control", "public, max-age=30");
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
     res.json(settings);
   });
 

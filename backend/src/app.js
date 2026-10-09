@@ -314,6 +314,14 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
     })
   );
 
+  app.get("/api/gallery", async (_req, res, next) => {
+    try {
+      res.json(await repository.listPublicGalleryItems());
+    } catch (e) {
+      next(e);
+    }
+  });
+
   app.get(["/health", "/api/health"], (_req, res) => {
     res.json({ status: "ok", service: config.appName });
   });

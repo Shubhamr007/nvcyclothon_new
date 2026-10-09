@@ -22,6 +22,7 @@ const {
   statusUpdateSchema,
   offerSchema,
   chiefGuestSchema,
+  galleryItemSchema,
   organizingMemberSchema,
   sponsorshipTierSchema,
   delegationSchema,
@@ -32,6 +33,7 @@ const {
   volunteerAccountUpdateSchema,
   normalizeOfferInput,
   normalizeChiefGuestInput,
+  normalizeGalleryItemInput,
   normalizeOrganizingMemberInput,
   normalizeDelegationInput,
   partnerVendorReviewSchema,
@@ -1226,6 +1228,33 @@ function createAdminRouter({ config, repository, emailService }) {
   router.post("/sponsorship-tiers", sponsorshipTierCrud.create);
   router.put("/sponsorship-tiers/:itemId", sponsorshipTierCrud.update);
   router.delete("/sponsorship-tiers/:itemId", sponsorshipTierCrud.remove);
+
+  const galleryItemCrud = createCrudHandlers({
+    list: () => repository.listGalleryItems(),
+    create: (payload) => repository.createGalleryItem(payload),
+    update: (id, payload) => repository.updateGalleryItem(id, payload),
+    remove: (id) => repository.deleteGalleryItem(id),
+    parseCreate: (body) => normalizeGalleryItemInput(parseSchema(galleryItemSchema, body)),
+    parseUpdate: (body) => normalizeGalleryItemInput(parseSchema(galleryItemSchema, body)),
+  });
+
+  router.get("/gallery", galleryItemCrud.list);
+  router.post("/gallery", galleryItemCrud.create);
+  router.post("/gallery/batch", async (req, res) => {
+    const rawItems = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (rawItems.length === 0) {
+      throw new ValidationError("Provide at least one photograph to save");
+    }
+    const created = [];
+    for (const raw of rawItems) {
+      const parsed = normalizeGalleryItemInput(parseSchema(galleryItemSchema, raw));
+      const record = await repository.createGalleryItem(parsed);
+      created.push(record);
+    }
+    res.status(201).json({ count: created.length, items: created });
+  });
+  router.put("/gallery/:itemId", galleryItemCrud.update);
+  router.delete("/gallery/:itemId", galleryItemCrud.remove);
 
   const delegationCrud = createCrudHandlers({
     list: () => repository.listDelegations(),

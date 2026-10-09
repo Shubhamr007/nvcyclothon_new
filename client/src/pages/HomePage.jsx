@@ -8,12 +8,13 @@ import {
   OrganizingMembers,
   WhySport,
 } from "../features/cyclothon/components/EventStory";
-import { SocialProofAndExperience } from "../features/cyclothon/components/EventExperience";
+import { ExperienceHighlights, Faq } from "../features/cyclothon/components/EventExperience";
 import { EventUpdates } from "../features/cyclothon/components/EventUpdates";
 import { CommunityWall } from "../features/cyclothon/components/CommunityWall";
 import { RouteNavigator } from "../features/cyclothon/components/RouteNavigator";
 import { Reveal } from "../components/Reveal";
 import { useSiteSettings } from "../state/SiteSettingsContext";
+import { resolveApiAssetUrl } from "../api/http";
 
 export function HomePage() {
   const { settings } = useSiteSettings();
@@ -22,7 +23,7 @@ export function HomePage() {
     <>
       <BicycleHero />
       {settings.feature_section?.enabled && <ManagedFeatureSection feature={settings.feature_section} />}
-      <SocialProofAndExperience />
+      {sections.experience !== false && <ExperienceHighlights />}
       {sections.editions !== false && <Editions />}
       {sections.about !== false && (
       <section id="about" className="accessible-light-surface bg-[#f4f1e9] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-[#071313] overflow-hidden">
@@ -74,13 +75,18 @@ export function HomePage() {
         </div>
       </section>
       )}
-      {sections.about !== false && <OrganizingMembers />}
-      {sections.routes !== false && <RideCards />}
-      {sections.routes !== false && <RiderBenefits />}
-      {sections.routes !== false && <RouteNavigator />}
+      {sections.members !== false && <OrganizingMembers />}
+      {sections.routes !== false && (
+        <>
+          <RideCards />
+          <RiderBenefits />
+          <RouteNavigator />
+        </>
+      )}
       {sections.updates !== false && <EventUpdates />}
       {sections.gallery !== false && <Gallery />}
       {sections.why_sport !== false && <WhySport />}
+      {sections.faq !== false && <Faq />}
       {sections.contact !== false && (
       <section id="contact" className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white overflow-hidden">
         <div className="mx-auto max-w-[1400px]">
@@ -134,7 +140,16 @@ function ManagedFeatureSection({ feature }) {
           {feature.title && <h2 className="mt-4 text-4xl font-black leading-none tracking-[-.05em] uppercase md:text-6xl">{feature.title}</h2>}
           {feature.body && <p className="mt-6 max-w-2xl text-base leading-7 text-white/85">{feature.body}</p>}
         </Reveal>
-        {feature.image_url && <Reveal delay={0.1}><img src={feature.image_url} alt="" className="aspect-[4/3] w-full rounded-2xl object-cover shadow-[4px_4px_0_#071313] sm:shadow-[8px_8px_0_#071313]" loading="lazy" /></Reveal>}
+        {feature.image_url && (
+          <Reveal delay={0.1}>
+            <img
+              src={resolveApiAssetUrl(feature.image_url)}
+              alt={feature.title || "Featured update"}
+              className="aspect-[4/3] w-full rounded-2xl object-cover shadow-[4px_4px_0_#071313] sm:shadow-[8px_8px_0_#071313]"
+              loading="lazy"
+            />
+          </Reveal>
+        )}
       </div>
     </section>
   );

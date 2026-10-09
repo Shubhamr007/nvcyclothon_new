@@ -6,7 +6,7 @@ const CountUp = CountUpModule.default || CountUpModule;
 import { FaBicycle, FaHeartPulse, FaMedal, FaMusic, FaPersonBiking, FaRegHeart, FaWater } from "react-icons/fa6";
 import { MdMedicalServices, MdPhotoCamera } from "react-icons/md";
 import { useSiteSettings } from "../../../state/SiteSettingsContext";
-import { getCommunityPosts } from "../../../api/http";
+import { getCommunityPosts, resolveApiAssetUrl } from "../../../api/http";
 
 
 const highlights = [
@@ -32,7 +32,7 @@ const testimonials = [
     role: "Community rider",
   },
 ];
-export function SocialProofAndExperience() {
+export function ExperienceHighlights() {
   return (
     <>
       <section className="bg-[#071313] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 text-white overflow-hidden">
@@ -66,6 +66,14 @@ export function SocialProofAndExperience() {
         </div>
       </section>
       <StoriesWithPedalPower />
+    </>
+  );
+}
+
+export function SocialProofAndExperience() {
+  return (
+    <>
+      <ExperienceHighlights />
       <Faq />
     </>
   );
@@ -134,7 +142,7 @@ function StoriesWithPedalPower() {
               <div>
                 {item.image_url && (
                   <img
-                    src={item.image_url}
+                    src={resolveApiAssetUrl(item.image_url)}
                     alt={item.name}
                     loading="lazy"
                     className="mb-5 aspect-video w-full rounded-xl object-cover shadow-sm"
@@ -201,7 +209,7 @@ function Countdown() {
     </section>
   );
 }
-function Faq() {
+export function Faq() {
   const questions = [
     [
       "Can children ride?",

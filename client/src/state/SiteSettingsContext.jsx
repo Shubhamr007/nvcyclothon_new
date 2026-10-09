@@ -1,13 +1,16 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getSiteSettings } from "../api/http";
 
-const DEFAULT_SECTIONS = {
+export const DEFAULT_SECTIONS = {
+  experience: true,
   editions: true,
   about: true,
+  members: true,
   routes: true,
   updates: true,
   gallery: true,
   why_sport: true,
+  faq: true,
   contact: true,
   sponsors: true,
   community: true,
@@ -41,6 +44,7 @@ const SiteSettingsContext = createContext({
   settings: DEFAULT_SETTINGS,
   loading: true,
   error: null,
+  refreshSettings: () => Promise.resolve(),
 });
 
 export function SiteSettingsProvider({ children }) {
@@ -50,11 +54,9 @@ export function SiteSettingsProvider({ children }) {
     error: null,
   });
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadSettings = () => getSiteSettings()
+  const loadSettings = () => {
+    return getSiteSettings()
       .then((settings) => {
-        if (cancelled) return;
         setState({
           settings: mergeWithDefaults(settings),
           loading: false,
@@ -62,17 +64,52 @@ export function SiteSettingsProvider({ children }) {
         });
       })
       .catch((error) => {
-        if (cancelled) return;
         setState((current) => ({ ...current, loading: false, error }));
       });
+  };
+
+  useEffect(() => {
     loadSettings();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadSettings();
+      }
+    };
+
+    const handleStorage = (e) => {
+      if (e.key === "nv_site_settings_updated") {
+        loadSettings();
+      }
+    };
+
+    const handleCustomUpdate = (e) => {
+      if (e.detail) {
+        setState({
+          settings: mergeWithDefaults(e.detail),
+          loading: false,
+          error: null,
+        });
+      } else {
+        loadSettings();
+      }
+    };
+
+    window.addEventListener("focus", loadSettings);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("nv:settings-updated", handleCustomUpdate);
+
     return () => {
-      cancelled = true;
+      window.removeEventListener("focus", loadSettings);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("nv:settings-updated", handleCustomUpdate);
     };
   }, []);
 
   return (
-    <SiteSettingsContext.Provider value={state}>
+    <SiteSettingsContext.Provider value={{ ...state, refreshSettings: loadSettings }}>
       {children}
     </SiteSettingsContext.Provider>
   );
@@ -83,7 +120,11 @@ export function useSiteSettings() {
 }
 
 function mergeWithDefaults(raw) {
-  const sections = { ...DEFAULT_SECTIONS, ...(raw?.sections || {}) };
+  const rawSections = raw?.sections || {};
+  const sections = {};
+  for (const key of Object.keys(DEFAULT_SECTIONS)) {
+    sections[key] = rawSections[key] !== undefined ? Boolean(rawSections[key]) : DEFAULT_SECTIONS[key];
+  }
   return {
     event_date: raw?.event_date || DEFAULT_SETTINGS.event_date,
     event_start_time:

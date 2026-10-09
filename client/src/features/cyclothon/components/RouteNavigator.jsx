@@ -50,6 +50,12 @@ export function RouteNavigator() {
           className="route-navigator__panel relative aspect-[1.25/1] overflow-hidden rounded-[2rem] border border-white/20 bg-[#071313] shadow-[0_30px_90px_rgba(0,0,0,.42)]"
           style={{ transformPerspective: 1200 }}
         >
+          <img
+            src={rewaMap}
+            alt="Illustrated Map of Rewa"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-75 filter contrast-125 brightness-95"
+          />
+          <div className="absolute inset-0 bg-[#071313]/35" aria-hidden="true" />
           <div className="route-navigator__grid absolute inset-0" aria-hidden="true" />
           <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-label="Illustrated route from start to finish">
             <defs>

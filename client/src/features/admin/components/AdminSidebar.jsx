@@ -11,6 +11,7 @@ import {
   Award,
   UsersRound,
   Tag,
+  Camera,
   Settings,
   ChevronRight,
   ShieldAlert,
@@ -43,6 +44,7 @@ export const NAVIGATION_GROUPS = [
   {
     title: "EVENT CONTENT",
     items: [
+      { id: "gallery", label: "Photo Gallery", icon: Camera },
       { id: "guests", label: "Chief Guests", icon: Award },
       { id: "members", label: "Organizing Members", icon: UsersRound },
       { id: "offers", label: "Promo Offers", icon: Tag },

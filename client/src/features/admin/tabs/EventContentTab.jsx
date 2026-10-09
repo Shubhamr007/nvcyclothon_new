@@ -189,10 +189,22 @@ export function ManagePanel({
                       />
                     )}
                   </div>
+                ) : name === "category" ? (
+                  <select
+                    value={value || "Event"}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="h-9 w-full rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
+                  >
+                    <option value="Organizers">Organizers & Race Directors</option>
+                    <option value="Partners">Official Partners & Sponsors</option>
+                    <option value="Riders">Riders & Peloton Moments</option>
+                    <option value="Highlights">Route & Event Highlights</option>
+                    <option value="Event">General Event Photography</option>
+                  </select>
                 ) : (
                   <input
                     required={
-                      !["contact_email", "contact_phone", "code", "image_url"].includes(name)
+                      !["contact_email", "contact_phone", "code", "image_url", "caption"].includes(name)
                     }
                     type={typeof value === "number" ? "number" : "text"}
                     value={value}

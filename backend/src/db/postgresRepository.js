@@ -5,6 +5,7 @@ const {
   EARLY_BIRD_LIMIT,
   LAST_WEEK_START,
   RACE_CATEGORIES,
+  SITE_SECTIONS,
 } = require("../constants");
 const {
   ConflictError,
@@ -170,6 +171,18 @@ class PostgresRepository {
         image_url VARCHAR(500),
         display_order INTEGER NOT NULL DEFAULT 0,
         visible BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS gallery_items (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(160) NOT NULL DEFAULT '',
+        caption TEXT,
+        category VARCHAR(80) NOT NULL DEFAULT 'Event',
+        image_url VARCHAR(1000) NOT NULL,
+        featured BOOLEAN NOT NULL DEFAULT TRUE,
+        display_order INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -1353,6 +1366,7 @@ class PostgresRepository {
       guest: "chief_guests",
       member: "organizing_members",
       delegation: "delegations",
+      gallery: "gallery_items",
     };
     const uniqueIds = [...new Set(ids.map(Number))];
     if (!uniqueIds.length) return { deleted: [], skipped: [], mediaKeys: [] };
@@ -2042,6 +2056,82 @@ class PostgresRepository {
     return result.rowCount > 0;
   }
 
+  async listGalleryItems() {
+    const result = await this.pool.query(
+      `SELECT id, title, caption, category, image_url, featured, display_order, created_at, updated_at
+       FROM gallery_items
+       ORDER BY display_order ASC, created_at DESC`
+    );
+    return result.rows;
+  }
+
+  async listPublicGalleryItems() {
+    const result = await this.pool.query(
+      `SELECT id, title, caption, category, image_url, featured, display_order, created_at, updated_at
+       FROM gallery_items
+       WHERE featured = TRUE
+       ORDER BY display_order ASC, created_at DESC`
+    );
+    return result.rows;
+  }
+
+  async createGalleryItem(payload) {
+    const result = await this.pool.query(
+      `INSERT INTO gallery_items (title, caption, category, image_url, featured, display_order, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       RETURNING id, title, caption, category, image_url, featured, display_order, created_at, updated_at`,
+      [
+        payload.title || "",
+        payload.caption || "",
+        payload.category || "Event",
+        payload.image_url,
+        payload.featured !== false,
+        payload.display_order || 0,
+      ]
+    );
+    return result.rows[0];
+  }
+
+  async updateGalleryItem(id, payload) {
+    const result = await this.pool.query(
+      `UPDATE gallery_items
+       SET title = $1,
+           caption = $2,
+           category = $3,
+           image_url = $4,
+           featured = $5,
+           display_order = $6,
+           updated_at = NOW()
+       WHERE id = $7
+       RETURNING id, title, caption, category, image_url, featured, display_order, created_at, updated_at`,
+      [
+        payload.title || "",
+        payload.caption || "",
+        payload.category || "Event",
+        payload.image_url,
+        payload.featured !== false,
+        payload.display_order || 0,
+        id,
+      ]
+    );
+    return result.rows[0] || null;
+  }
+
+  async deleteGalleryItem(id) {
+    const result = await this.pool.query("DELETE FROM gallery_items WHERE id = $1", [id]);
+    return result.rowCount > 0;
+  }
+
+  async seedGalleryItems() {
+    const countRes = await this.pool.query("SELECT COUNT(*) FROM gallery_items");
+    if (Number.parseInt(countRes.rows[0].count, 10) === 0) {
+      const { DEFAULT_GALLERY_ITEMS } = require("../constants");
+      for (const item of DEFAULT_GALLERY_ITEMS) {
+        await this.createGalleryItem(item);
+      }
+    }
+  }
+
   async listDelegations() {
     const result = await this.pool.query(
             `SELECT id, organization, contact_name, contact_email, contact_phone,
@@ -2257,6 +2347,17 @@ class PostgresRepository {
     if (data.vendor_applications_open === undefined) {
       data.vendor_applications_open = true;
       dirty = true;
+    }
+    if (!data.sections || typeof data.sections !== "object") {
+      data.sections = defaultSiteSettings().sections;
+      dirty = true;
+    } else {
+      for (const key of SITE_SECTIONS) {
+        if (data.sections[key] === undefined) {
+          data.sections[key] = true;
+          dirty = true;
+        }
+      }
     }
     if (dirty) {
       await this.pool.query(

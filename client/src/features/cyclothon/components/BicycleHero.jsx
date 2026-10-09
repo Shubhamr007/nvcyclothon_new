@@ -6,6 +6,7 @@ import { gsap } from "gsap";
 import { useReducedMotion } from "framer-motion";
 import { Typewriter } from "../../../components/Typewriter";
 import { formatEventDate, useSiteSettings } from "../../../state/SiteSettingsContext";
+import { resolveApiAssetUrl } from "../../../api/http";
 
 const HERO_SLIDES = [
   { src: nvCyclothonHero, alt: "NV Cyclothon riders on the streets of Rewa" },
@@ -22,7 +23,7 @@ export function BicycleHero() {
   const eventDateLabel = formatEventDate(settings.event_date) || EVENT.date;
   const editionLabel = settings.edition_label || EVENT.editionLabel;
   const heroSlides = settings.hero_images?.length
-    ? settings.hero_images.map((src, index) => ({ src, alt: `NV Cyclothon event image ${index + 1}` }))
+    ? settings.hero_images.map((src, index) => ({ src: resolveApiAssetUrl(src), alt: `NV Cyclothon event image ${index + 1}` }))
     : HERO_SLIDES;
 
   useEffect(() => {
