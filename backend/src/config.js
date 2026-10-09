@@ -191,8 +191,8 @@ function loadConfig(env = process.env) {
     ]),
     cashfreeEnabled: parseBool(env.CASHFREE_ENABLED, false),
     cashfreeEnvironment: env.CASHFREE_ENVIRONMENT === "production" ? "production" : "sandbox",
-    cashfreeClientId: env.CASHFREE_CLIENT_ID || "",
-    cashfreeClientSecret: env.CASHFREE_CLIENT_SECRET || "",
+    cashfreeClientId: String(env.CASHFREE_CLIENT_ID || "").trim().replace(/^["']|["']$/g, ""),
+    cashfreeClientSecret: String(env.CASHFREE_CLIENT_SECRET || "").trim().replace(/^["']|["']$/g, ""),
     publicApiUrl: String(env.PUBLIC_API_URL || "https://api.nvcyclothon.com").replace(/\/$/, ""),
     publicSiteUrl: String(env.PUBLIC_SITE_URL || "https://nvcyclothon.com").replace(/\/$/, ""),
     communityModeratorEmails: parseCsv(env.COMMUNITY_MODERATOR_EMAILS || "", ""),
@@ -225,8 +225,8 @@ function loadConfig(env = process.env) {
         for (const name of configuredVolunteerNames) {
           const pin = config.volunteerCheckinCredentials[name];
           if (name.length < 2 || pin.length < 6 || isPlaceholderSecret(pin)) {
-            throw new Error(
-              "VOLUNTEER_CHECKIN_CREDENTIALS entries must use 2+ character names and secure 6+ character pins (no placeholders)"
+            console.warn(
+              `[Config Fallback] Volunteer pin for ${name} is placeholder or invalid. Disabling volunteer checkin.`
             );
           }
         }

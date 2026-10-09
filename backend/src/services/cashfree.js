@@ -50,6 +50,11 @@ function createCashfreeService(config) {
         );
       }
       const phone = String(customer.phone || "").replace(/\D/g, "").slice(-10);
+      // Cashfree strictly requires expiry time to be > 15 minutes and < 30 days from now.
+      const safeExpiry = (!expiresAt || expiresAt.getTime() - Date.now() < 20 * 60 * 1000)
+        ? new Date(Date.now() + 30 * 60 * 1000)
+        : expiresAt;
+
       const order = await request("/pg/orders", {
         method: "POST",
         headers: headers({ "Content-Type": "application/json", "x-idempotency-key": orderId }),
@@ -64,7 +69,7 @@ function createCashfreeService(config) {
             customer_phone: phone,
           },
           order_meta: { return_url: returnUrl, notify_url: notifyUrl },
-          order_expiry_time: expiresAt.toISOString(),
+          order_expiry_time: safeExpiry.toISOString(),
           order_note: "NV Cyclothon 2026 registration",
         }),
       });

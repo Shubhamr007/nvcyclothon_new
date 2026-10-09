@@ -153,7 +153,7 @@ function createCyclothonRouter({
             },
             returnUrl: `${config.publicSiteUrl}/register?payment=return&order_id={order_id}`,
             notifyUrl: `${config.publicApiUrl.replace(/\/api$/, "")}/api/cyclothon/webhook/cashfree`,
-            expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000),
           }),
       });
 
