@@ -17,7 +17,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((module) => 
 const PageFallback = () => <LoadingScreen label="Gearing up for the ride…" />;
 
 const SITE_URL = (import.meta.env.VITE_SITE_URL || "https://nvcyclothon.in").replace(/\/$/, "");
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1502744688674-c619d1586c9e?auto=format&fit=crop&w=1200&q=85";
+const DEFAULT_IMAGE = `${SITE_URL}/og-preview.png`;
 const metadata = {
   "/": {
     title: "NV Cyclothon 2026 | Cycling Event in Rewa, Madhya Pradesh",
