@@ -19,6 +19,9 @@ export const AdminAiCoPilotDrawer = memo(function AdminAiCoPilotDrawer({
   isOpen,
   onClose,
   initialPrompt = '',
+  customWidth,
+  onResetWidth,
+  isCustomWidth = false,
 }) {
   const accessToken = useAppSelector((state) => state.auth?.accessToken);
   const [input, setInput] = useState('');
@@ -133,6 +136,7 @@ export const AdminAiCoPilotDrawer = memo(function AdminAiCoPilotDrawer({
       subtitle="Verified Real-Time Event Intelligence"
       icon={Bot}
       width="sm:w-[28rem] xl:w-[32rem]"
+      customWidth={customWidth}
       docked
       bodyClassName="flex-1 flex flex-col min-h-0 overflow-hidden p-0"
     >
@@ -143,6 +147,8 @@ export const AdminAiCoPilotDrawer = memo(function AdminAiCoPilotDrawer({
             onOpenHistory={() => setHistoryOpen(true)}
             onNewChat={startNewConversation}
             onClearChat={() => setConfirmModal({ isOpen: true, mode: 'clear', targetConv: null })}
+            onResetWidth={onResetWidth}
+            isCustomWidth={isCustomWidth}
           />
 
           {/* MESSAGES SCROLL AREA */}
@@ -267,10 +273,16 @@ AdminAiCoPilotDrawer.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   initialPrompt: PropTypes.string,
+  customWidth: PropTypes.number,
+  onResetWidth: PropTypes.func,
+  isCustomWidth: PropTypes.bool,
 };
 
 AdminAiCoPilotDrawer.defaultProps = {
   initialPrompt: '',
+  customWidth: null,
+  onResetWidth: null,
+  isCustomWidth: false,
 };
 
 export default AdminAiCoPilotDrawer;

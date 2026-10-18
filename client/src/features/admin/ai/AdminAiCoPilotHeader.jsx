@@ -1,12 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { History, Plus, Trash2 } from 'lucide-react';
+import { History, Plus, Trash2, RotateCcw } from 'lucide-react';
 
 export function AdminAiCoPilotHeader({
   liveMetrics,
   onOpenHistory,
   onNewChat,
   onClearChat,
+  onResetWidth,
+  isCustomWidth = false,
 }) {
   return (
     <div className="shrink-0 border-b border-[#E5E2DB] dark:border-[#2A2D35] bg-[#F3F1EC] dark:bg-[#18191E] px-3.5 py-2 flex items-center justify-between gap-2 text-xs">
@@ -19,6 +21,18 @@ export function AdminAiCoPilotHeader({
         </span>
       </div>
       <div className="flex items-center gap-1">
+        {isCustomWidth && onResetWidth && (
+          <button
+            type="button"
+            onClick={onResetWidth}
+            title="Reset assistant width to default (480px)"
+            aria-label="Reset assistant width to default"
+            className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[#6B6B6B] dark:text-[#9A9A9A] hover:bg-[#E5E2DB]/50 dark:hover:bg-[#252830] hover:text-[#252525] dark:hover:text-white transition text-[11px]"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span className="hidden sm:inline">Width</span>
+          </button>
+        )}
         <button
           type="button"
           onClick={onOpenHistory}
@@ -56,8 +70,12 @@ AdminAiCoPilotHeader.propTypes = {
   onOpenHistory: PropTypes.func.isRequired,
   onNewChat: PropTypes.func.isRequired,
   onClearChat: PropTypes.func.isRequired,
+  onResetWidth: PropTypes.func,
+  isCustomWidth: PropTypes.bool,
 };
 
 AdminAiCoPilotHeader.defaultProps = {
   liveMetrics: null,
+  onResetWidth: null,
+  isCustomWidth: false,
 };

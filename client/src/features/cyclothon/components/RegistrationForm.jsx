@@ -13,6 +13,7 @@ import { useSiteSettings, getMergedRideOptions } from "../../../state/SiteSettin
 import { PolicyModal } from "../../../components/PolicyModal";
 import { ErrorAlert } from "../../../components/ErrorAlert";
 import { normalizeError } from "../../../utils/errorHandler";
+import { WhatsAppPreferencesSection } from "./WhatsAppPreferencesSection";
 
 const COUNTRY_CODES = [
   { code: "+91", label: "🇮🇳 +91", name: "India" },
@@ -41,6 +42,9 @@ const initialValues = (route) => ({
   t_shirt_size: "M",
   waiver_accepted: false,
   privacy_accepted: false,
+  whatsapp_use_primary: true,
+  whatsapp_opt_in: true,
+  whatsapp_phone_raw: "",
 });
 
 const AFFILIATION_OPTIONS = [
@@ -59,16 +63,17 @@ export function RegistrationForm({ initialRoute }) {
   } = useForm({ defaultValues: initialValues(initialRoute) });
 
   const [phoneCountryCode, setPhoneCountryCode] = useState("+91");
+  const [whatsappCountryCode, setWhatsappCountryCode] = useState("+91");
 
   const reduceMotion = useReducedMotion();
-  const { settings, loading: settingsLoading } = useSiteSettings();
+  const { settings, loading: settingsLoading, refreshSettings } = useSiteSettings();
   const [status, setStatus] = useState({ state: "idle", message: "", error: null });
   const [pendingRegistration, setPendingRegistration] = useState(null);
   const [policyModal, setPolicyModal] = useState({ isOpen: false, tab: "refund" });
   const selectedRoute = watch("ride_category");
   const rideOptions = useMemo(
-    () => getMergedRideOptions(settings?.race_categories),
-    [settings?.race_categories]
+    () => getMergedRideOptions(settings?.race_categories, settings?.early_bird_enabled),
+    [settings?.race_categories, settings?.early_bird_enabled]
   );
   const selectedRide =
     rideOptions.find((route) => route.distance === selectedRoute) || rideOptions[0];
@@ -115,6 +120,17 @@ export function RegistrationForm({ initialRoute }) {
     const cleanPhone = String(form.phone_raw || "").trim().replace(/\D+/g, "");
     const fullPhone = `${phoneCountryCode}${cleanPhone}`;
 
+    const usePrimaryWhatsapp = Boolean(form.whatsapp_use_primary);
+    const cleanWhatsappPhone = String(form.whatsapp_phone_raw || "").trim().replace(/\D+/g, "");
+    const fullWhatsappPhone = (!usePrimaryWhatsapp && cleanWhatsappPhone)
+      ? `${whatsappCountryCode}${cleanWhatsappPhone}`
+      : null;
+
+    const isEarlyBirdActive = settings?.early_bird_enabled !== false;
+    const expectedFeePaise = selectedRide
+      ? (isEarlyBirdActive ? selectedRide.early_bird : selectedRide.regular)
+      : undefined;
+
     const payload = {
       full_name: form.full_name,
       email: form.email,
@@ -132,6 +148,10 @@ export function RegistrationForm({ initialRoute }) {
       t_shirt_size: form.t_shirt_size || "N/A",
       waiver_accepted: Boolean(form.waiver_accepted),
       privacy_accepted: Boolean(form.privacy_accepted),
+      whatsapp_use_primary: usePrimaryWhatsapp,
+      whatsapp_number: fullWhatsappPhone,
+      whatsapp_opt_in: Boolean(form.whatsapp_opt_in),
+      expected_fee_paise: expectedFeePaise,
     };
 
     setStatus({ state: "loading", message: "Securing your place…" });
@@ -169,6 +189,15 @@ export function RegistrationForm({ initialRoute }) {
       toast.success("Registration confirmed — see you on the road!");
     } catch (error) {
       const normalized = normalizeError(error);
+      if (
+        error?.status === 409 ||
+        error?.code === "PRICE_CHANGED" ||
+        String(error?.message || "").includes("Pricing configuration has changed")
+      ) {
+        if (typeof refreshSettings === "function") {
+          refreshSettings();
+        }
+      }
       if (createdPendingRegistration?.checkout) {
         setStatus({
           state: "error",
@@ -407,6 +436,16 @@ export function RegistrationForm({ initialRoute }) {
         </label>
 
       </div>
+
+      {/* WhatsApp Updates and Preferences */}
+      <WhatsAppPreferencesSection
+        register={register}
+        watch={watch}
+        errors={errors}
+        whatsappCountryCode={whatsappCountryCode}
+        setWhatsappCountryCode={setWhatsappCountryCode}
+        primaryPhone={watch("phone_raw") ? `${phoneCountryCode} ${watch("phone_raw")}` : ""}
+      />
 
       {/* Organization / Affiliation Section */}
       <fieldset className="mt-7 rounded-2xl border border-[#071313]/15 bg-white/55 p-3.5 shadow-sm sm:mt-8 sm:p-5">

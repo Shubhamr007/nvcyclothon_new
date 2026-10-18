@@ -8,15 +8,10 @@ const {
 } = require("../services/validation");
 const { ValidationError, NotFoundError } = require("../errors");
 
-function toRegistrationRead(registration) {
-  return {
-    id: registration.id,
-    full_name: registration.full_name,
-    ride_category: registration.ride_category,
-    status: registration.status,
-    created_at: registration.created_at,
-  };
-}
+const {
+  toRegistrationRead,
+  sendAndRecordRegistrationConfirmation: sendConfirmation,
+} = require("./cyclothonHelpers");
 
 function createCyclothonRouter({
   config,
@@ -27,25 +22,8 @@ function createCyclothonRouter({
 }) {
   const router = express.Router();
 
-  async function sendAndRecordRegistrationConfirmation(registration) {
-    const settings = await repository.getSiteSettings();
-    const sent = await emailService.sendRegistrationConfirmation({
-      recipient: registration.email,
-      registration,
-      checkinQrPrefix: config.checkinQrPrefix,
-      eventDate: settings.event_date,
-      eventLocation: settings.event_location,
-      eventStartTime: settings.event_start_time,
-    });
-    await repository.recordEmailDelivery({
-      registrationId: registration.id,
-      emailType: "registration_confirmation",
-      recipient: registration.email,
-      subject: "Your NV Cyclothon 2026 registration is confirmed",
-      sent,
-      status: config.emailEnabled ? (sent ? "sent" : "failed") : "disabled",
-    });
-  }
+  const sendAndRecordRegistrationConfirmation = (registration) =>
+    sendConfirmation({ repository, emailService, config, registration });
 
   router.get("/webhook/cashfree", (_req, res) => {
     res.status(200).json({ status: "ok", service: "cashfree-webhook" });
@@ -144,6 +122,7 @@ function createCyclothonRouter({
         paymentEnabled: config.cashfreeEnabled,
         eventDate: settings.event_date,
         earlyBirdLimit: settings.early_bird_limit,
+        earlyBirdEnabled: settings.early_bird_enabled !== false,
         raceCategories: settings.race_categories,
         createPaymentOrder: ({ amountPaise, receipt, registration }) =>
           cashfreeService.createOrder({

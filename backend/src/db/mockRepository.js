@@ -29,6 +29,7 @@ function defaultSiteSettings() {
     partner_applications_open: true,
     vendor_applications_open: true,
     early_bird_limit: EARLY_BIRD_LIMIT,
+    early_bird_enabled: true,
     race_categories: {
       "60 Km Road Challenge": {
         capacity: 100,
@@ -100,6 +101,7 @@ function mergeSiteSettings(current, patch) {
     "vendor_applications_open",
     "hero_images",
     "early_bird_limit",
+    "early_bird_enabled",
   ];
   for (const key of allowedKeys) {
     if (patch[key] !== undefined) {
@@ -397,7 +399,7 @@ class MockRepository {
       }));
   }
 
-  calculateRegistrationFee(rideCategory, eventDate = "2026-11-22", customCategories = null, customEarlyBirdLimit = null) {
+  calculateRegistrationFee(rideCategory, eventDate = "2026-11-22", customCategories = null, customEarlyBirdLimit = null, customEarlyBirdEnabled = null) {
     const categories = customCategories || this.siteSettings?.race_categories || RACE_CATEGORIES;
     const category = categories[rideCategory] || RACE_CATEGORIES[rideCategory];
     const categoryCount = this.tables.cyclothon_registrations.filter(
@@ -415,6 +417,13 @@ class MockRepository {
     lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
     if (now >= lastWeekStart) {
       return category.last_week;
+    }
+
+    const isEarlyBirdActive = typeof customEarlyBirdEnabled === "boolean"
+      ? customEarlyBirdEnabled
+      : (this.siteSettings?.early_bird_enabled !== false);
+    if (!isEarlyBirdActive) {
+      return category.regular;
     }
 
     const earlyBirdThreshold = typeof customEarlyBirdLimit === "number"
@@ -453,8 +462,19 @@ class MockRepository {
       payload.ride_category,
       options.eventDate,
       options.raceCategories,
-      options.earlyBirdLimit
+      options.earlyBirdLimit,
+      options.earlyBirdEnabled
     );
+
+    if (payload.expected_fee_paise !== undefined && payload.expected_fee_paise !== null) {
+      if (Number(payload.expected_fee_paise) !== registrationFee) {
+        throw new ConflictError(
+          "Pricing configuration has changed since you loaded the form. Please review the updated fee before completing registration.",
+          "PRICE_CHANGED"
+        );
+      }
+    }
+
     const isPaidRegistration = options.paymentEnabled;
     const registration = {
       id: this.nextId("cyclothon_registrations"),
@@ -485,6 +505,17 @@ class MockRepository {
       checkin_method: null,
       checkin_device: null,
       batch_name: null,
+      whatsapp_use_primary: payload.whatsapp_use_primary !== false,
+      whatsapp_number: payload.whatsapp_number || null,
+      preferred_whatsapp_number:
+        payload.preferred_whatsapp_number !== undefined
+          ? payload.preferred_whatsapp_number
+          : (payload.whatsapp_use_primary !== false ? payload.phone : (payload.whatsapp_number || null)),
+      whatsapp_opt_in: Boolean(payload.whatsapp_opt_in),
+      whatsapp_consent_at:
+        payload.whatsapp_consent_at !== undefined
+          ? payload.whatsapp_consent_at
+          : (payload.whatsapp_opt_in ? this.now().toISOString() : null),
       created_at: this.now(),
     };
 

@@ -63,24 +63,21 @@ const DEFAULT_SETTINGS = {
   partner_applications_open: true,
   vendor_applications_open: true,
   early_bird_limit: 50,
+  early_bird_enabled: true,
   race_categories: DEFAULT_RACE_CATEGORIES,
   hero_images: [],
   feature_section: { enabled: false, eyebrow: "", title: "", body: "", image_url: "" },
   prize_pool: { enabled: false, eyebrow: "Prize pool", title: "Ride for the podium.", body: "", total: "", prizes: [], terms: "" },
   participant_kit: {
-    enabled: true,
-    eyebrow: "Every rider receives",
-    title: "Your ride-day kit.",
+    enabled: true, eyebrow: "Every rider receives", title: "Your ride-day kit.",
     body: "Every registered participant receives these essentials on race day.",
     items: ["Event jersey", "Rider bib", "Finisher medal", "E-certificate", "Hydration support"],
     note: "Included with every registered category.",
   },
   sections: DEFAULT_SECTIONS,
   social_links: {
-    instagram: "https://www.instagram.com/nvcyclothon",
-    youtube: "https://www.youtube.com/@nvcyclothon",
-    facebook: "https://www.facebook.com/nvcyclothon",
-    linkedin: "https://www.linkedin.com/company/nvcyclothon",
+    instagram: "https://www.instagram.com/nvcyclothon", youtube: "https://www.youtube.com/@nvcyclothon",
+    facebook: "https://www.facebook.com/nvcyclothon", linkedin: "https://www.linkedin.com/company/nvcyclothon",
   },
   updated_at: null,
 };
@@ -199,6 +196,10 @@ function mergeWithDefaults(raw) {
       typeof raw?.early_bird_limit === "number"
         ? raw.early_bird_limit
         : DEFAULT_SETTINGS.early_bird_limit,
+    early_bird_enabled:
+      typeof raw?.early_bird_enabled === "boolean"
+        ? raw.early_bird_enabled
+        : DEFAULT_SETTINGS.early_bird_enabled,
     race_categories: {
       ...DEFAULT_RACE_CATEGORIES,
       ...(raw?.race_categories || {}),
@@ -212,45 +213,31 @@ function mergeWithDefaults(raw) {
   };
 }
 
-export function getMergedRideOptions(customCategories) {
+export function getMergedRideOptions(customCategories, earlyBirdEnabled = true) {
   return RIDE_OPTIONS.map((staticOption) => {
     const custom = customCategories?.[staticOption.distance];
     if (!custom) return staticOption;
 
     const minAge =
       custom.min_age !== undefined && custom.min_age !== null && custom.min_age !== ""
-        ? Number(custom.min_age)
-        : null;
+        ? Number(custom.min_age) : null;
     const maxAge =
       custom.max_age !== undefined && custom.max_age !== null && custom.max_age !== ""
-        ? Number(custom.max_age)
-        : null;
+        ? Number(custom.max_age) : null;
     const capacity = custom.capacity ? Number(custom.capacity) : staticOption.capacity;
 
     const defaultEb =
-      staticOption.distance === "60 Km Road Challenge"
-        ? 89900
-        : staticOption.distance === "30 Km MTB Challenge"
-          ? 79900
-          : staticOption.distance === "10 Km Green Ride"
-            ? 39900
-            : 29900;
+      staticOption.distance === "60 Km Road Challenge" ? 89900 :
+      staticOption.distance === "30 Km MTB Challenge" ? 79900 :
+      staticOption.distance === "10 Km Green Ride" ? 39900 : 29900;
     const defaultReg =
-      staticOption.distance === "60 Km Road Challenge"
-        ? 109900
-        : staticOption.distance === "30 Km MTB Challenge"
-          ? 99900
-          : staticOption.distance === "10 Km Green Ride"
-            ? 49900
-            : 29900;
+      staticOption.distance === "60 Km Road Challenge" ? 109900 :
+      staticOption.distance === "30 Km MTB Challenge" ? 99900 :
+      staticOption.distance === "10 Km Green Ride" ? 49900 : 29900;
     const defaultLw =
-      staticOption.distance === "60 Km Road Challenge"
-        ? 129900
-        : staticOption.distance === "30 Km MTB Challenge"
-          ? 119900
-          : staticOption.distance === "10 Km Green Ride"
-            ? 59900
-            : 29900;
+      staticOption.distance === "60 Km Road Challenge" ? 129900 :
+      staticOption.distance === "30 Km MTB Challenge" ? 119900 :
+      staticOption.distance === "10 Km Green Ride" ? 59900 : 29900;
 
     const earlyBirdPaise = custom.early_bird !== undefined ? Number(custom.early_bird) : defaultEb;
     const regularPaise = custom.regular !== undefined ? Number(custom.regular) : defaultReg;
@@ -261,10 +248,17 @@ export function getMergedRideOptions(customCategories) {
     const lwRupees = Math.round(lastWeekPaise / 100);
 
     const isKidOThon = staticOption.distance === "Kid-o-thon";
-    const fee = isKidOThon ? `₹${regRupees} fixed` : `₹${ebRupees} early bird`;
+    const isEarlyBirdActive = earlyBirdEnabled !== false;
+    const fee = isKidOThon
+      ? `₹${regRupees} fixed`
+      : isEarlyBirdActive
+        ? `₹${ebRupees} early bird`
+        : `₹${regRupees} regular`;
     const pricing = isKidOThon
       ? `₹${regRupees} fixed fee`
-      : `₹${ebRupees} early bird · ₹${regRupees} regular · ₹${lwRupees} last week`;
+      : isEarlyBirdActive
+        ? `₹${ebRupees} early bird · ₹${regRupees} regular · ₹${lwRupees} last week`
+        : `₹${regRupees} regular · ₹${lwRupees} last week (Early bird ended)`;
 
     let description = staticOption.description;
     if (staticOption.distance === "60 Km Road Challenge" && minAge) {

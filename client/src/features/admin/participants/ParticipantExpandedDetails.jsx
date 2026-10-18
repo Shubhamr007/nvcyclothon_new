@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { ParticipantFinancialCard } from "./ParticipantFinancialCard";
+import { ParticipantWhatsAppCard } from "./ParticipantWhatsAppCard";
 
 export function ParticipantExpandedDetails({
   rider,
@@ -31,8 +32,8 @@ export function ParticipantExpandedDetails({
     <tr className="bg-slate-50/70 border-b border-slate-200">
       <td colSpan={7} className="p-0">
         <div className="p-5 border-l-4 border-l-slate-800 space-y-5">
-          {/* 4-COLUMN LOGISTICS & FINANCIAL GRID */}
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {/* 5-COLUMN LOGISTICS, WHATSAPP & FINANCIAL GRID */}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {/* CARD 1: CHECK-IN & QR TOKEN */}
             <div className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-xs space-y-3">
               <div className="flex items-center justify-between border-b-2 border-slate-200 pb-2">
@@ -176,8 +177,10 @@ export function ParticipantExpandedDetails({
               </div>
             </div>
 
-            {/* CARD 3: DOCUMENT & EMAIL DELIVERY LOG */}
-            {/* CARD 3: DOCUMENT & EMAIL DELIVERY LOG */}
+            {/* CARD 3: WHATSAPP UPDATES & CONTACT */}
+            <ParticipantWhatsAppCard rider={rider} />
+
+            {/* CARD 4: DOCUMENT & EMAIL DELIVERY LOG */}
             <div className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-xs space-y-3">
               <div className="border-b-2 border-slate-200 pb-2">
                 <span className="text-xs font-bold text-slate-950 uppercase tracking-wider flex items-center gap-1.5">

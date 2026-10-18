@@ -14,6 +14,7 @@ export const fetchAdminSettings = createAsyncThunk(
       return {
         ...data,
         early_bird_limit: data?.early_bird_limit ?? 50,
+        early_bird_enabled: data?.early_bird_enabled !== false,
         race_categories: mergedCategories,
         sections: mergedSections,
         social_links: mergedSocialLinks,
@@ -32,6 +33,7 @@ export const saveAdminSettings = createAsyncThunk(
         ...settings,
         registration_open: Boolean(settings.registration_open),
         early_bird_limit: Number(settings.early_bird_limit) || 50,
+        early_bird_enabled: Boolean(settings.early_bird_enabled !== false),
       };
       await updateSiteSettings(accessToken, payload);
       return payload;

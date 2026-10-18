@@ -4,6 +4,7 @@ import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { LoadingIndicator, LoadingScreen } from "./components/LoadingIndicator";
 import { SiteSettingsProvider } from "./state/SiteSettingsContext";
+import { useTheme } from "./state/ThemeContext";
 import { apiUrl } from "./api/http";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -92,35 +93,34 @@ function Seo() {
   }, [pathname]);
   return null;
 }
+
 export default function App() {
   const { pathname } = useLocation();
   const isCheckinRoute = pathname.startsWith("/checkin");
-  const [theme, setTheme] = useState(() => localStorage.getItem("nv-theme") || "dark");
-  useEffect(() => {
-    document.body.dataset.theme = theme;
-    localStorage.setItem("nv-theme", theme);
-  }, [theme]);
+  const { theme, toggleTheme } = useTheme();
+
   useEffect(() => {
     if (isCheckinRoute || sessionStorage.getItem(`nv-visit:${pathname}`)) return;
     sessionStorage.setItem(`nv-visit:${pathname}`, "1");
     fetch(apiUrl("/content/visits"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: pathname, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: navigator.language }), keepalive: true }).catch(() => {});
   }, [pathname, isCheckinRoute]);
+
   return (
     isCheckinRoute ? (
-      <PublicAppContent isCheckinRoute={isCheckinRoute} theme={theme} />
+      <PublicAppContent isCheckinRoute={isCheckinRoute} theme={theme} onToggleTheme={toggleTheme} />
     ) : (
       <SiteSettingsProvider>
-        <PublicAppContent isCheckinRoute={isCheckinRoute} theme={theme} />
+        <PublicAppContent isCheckinRoute={isCheckinRoute} theme={theme} onToggleTheme={toggleTheme} />
       </SiteSettingsProvider>
     )
   );
 }
 
-function PublicAppContent({ isCheckinRoute, theme }) {
+function PublicAppContent({ isCheckinRoute, theme, onToggleTheme }) {
   return (
       <div className="app-shell relative min-h-screen w-full max-w-full overflow-x-hidden">
         <Seo />
-        {!isCheckinRoute && <SiteHeader theme={theme} onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")} />}
+        {!isCheckinRoute && <SiteHeader theme={theme} onToggleTheme={onToggleTheme} />}
         <main id="main-content" className="w-full max-w-full overflow-x-hidden">
           <ErrorBoundary>
             <Suspense fallback={<PageFallback />}>

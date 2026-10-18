@@ -7,7 +7,12 @@ import { CategoryPreviewCard } from "./CategoryPreviewCard";
  * Individual Category Configuration Card.
  * Combines distance badge, tagline, age eligibility controls, pricing tiers, quota, and live preview.
  */
-export const CategoryCard = memo(function CategoryCard({ meta, cat, onUpdateCategory }) {
+export const CategoryCard = memo(function CategoryCard({
+  meta,
+  cat,
+  onUpdateCategory,
+  earlyBirdEnabled = true,
+}) {
   const minAge = cat?.min_age !== undefined && cat?.min_age !== null ? cat.min_age : "";
   const maxAge = cat?.max_age !== undefined && cat?.max_age !== null ? cat.max_age : "";
   const capacity = cat?.capacity || 100;
@@ -90,6 +95,7 @@ export const CategoryCard = memo(function CategoryCard({ meta, cat, onUpdateCate
         regularRupees={regularRupees}
         lastWeekRupees={lastWeekRupees}
         ageBadgeText={ageBadgeText}
+        earlyBirdEnabled={earlyBirdEnabled}
       />
     </div>
   );

@@ -209,6 +209,10 @@ const registrationCreateSchema = z
     t_shirt_size: z.enum(["XS", "S", "M", "L", "XL", "XXL", "N/A"]),
     waiver_accepted: z.boolean(),
     privacy_accepted: z.boolean(),
+    whatsapp_use_primary: z.boolean().default(true).optional(),
+    whatsapp_number: z.string().trim().max(32).optional().nullable(),
+    whatsapp_opt_in: z.boolean().optional(),
+    expected_fee_paise: z.number().int().min(0).optional().nullable(),
   })
   .refine(
     (data) => {
@@ -413,6 +417,7 @@ const siteSettingsPatchSchema = z
     partner_applications_open: z.boolean().optional(),
     vendor_applications_open: z.boolean().optional(),
     early_bird_limit: z.number().int().min(0).max(100000).optional(),
+    early_bird_enabled: z.boolean().optional(),
     race_categories: z.record(z.string(), raceCategorySettingSchema).optional(),
     hero_images: z.array(z.string().max(1000).refine((v) => isLocalOrInternalMediaPath(v) || v.startsWith("https://"))).max(5).optional(),
     feature_section: z.object({
@@ -534,16 +539,41 @@ function normalizeOrderInput(payload) {
 }
 
 function normalizeRegistrationInput(payload) {
+  const normalizedPhone = normalizeIndianMobile(payload.phone);
+  const usePrimary = payload.whatsapp_use_primary !== false;
+  let normalizedWhatsappNumber = null;
+  if (!usePrimary && payload.whatsapp_number && String(payload.whatsapp_number).trim()) {
+    try {
+      normalizedWhatsappNumber = normalizeIndianMobile(payload.whatsapp_number);
+    } catch {
+      throw new ValidationError("Enter a valid WhatsApp phone number");
+    }
+  }
+  const optIn =
+    payload.whatsapp_opt_in !== undefined && payload.whatsapp_opt_in !== null
+      ? Boolean(payload.whatsapp_opt_in)
+      : (usePrimary || Boolean(normalizedWhatsappNumber));
+
+  const preferredWhatsappNumber = optIn
+    ? (usePrimary ? normalizedPhone : normalizedWhatsappNumber)
+    : null;
+
   return {
     ...payload,
     email: normalizeEmail(payload.email),
-    phone: normalizeIndianMobile(payload.phone),
+    phone: normalizedPhone,
     // Older administrative views expect this column to be populated. When a
     // rider does not provide a separate emergency contact, use their verified
     // registration phone as the operational fallback.
     emergency_contact: normalizeIndianMobile(payload.emergency_contact || payload.phone),
     organization_type: payload.organization_type || "Individual",
     organization_name: payload.organization_name ? payload.organization_name.trim() : null,
+    whatsapp_use_primary: usePrimary,
+    whatsapp_number: normalizedWhatsappNumber,
+    preferred_whatsapp_number: preferredWhatsappNumber,
+    whatsapp_opt_in: optIn,
+    whatsapp_consent_at: optIn ? (payload.whatsapp_consent_at || new Date().toISOString()) : null,
+    expected_fee_paise: payload.expected_fee_paise !== undefined && payload.expected_fee_paise !== null ? Number(payload.expected_fee_paise) : null,
   };
 }
 

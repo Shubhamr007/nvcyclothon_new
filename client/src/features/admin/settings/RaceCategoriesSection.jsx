@@ -41,43 +41,109 @@ export const CATEGORY_METADATA = [
   },
 ];
 
-export function RaceCategoriesSection({ settings, updateField, updateRaceCategory }) {
+import { EarlyBirdConfirmationModal } from "./EarlyBirdConfirmationModal";
+
+export function RaceCategoriesSection({
+  settings,
+  updateField,
+  updateRaceCategory,
+  onToggleEarlyBird,
+}) {
+  const isEarlyBirdEnabled = settings.early_bird_enabled !== false;
+  const earlyBirdLimit = settings.early_bird_limit || 50;
+
+  const [modalState, setModalState] = React.useState({
+    isOpen: false,
+    targetState: false,
+  });
+
+  const handleToggleClick = () => {
+    setModalState({
+      isOpen: true,
+      targetState: !isEarlyBirdEnabled,
+    });
+  };
+
+  const handleConfirmToggle = () => {
+    const newState = modalState.targetState;
+    setModalState({ isOpen: false, targetState: newState });
+    if (onToggleEarlyBird) {
+      onToggleEarlyBird(newState);
+    } else {
+      updateField("early_bird_enabled", newState);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* GLOBAL EARLY-BIRD QUOTA CARD */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-4">
+      {/* EARLY-BIRD CONFIGURATION & TOGGLE CARD */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
+            <div
+              className={`grid h-10 w-10 place-items-center rounded-xl ${
+                isEarlyBirdEnabled
+                  ? "bg-amber-500/10 text-amber-600"
+                  : "bg-slate-100 text-slate-500"
+              }`}
+            >
               <Tag className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Early-Bird Registration Quota
-              </h3>
-              <p className="text-xs text-slate-500">
-                Configure how many registrations receive the discounted early-bird fee before switching to regular pricing.
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">
+                  Early-Bird Pricing Control
+                </h3>
+                <Badge
+                  variant="outline"
+                  className={
+                    isEarlyBirdEnabled
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold px-2 py-0.5 text-[11px]"
+                      : "bg-slate-100 text-slate-700 border-slate-300 font-bold px-2 py-0.5 text-[11px]"
+                  }
+                >
+                  {isEarlyBirdEnabled ? "● ACTIVE" : "○ INACTIVE"}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {isEarlyBirdEnabled
+                  ? `Early-Bird rates apply for the first ${earlyBirdLimit} registrations across categories.`
+                  : "Early-Bird pricing is disabled. Regular pricing applies to all new registrations."}
               </p>
             </div>
           </div>
 
-          <Badge variant="outline" className="self-start sm:self-auto bg-amber-50 text-amber-800 border-amber-300 font-bold px-3 py-1">
-            Active Quota: {settings.early_bird_limit || 50} riders
-          </Badge>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={handleToggleClick}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs ${
+                isEarlyBirdEnabled
+                  ? "border border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              {isEarlyBirdEnabled ? "Disable Early Bird" : "Enable Early Bird"}
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-[1fr_2fr] items-center pt-1">
-          <div>
+          <div className={isEarlyBirdEnabled ? "" : "opacity-60"}>
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-              Early-Bird Rider Limit
+              Early-Bird Quota Limit
             </label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                disabled={!isEarlyBirdEnabled}
                 onClick={() =>
-                  updateField("early_bird_limit", Math.max(0, (Number(settings.early_bird_limit) || 50) - 5))
+                  updateField(
+                    "early_bird_limit",
+                    Math.max(0, (Number(settings.early_bird_limit) || 50) - 5)
+                  )
                 }
-                className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition disabled:opacity-50"
                 title="Decrease by 5"
               >
                 <Minus className="h-4 w-4" />
@@ -86,35 +152,80 @@ export function RaceCategoriesSection({ settings, updateField, updateRaceCategor
                 type="number"
                 min="0"
                 max="10000"
+                disabled={!isEarlyBirdEnabled}
                 value={settings.early_bird_limit ?? 50}
-                onChange={(e) => updateField("early_bird_limit", Math.max(0, Number(e.target.value) || 0))}
-                className="h-10 w-28 rounded-xl border border-slate-300 text-center text-sm font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+                onChange={(e) =>
+                  updateField(
+                    "early_bird_limit",
+                    Math.max(0, Number(e.target.value) || 0)
+                  )
+                }
+                className="h-10 w-28 rounded-xl border border-slate-300 text-center text-sm font-bold text-slate-900 focus:border-slate-900 focus:outline-none disabled:bg-slate-100"
               />
               <button
                 type="button"
+                disabled={!isEarlyBirdEnabled}
                 onClick={() =>
-                  updateField("early_bird_limit", (Number(settings.early_bird_limit) || 50) + 5)
+                  updateField(
+                    "early_bird_limit",
+                    (Number(settings.early_bird_limit) || 50) + 5
+                  )
                 }
-                className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition disabled:opacity-50"
                 title="Increase by 5"
               >
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <span className="block text-[11px] text-slate-400 mt-1">Registrations across all categories</span>
+            <span className="block text-[11px] text-slate-400 mt-1">
+              Registrations across all categories
+            </span>
           </div>
 
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 p-4 text-xs text-amber-900 space-y-1">
+          <div
+            className={`rounded-xl border p-4 text-xs space-y-1 ${
+              isEarlyBirdEnabled
+                ? "border-amber-200/80 bg-amber-50/60 text-amber-900"
+                : "border-slate-200 bg-slate-50 text-slate-700"
+            }`}
+          >
             <p className="font-bold flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
-              Automatic Threshold Transition
+              <Sparkles
+                className={`h-4 w-4 shrink-0 ${
+                  isEarlyBirdEnabled ? "text-amber-600" : "text-slate-500"
+                }`}
+              />
+              {isEarlyBirdEnabled
+                ? "Active Threshold Transition"
+                : "Early Bird Pricing Inactive"}
             </p>
-            <p className="text-amber-800 leading-relaxed">
-              The first <b>{settings.early_bird_limit || 50}</b> riders who register will automatically receive the early-bird rate. Once this quota is exhausted, new riders will be charged the regular registration fee at checkout.
+            <p className="leading-relaxed">
+              {isEarlyBirdEnabled ? (
+                <>
+                  The first <b>{earlyBirdLimit}</b> paid riders will receive the
+                  discounted early-bird rate. Once this quota is exhausted, new
+                  riders will automatically be charged the regular registration
+                  fee.
+                </>
+              ) : (
+                <>
+                  Early-Bird pricing is currently disabled. All prospective
+                  riders will see and be charged the standard <b>Regular fee</b> at
+                  checkout.
+                </>
+              )}
             </p>
           </div>
         </div>
       </div>
+
+      <EarlyBirdConfirmationModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmToggle}
+        targetState={modalState.targetState}
+        quota={earlyBirdLimit}
+      />
 
       {/* RACE CATEGORIES CARDS */}
       <div className="space-y-4">
@@ -138,6 +249,7 @@ export function RaceCategoriesSection({ settings, updateField, updateRaceCategor
                 meta={meta}
                 cat={cat}
                 onUpdateCategory={updateRaceCategory}
+                earlyBirdEnabled={isEarlyBirdEnabled}
               />
             );
           })}

@@ -649,6 +649,21 @@ class PostgresRepository {
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS batch_name VARCHAR(64)"
     );
     await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS whatsapp_use_primary BOOLEAN DEFAULT TRUE"
+    );
+    await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(32)"
+    );
+    await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS preferred_whatsapp_number VARCHAR(32)"
+    );
+    await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN DEFAULT FALSE"
+    );
+    await this.pool.query(
+      "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS whatsapp_consent_at TIMESTAMPTZ"
+    );
+    await this.pool.query(
       "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS email VARCHAR(150)"
     );
     await this.pool.query(
@@ -1055,9 +1070,8 @@ class PostgresRepository {
     return Array.from(grouped.values());
   }
 
-  calculateFeeChoice(now, rideCategory, activeCategoryCount, activeRegistrationCount, eventDate = "2026-11-22", customCategories = null, customEarlyBirdLimit = null) {
+  calculateFeeChoice(now, rideCategory, activeCategoryCount, activeRegistrationCount, eventDate = "2026-11-22", customCategories = null, customEarlyBirdLimit = null, customEarlyBirdEnabled = null) {
     const categories = customCategories || RACE_CATEGORIES;
-    const earlyBirdThreshold = typeof customEarlyBirdLimit === "number" ? customEarlyBirdLimit : EARLY_BIRD_LIMIT;
     const category = categories[rideCategory] || RACE_CATEGORIES[rideCategory];
     if (activeCategoryCount >= category.capacity) {
       throw new ConflictError(`${rideCategory} is full`);
@@ -1070,6 +1084,15 @@ class PostgresRepository {
     if (now >= lastWeekStart) {
       return category.last_week;
     }
+
+    const isEarlyBirdActive = typeof customEarlyBirdEnabled === "boolean"
+      ? customEarlyBirdEnabled
+      : true;
+    if (!isEarlyBirdActive) {
+      return category.regular;
+    }
+
+    const earlyBirdThreshold = typeof customEarlyBirdLimit === "number" ? customEarlyBirdLimit : EARLY_BIRD_LIMIT;
     return activeRegistrationCount < earlyBirdThreshold
       ? category.early_bird
       : category.regular;
@@ -1127,8 +1150,19 @@ class PostgresRepository {
         activeCount,
         options.eventDate,
         options.raceCategories,
-        options.earlyBirdLimit
+        options.earlyBirdLimit,
+        options.earlyBirdEnabled
       );
+
+      if (payload.expected_fee_paise !== undefined && payload.expected_fee_paise !== null) {
+        if (Number(payload.expected_fee_paise) !== fee) {
+          throw new ConflictError(
+            "Pricing configuration has changed since you loaded the form. Please review the updated fee before completing registration.",
+            "PRICE_CHANGED"
+          );
+        }
+      }
+
       const checkinToken = this.generateCheckinToken();
       const initialStatus = options.paymentEnabled ? "pending" : "approved";
       const initialPaymentStatus = options.paymentEnabled ? "pending" : "paid";
@@ -1142,12 +1176,15 @@ class PostgresRepository {
              organization_type, organization_name,
              emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
              status, registration_fee_paise, payment_status, payment_verified_at,
-             checkin_token
+             checkin_token,
+             whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
+             whatsapp_opt_in, whatsapp_consent_at
            ) VALUES (
              $1, $2, $3, $4, $5, $6, $7,
              $8, $9,
              $10, $11, TRUE, TRUE,
-             $12, $13, $14, $15, $16
+             $12, $13, $14, $15, $16,
+             $17, $18, $19, $20, $21
            )
             RETURNING id, full_name, email, phone, age, city, gender, ride_category,
                       organization_type, organization_name,
@@ -1155,7 +1192,9 @@ class PostgresRepository {
                       status, registration_fee_paise, payment_status, payment_order_id,
                       payment_id, payment_signature, payment_provider, payment_verified_at,
                       checkin_token, checked_in_at, checked_in_by, checkin_method,
-                      checkin_device, batch_name, created_at`,
+                      checkin_device, batch_name, created_at,
+                      whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
+                      whatsapp_opt_in, whatsapp_consent_at`,
           [
             payload.full_name,
             payload.email.toLowerCase(),
@@ -1173,6 +1212,14 @@ class PostgresRepository {
             initialPaymentStatus,
             paymentVerifiedAt,
             checkinToken,
+            payload.whatsapp_use_primary !== false,
+            payload.preferred_whatsapp_number !== undefined
+              ? payload.preferred_whatsapp_number
+              : (payload.whatsapp_use_primary !== false ? payload.phone : (payload.whatsapp_number || null)),
+            Boolean(payload.whatsapp_opt_in),
+            payload.whatsapp_consent_at !== undefined
+              ? payload.whatsapp_consent_at
+              : (payload.whatsapp_opt_in ? new Date() : null),
           ]
         );
         registration = insertResult.rows[0];
@@ -1205,7 +1252,9 @@ class PostgresRepository {
                      status, registration_fee_paise, payment_status,
                      payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                      checkin_token, checked_in_at, checked_in_by, checkin_method,
-                     checkin_device, batch_name, created_at`,
+                     checkin_device, batch_name, created_at,
+                     whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
+                     whatsapp_opt_in, whatsapp_consent_at`,
           [order.id, registration.id]
         );
         registration = updateResult.rows[0];
@@ -1231,7 +1280,9 @@ class PostgresRepository {
               status, registration_fee_paise, payment_status,
               payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
-              checkin_device, created_at
+              checkin_device, created_at,
+              whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
+              whatsapp_opt_in, whatsapp_consent_at
        FROM cyclothon_registrations
        WHERE payment_order_id = $1`,
       [orderId]
@@ -1247,7 +1298,9 @@ class PostgresRepository {
                 status, registration_fee_paise, payment_status,
                 payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                 checkin_token, checked_in_at, checked_in_by, checkin_method,
-                checkin_device, created_at
+                checkin_device, created_at,
+                whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
+                whatsapp_opt_in, whatsapp_consent_at
          FROM cyclothon_registrations
          WHERE id = $1
          FOR UPDATE`,
@@ -1297,7 +1350,9 @@ class PostgresRepository {
                      status, registration_fee_paise, payment_status,
                      payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
                      checkin_token, checked_in_at, checked_in_by, checkin_method,
-                     checkin_device, created_at`,
+                     checkin_device, created_at,
+                     whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
+                     whatsapp_opt_in, whatsapp_consent_at`,
           [paymentId, signature, registrationId]
         );
         return updated.rows[0];
@@ -1387,6 +1442,8 @@ class PostgresRepository {
              cr.payment_id, cr.payment_signature, cr.payment_provider, cr.payment_verified_at,
              cr.checkin_token, cr.checked_in_at, cr.checked_in_by, cr.checkin_method,
              cr.checkin_device, cr.batch_name, cr.created_at,
+             cr.whatsapp_use_primary, cr.whatsapp_number, cr.preferred_whatsapp_number,
+             cr.whatsapp_opt_in, cr.whatsapp_consent_at,
              rp.status AS rider_pass_status,
              pc.status AS certificate_status,
              red_cert.recipient AS certificate_recipient,

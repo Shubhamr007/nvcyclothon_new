@@ -76,6 +76,29 @@ export function SettingsTab({ accessToken: propAccessToken, onFeedback }) {
     [dispatch]
   );
 
+  const handleToggleEarlyBird = useCallback(
+    async (newEnabledState) => {
+      const updatedSettings = {
+        ...settings,
+        early_bird_enabled: newEnabledState,
+      };
+      dispatch(updateFieldAction({ key: "early_bird_enabled", value: newEnabledState }));
+      try {
+        const updated = await dispatch(
+          saveAdminSettings({ accessToken, settings: updatedSettings })
+        ).unwrap();
+        onFeedback?.(newEnabledState ? "Early Bird pricing enabled." : "Early Bird pricing disabled.");
+        try {
+          localStorage.setItem("nv_site_settings_updated", String(Date.now()));
+          window.dispatchEvent(new CustomEvent("nv:settings-updated", { detail: updated }));
+        } catch {}
+      } catch (err) {
+        onFeedback?.(err || "Failed to update Early Bird status.");
+      }
+    },
+    [dispatch, accessToken, settings, onFeedback]
+  );
+
   const submit = useCallback(
     async (event) => {
       if (event?.preventDefault) event.preventDefault();
@@ -158,6 +181,7 @@ export function SettingsTab({ accessToken: propAccessToken, onFeedback }) {
             settings={settings}
             updateField={updateField}
             updateRaceCategory={updateRaceCategory}
+            onToggleEarlyBird={handleToggleEarlyBird}
           />
         )}
 

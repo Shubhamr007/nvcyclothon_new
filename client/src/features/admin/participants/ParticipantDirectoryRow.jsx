@@ -103,7 +103,17 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
 
         {/* 4. Contact */}
         <td className="p-3.5 text-xs font-mono">
-          <p className="text-slate-950 font-bold">{rider.phone || "—"}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-950 font-bold">{rider.phone || "—"}</span>
+            {rider.whatsapp_opt_in && (
+              <span
+                className="inline-flex items-center rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1"
+                title={`WhatsApp Opted In: ${rider.preferred_whatsapp_number || rider.phone}`}
+              >
+                WA
+              </span>
+            )}
+          </div>
           <p className="text-slate-700 text-xs font-medium truncate max-w-[200px]">
             {rider.email || "—"}
           </p>

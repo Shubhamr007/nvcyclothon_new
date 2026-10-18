@@ -25,6 +25,7 @@ export function AdminSlideOver({
   subtitle,
   icon: Icon,
   width = "max-w-xl",
+  customWidth,
   side = "right",
   docked = false,
   bodyClassName,
@@ -55,8 +56,9 @@ export function AdminSlideOver({
     <AnimatePresence>
       {isOpen && (
         <div
+          style={docked && typeof customWidth === "number" ? { width: `${customWidth}px` } : undefined}
           className={docked
-            ? `relative z-20 flex h-full w-full shrink-0 overflow-hidden ${width}`
+            ? `relative z-20 flex h-full shrink-0 overflow-hidden ${typeof customWidth === "number" ? "" : width}`
             : `absolute inset-0 z-40 overflow-hidden pointer-events-auto flex ${
                 isRight ? "justify-end" : "justify-start"
               }`
@@ -83,24 +85,25 @@ export function AdminSlideOver({
             animate={{ x: 0 }}
             exit={{ x: isRight ? "100%" : "-100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
-            className={`relative z-10 flex h-full w-full ${docked ? "" : width} flex-col bg-white ${
+            style={docked && typeof customWidth === "number" ? { width: `${customWidth}px` } : undefined}
+            className={`relative z-10 flex h-full w-full ${docked && typeof customWidth === "number" ? "" : width} flex-col bg-white dark:bg-[#18191E] ${
               isRight ? "border-l" : "border-r"
-            } border-slate-200/90 ${docked ? "shadow-xl" : "shadow-2xl"} overflow-hidden`}
+            } border-slate-200/90 dark:border-[#2A2D35] ${docked ? "shadow-xl" : "shadow-2xl"} overflow-hidden`}
           >
             {/* Header */}
-            <div className="shrink-0 border-b border-slate-200/90 bg-white px-6 py-4.5 flex items-center justify-between gap-4">
+            <div className="shrink-0 border-b border-slate-200/90 dark:border-[#2A2D35] bg-white dark:bg-[#18191E] px-6 py-4.5 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
                 {Icon && (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700 border border-blue-200/80 shadow-xs">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-[#004578]/30 text-blue-700 dark:text-[#50e6ff] border border-blue-200/80 dark:border-[#0078d4]/40 shadow-xs">
                     <Icon className="h-5 w-5" />
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-900 truncate">
+                  <h3 className="text-base font-bold text-slate-900 dark:text-[#E8E8E8] truncate">
                     {title}
                   </h3>
                   {subtitle && (
-                    <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    <p className="text-xs text-slate-500 dark:text-[#9A9A9A] mt-0.5 truncate">
                       {subtitle}
                     </p>
                   )}
@@ -110,7 +113,7 @@ export function AdminSlideOver({
               <button
                 type="button"
                 onClick={onClose}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#252830] transition-colors"
                 aria-label="Close panel"
               >
                 <X className="h-4 w-4" />
@@ -124,7 +127,7 @@ export function AdminSlideOver({
 
             {/* Pinned Footer (Optional) */}
             {footer && (
-              <div className="shrink-0 border-t border-slate-200/90 bg-slate-50/90 px-6 py-3.5 flex items-center justify-end gap-2.5">
+              <div className="shrink-0 border-t border-slate-200/90 dark:border-[#2A2D35] bg-slate-50/90 dark:bg-[#121316] px-6 py-3.5 flex items-center justify-end gap-2.5">
                 {footer}
               </div>
             )}

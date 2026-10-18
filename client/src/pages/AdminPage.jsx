@@ -4,39 +4,22 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { adminRequest, createAdminSession, refreshAdminSession } from "../api/http";
 import { LoadingScreen } from "../components/LoadingIndicator";
 import {
-  AdminHeader,
-  AdminSidebar,
-  AdminFooter,
-  AdminLogin,
-  TabErrorBoundary,
-  TabLoadingFallback,
-  NAVIGATION_GROUPS,
+  AdminHeader, AdminSidebar, AdminFooter, AdminLogin,
+  TabErrorBoundary, TabLoadingFallback, NAVIGATION_GROUPS,
+  LayoutResizeDivider, useAdminLayout, LAYOUT_CONSTRAINTS,
 } from "../features/admin";
-import {
-  AdminAiCoPilotDrawer,
-} from "../features/admin/ai";
+import { AdminAiCoPilotDrawer } from "../features/admin/ai";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
-  setAdminSession,
-  clearAccessToken,
-  setFeedbackMessage,
-  setAuthLoading,
+  setAdminSession, clearAccessToken, setFeedbackMessage, setAuthLoading,
 } from "../store/slices/authSlice";
 
 // Lazy-loaded Admin Tabs for high-performance bundle code-splitting
-const OverviewTab = lazy(() => import("../features/admin/tabs/OverviewTab").then((m) => ({ default: m.OverviewTab })));
-const FinanceTab = lazy(() => import("../features/admin/tabs/FinanceTab").then((m) => ({ default: m.FinanceTab })));
-const AnalyticsTab = lazy(() => import("../features/admin/tabs/AnalyticsTab").then((m) => ({ default: m.AnalyticsTab })));
-const ParticipantsTab = lazy(() => import("../features/admin/tabs/ParticipantsTab").then((m) => ({ default: m.ParticipantsTab })));
-const VolunteersTab = lazy(() => import("../features/admin/tabs/VolunteersTab").then((m) => ({ default: m.VolunteersTab })));
-const DelegationsTab = lazy(() => import("../features/admin/tabs/DelegationsTab").then((m) => ({ default: m.DelegationsTab })));
-const PartnersTab = lazy(() => import("../features/admin/tabs/PartnersTab").then((m) => ({ default: m.PartnersTab })));
-const VendorsTab = lazy(() => import("../features/admin/tabs/VendorsTab").then((m) => ({ default: m.VendorsTab })));
-const CommunityTab = lazy(() => import("../features/admin/tabs/CommunityTab").then((m) => ({ default: m.CommunityTab })));
-const GalleryManager = lazy(() => import("../features/admin/tabs/GalleryManager").then((m) => ({ default: m.GalleryManager })));
-const OffersTab = lazy(() => import("../features/admin/tabs/OffersTab").then((m) => ({ default: m.OffersTab })));
-const MembersTab = lazy(() => import("../features/admin/tabs/MembersTab").then((m) => ({ default: m.MembersTab })));
-const SettingsTab = lazy(() => import("../features/admin/tabs/SettingsTab").then((m) => ({ default: m.SettingsTab })));
+import {
+  OverviewTab, FinanceTab, AnalyticsTab, ParticipantsTab,
+  VolunteersTab, DelegationsTab, PartnersTab, VendorsTab,
+  CommunityTab, GalleryManager, OffersTab, MembersTab, SettingsTab,
+} from "../features/admin/tabs/lazyTabs";
 
 export function AdminPage() {
   const prefersReducedMotion = useReducedMotion();
@@ -48,6 +31,10 @@ export function AdminPage() {
   const [coPilotOpen, setCoPilotOpen] = useState(false);
   const [coPilotPrompt, setCoPilotPrompt] = useState("");
 
+  const {
+    sidebarWidth, aiWidth, updateSidebarWidth,
+    commitSidebarWidth, updateAiWidth, commitAiWidth, resetLayout,
+  } = useAdminLayout();
   const setMessage = (msg) => dispatch(setFeedbackMessage(msg));
   const setLoading = (val) => dispatch(setAuthLoading(val));
 
@@ -140,28 +127,18 @@ export function AdminPage() {
     );
   }
 
-  // Find active tab label for header
-  let activeTabLabel = "Overview";
-  for (const group of NAVIGATION_GROUPS) {
-    const found = group.items.find((i) => i.id === tab);
-    if (found) {
-      activeTabLabel = found.label;
-      break;
-    }
-  }
+  const activeTabLabel =
+    NAVIGATION_GROUPS.flatMap((g) => g.items).find((i) => i.id === tab)?.label || "Overview";
 
-  // Badges
   const pendingRidersCount = Math.max(
     0,
     Number(data.analytics?.total_registrations || 0) -
       Number(data.analytics?.approved_registrations || 0)
   );
-  const badges = {
-    riders: pendingRidersCount,
-  };
+  const badges = { riders: pendingRidersCount };
 
   return (
-    <div className="admin-workspace h-screen h-[100dvh] w-screen overflow-hidden flex flex-col bg-[#f5f5f5] text-slate-900 selection:bg-[#0078d4] selection:text-white">
+    <div className="admin-workspace h-screen h-[100dvh] w-screen overflow-hidden flex flex-col bg-[#f5f5f5] dark:bg-[#0f1115] text-slate-900 dark:text-[#E8E8E8] selection:bg-[#0078d4] selection:text-white transition-colors">
       {/* 1. FIXED TOP HEADER */}
       <AdminHeader
         onSignOut={() => {
@@ -172,6 +149,7 @@ export function AdminPage() {
         onToggleMobileMenu={() => setMobileMenuOpen((prev) => !prev)}
         activeTabLabel={activeTabLabel}
         onOpenAiCoPilot={() => setCoPilotOpen(true)}
+        onResetLayout={resetLayout}
       />
 
       {/* 2. BODY ROW */}
@@ -183,16 +161,30 @@ export function AdminPage() {
           mobileOpen={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
           badges={badges}
+          width={sidebarWidth}
+        />
+
+        {/* RESIZE DIVIDER: SIDEBAR */}
+        <LayoutResizeDivider
+          panel="sidebar"
+          currentWidth={sidebarWidth}
+          minWidth={LAYOUT_CONSTRAINTS.sidebar.min}
+          maxWidth={LAYOUT_CONSTRAINTS.sidebar.max}
+          onResize={updateSidebarWidth}
+          onResizeEnd={commitSidebarWidth}
+          onReset={() => commitSidebarWidth(LAYOUT_CONSTRAINTS.sidebar.default)}
+          label="Sidebar Navigation Width"
+          className="hidden lg:flex"
         />
 
         {/* Overlay root retained for forms and detail drawers. */}
         <div id="admin-slideover-root" className="absolute inset-0 z-40 pointer-events-none" />
 
         {/* SCROLLABLE WORKSPACE */}
-        <main className="flex-1 min-w-0 h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 min-w-0 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f5f5f5] dark:bg-[#0f1115] transition-colors">
           <div className="mx-auto max-w-[1520px] w-full space-y-6 pb-6">
             {message && (
-              <div className="flex items-center justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs text-xs font-semibold text-slate-800">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200/90 dark:border-[#2A2D35] bg-white dark:bg-[#18191E] p-4 shadow-xs text-xs font-semibold text-slate-800 dark:text-[#E8E8E8]">
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-slate-900 shrink-0" />
                   <span>{message}</span>
@@ -267,7 +259,22 @@ export function AdminPage() {
           </div>
         </main>
 
-        {/* Docked AI workspace: this takes layout space rather than covering the active tab. */}
+        {/* RESIZE DIVIDER: AI ASSISTANT PANEL */}
+        {coPilotOpen && (
+          <LayoutResizeDivider
+            panel="ai"
+            currentWidth={aiWidth}
+            minWidth={LAYOUT_CONSTRAINTS.aiPanel.min}
+            maxWidth={LAYOUT_CONSTRAINTS.aiPanel.max}
+            onResize={updateAiWidth}
+            onResizeEnd={commitAiWidth}
+            onReset={() => commitAiWidth(LAYOUT_CONSTRAINTS.aiPanel.default)}
+            label="AI Assistant Panel Width"
+            className="hidden lg:flex"
+          />
+        )}
+
+        {/* Docked AI workspace: takes layout space with custom resizable width */}
         <AdminAiCoPilotDrawer
           isOpen={coPilotOpen}
           onClose={() => {
@@ -275,6 +282,9 @@ export function AdminPage() {
             setCoPilotPrompt("");
           }}
           initialPrompt={coPilotPrompt}
+          customWidth={aiWidth}
+          onResetWidth={() => commitAiWidth(LAYOUT_CONSTRAINTS.aiPanel.default)}
+          isCustomWidth={aiWidth !== LAYOUT_CONSTRAINTS.aiPanel.default}
         />
       </div>
 
