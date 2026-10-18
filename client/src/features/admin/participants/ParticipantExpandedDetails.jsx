@@ -12,6 +12,7 @@ import {
   Award,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
+import { ParticipantFinancialCard } from "./ParticipantFinancialCard";
 
 export function ParticipantExpandedDetails({
   rider,
@@ -27,49 +28,49 @@ export function ParticipantExpandedDetails({
   const isCheckedIn = rider.status === "checked_in";
 
   return (
-    <tr className="bg-[#fbf8ef] border-b border-black/10">
+    <tr className="bg-slate-50/70 border-b border-slate-200">
       <td colSpan={7} className="p-0">
-        <div className="p-6 border-l-4 border-l-[#071313] space-y-6">
-          {/* 3-COLUMN LOGISTICS GRID */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="p-5 border-l-4 border-l-slate-800 space-y-5">
+          {/* 4-COLUMN LOGISTICS & FINANCIAL GRID */}
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {/* CARD 1: CHECK-IN & QR TOKEN */}
-            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-              <div className="flex items-center justify-between border-b border-black/10 pb-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-black/50 font-mono flex items-center gap-1.5">
-                  <UserCheck className="h-3.5 w-3.5 text-[#071313]" />
+            <div className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b-2 border-slate-200 pb-2">
+                <span className="text-xs font-bold text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <UserCheck className="h-4 w-4 text-slate-800" />
                   Race-Day Check-in
                 </span>
                 {isCheckedIn ? (
-                  <span className="rounded-md bg-emerald-600 text-white px-2 py-0.5 text-[10px] font-black uppercase">
+                  <span className="rounded-md bg-emerald-700 text-white px-2.5 py-0.5 text-xs font-bold uppercase">
                     Verified
                   </span>
                 ) : (
-                  <span className="rounded-md bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 text-[10px] font-bold">
+                  <span className="rounded-md bg-amber-100 text-amber-950 border border-amber-400 px-2.5 py-0.5 text-xs font-bold">
                     Not Checked In
                   </span>
                 )}
               </div>
 
               {isCheckedIn ? (
-                <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-emerald-950 text-xs space-y-1">
+                <div className="rounded-lg bg-emerald-100 border-2 border-emerald-400 p-3 text-emerald-950 text-xs space-y-1">
                   <p className="font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
                     Checked in on {new Date(rider.checked_in_at).toLocaleString()}
                   </p>
                   {rider.checked_in_by && (
-                    <p className="text-[11px] text-emerald-900/80">
+                    <p className="text-xs text-emerald-950 font-medium">
                       Station / Staff: <strong>{rider.checked_in_by}</strong>
                     </p>
                   )}
-                  <p className="text-[11px] text-emerald-900/80">
+                  <p className="text-xs text-emerald-950 font-medium">
                     Method:{" "}
-                    <span className="uppercase font-mono">
+                    <span className="uppercase font-mono font-bold">
                       {rider.checkin_method || "manual"}
                     </span>
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl bg-black/5 p-3 text-xs text-black/60">
+                <div className="rounded-lg bg-slate-100 border-2 border-slate-300 p-3 text-xs text-slate-800 font-medium">
                   Pending race-day arrival. Volunteer will scan this rider's QR pass or look up by ID.
                 </div>
               )}
@@ -81,7 +82,7 @@ export function ParticipantExpandedDetails({
                     <button
                       type="button"
                       onClick={() => onShowQr(rider)}
-                      className="p-1.5 rounded-xl border border-black/15 bg-white shadow-sm hover:scale-105 transition-transform"
+                      className="p-1.5 rounded-lg border-2 border-slate-300 bg-white shadow-xs hover:border-slate-500 transition"
                       title="Click to enlarge QR pass"
                     >
                       <QRCodeSVG
@@ -91,15 +92,15 @@ export function ParticipantExpandedDetails({
                       />
                     </button>
                     <div className="text-xs space-y-1">
-                      <span className="font-bold text-[#071313] block">
+                      <span className="font-bold text-slate-950 block">
                         Rider QR Pass
                       </span>
                       <button
                         type="button"
                         onClick={() => onShowQr(rider)}
-                        className="text-[11px] font-bold text-[#ff5f3d] hover:underline flex items-center gap-1"
+                        className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1"
                       >
-                        <Eye className="h-3 w-3" /> View full screen
+                        <Eye className="h-3.5 w-3.5" /> View full screen
                       </button>
                       <button
                         type="button"
@@ -109,54 +110,54 @@ export function ParticipantExpandedDetails({
                             `token-${rider.id}`
                           )
                         }
-                        className="text-[10px] font-mono text-black/50 hover:text-black flex items-center gap-1"
+                        className="text-xs font-mono text-slate-700 hover:text-slate-950 flex items-center gap-1 font-semibold"
                       >
-                        <Copy className="h-2.5 w-2.5" />
+                        <Copy className="h-3 w-3" />
                         {copiedId === `token-${rider.id}` ? "Copied!" : "Copy Token"}
                       </button>
                     </div>
                   </>
                 ) : (
-                  <p className="text-xs text-black/40">No QR token issued</p>
+                  <p className="text-xs text-slate-600 font-medium">No QR token issued</p>
                 )}
               </div>
             </div>
 
             {/* CARD 2: RIDER APPAREL & PROFILE */}
-            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-              <div className="border-b border-black/10 pb-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-black/50 font-mono flex items-center gap-1.5">
-                  <Shirt className="h-3.5 w-3.5 text-[#071313]" />
+            <div className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-xs space-y-3">
+              <div className="border-b-2 border-slate-200 pb-2">
+                <span className="text-xs font-bold text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <Shirt className="h-4 w-4 text-slate-800" />
                   Apparel & Profile
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-black/5">
-                  <span className="text-black/50">T-Shirt Size</span>
-                  <span className="font-mono font-bold text-[#071313] bg-[#fbf8ef] px-2 py-0.5 rounded border border-black/10">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-700 font-semibold">T-Shirt Size</span>
+                  <span className="font-mono font-bold text-slate-950 bg-slate-200 px-2 py-0.5 rounded border border-slate-300">
                     {rider.t_shirt_size || "Not specified"}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 border-b border-black/5">
-                  <span className="text-black/50">City / Location</span>
-                  <span className="font-bold text-[#071313]">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-700 font-semibold">City / Location</span>
+                  <span className="font-bold text-slate-950">
                     {rider.city || "Rewa (M.P.)"}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 border-b border-black/5">
-                  <span className="text-black/50">Gender</span>
-                  <span className="font-bold text-[#071313] capitalize">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-700 font-semibold">Gender</span>
+                  <span className="font-bold text-slate-950 capitalize">
                     {rider.gender || "Unspecified"}
                   </span>
                 </div>
 
                 {rider.batch_name && (
-                  <div className="flex items-center justify-between py-1 border-b border-black/5">
-                    <span className="text-black/50">Batch / Wave</span>
-                    <span className="font-bold text-purple-900 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded">
+                  <div className="flex items-center justify-between py-1 border-b border-slate-200">
+                    <span className="text-slate-700 font-semibold">Batch / Wave</span>
+                    <span className="font-bold text-blue-950 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded">
                       {rider.batch_name}
                     </span>
                   </div>
@@ -164,10 +165,10 @@ export function ParticipantExpandedDetails({
 
                 {rider.organization_name && (
                   <div className="pt-1">
-                    <span className="text-[10px] text-black/50 uppercase font-mono block">
+                    <span className="text-xs text-slate-700 uppercase font-mono font-bold block">
                       Delegation / Club
                     </span>
-                    <p className="font-bold text-[#071313] text-xs">
+                    <p className="font-bold text-slate-950 text-xs">
                       🏛️ {rider.organization_name} ({rider.organization_type || "Club"})
                     </p>
                   </div>
@@ -176,40 +177,41 @@ export function ParticipantExpandedDetails({
             </div>
 
             {/* CARD 3: DOCUMENT & EMAIL DELIVERY LOG */}
-            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-sm space-y-3">
-              <div className="border-b border-black/10 pb-2">
-                <span className="text-[11px] font-black uppercase tracking-wider text-black/50 font-mono flex items-center gap-1.5">
-                  <Mail className="h-3.5 w-3.5 text-[#071313]" />
+            {/* CARD 3: DOCUMENT & EMAIL DELIVERY LOG */}
+            <div className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-xs space-y-3">
+              <div className="border-b-2 border-slate-200 pb-2">
+                <span className="text-xs font-bold text-slate-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="h-4 w-4 text-slate-800" />
                   Email & Document Logs
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-black/5">
-                  <span className="text-black/50">Registration Email</span>
-                  <span className="font-bold text-[#071313]">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-700 font-semibold">Registration Email</span>
+                  <span className="font-bold text-slate-950">
                     {rider.registration_email_status || "not sent"}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 border-b border-black/5">
-                  <span className="text-black/50">Official Rider Pass</span>
-                  <span className="font-bold text-[#071313]">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-700 font-semibold">Official Rider Pass</span>
+                  <span className="font-bold text-slate-950">
                     {rider.rider_pass_status || "not sent"}
                   </span>
                 </div>
 
                 <div className="py-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-black/50">Finisher Certificate</span>
-                    <span className="font-bold text-[#071313]">
+                    <span className="text-slate-700 font-semibold">Finisher Certificate</span>
+                    <span className="font-bold text-slate-950">
                       {rider.certificate_delivery_status ||
                         rider.certificate_status ||
                         "not sent"}
                     </span>
                   </div>
                   {rider.certificate_sent_at && (
-                    <p className="text-[10px] text-black/40 font-mono mt-0.5">
+                    <p className="text-xs text-slate-700 font-mono font-medium mt-0.5">
                       Sent {new Date(rider.certificate_sent_at).toLocaleString()}
                     </p>
                   )}
@@ -217,7 +219,7 @@ export function ParticipantExpandedDetails({
               </div>
 
               {/* Quick Actions for this single rider */}
-              <div className="pt-2 flex flex-wrap gap-2 border-t border-black/5">
+              <div className="pt-2.5 flex flex-wrap gap-2 border-t-2 border-slate-200">
                 {rider.payment_status === "paid" &&
                   rider.status !== "cancelled" && (
                     <>
@@ -225,17 +227,17 @@ export function ParticipantExpandedDetails({
                         size="sm"
                         variant="outline"
                         onClick={() => previewRiderPass(rider.id)}
-                        className="h-7 text-[11px] px-2.5"
+                        className="h-7 text-xs px-2.5 border-2 border-slate-300 text-slate-900 font-bold hover:bg-slate-100"
                       >
-                        <FileText className="h-3 w-3 mr-1" /> Pass Preview
+                        <FileText className="h-3.5 w-3.5 mr-1" /> Pass Preview
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => generateRiderPasses([rider.id])}
                         disabled={busy}
-                        className="h-7 text-[11px] px-2.5 bg-[#ff5f3d] text-white hover:bg-[#e04f2f] font-bold"
+                        className="h-7 text-xs px-2.5 bg-blue-600 text-white hover:bg-blue-700 font-bold"
                       >
-                        <Send className="h-3 w-3 mr-1" />
+                        <Send className="h-3.5 w-3.5 mr-1" />
                         {rider.rider_pass_status === "sent" ? "Re-send Pass" : "Send Pass"}
                       </Button>
                     </>
@@ -247,23 +249,30 @@ export function ParticipantExpandedDetails({
                       size="sm"
                       variant="outline"
                       onClick={() => previewCertificate(rider.id)}
-                      className="h-7 text-[11px] px-2.5 text-emerald-800 border-emerald-300 bg-emerald-50"
+                      className="h-7 text-xs px-2.5 text-emerald-950 border-2 border-emerald-400 bg-emerald-100 font-bold hover:bg-emerald-200"
                     >
-                      <Award className="h-3 w-3 mr-1" /> Cert Preview
+                      <Award className="h-3.5 w-3.5 mr-1" /> Cert Preview
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => generateCertificates([rider.id])}
                       disabled={busy}
-                      className="h-7 text-[11px] px-2.5 bg-emerald-600 text-white hover:bg-emerald-700 font-bold"
+                      className="h-7 text-xs px-2.5 bg-emerald-700 text-white hover:bg-emerald-800 font-bold"
                     >
-                      <Send className="h-3 w-3 mr-1" />
+                      <Send className="h-3.5 w-3.5 mr-1" />
                       {rider.certificate_delivery_status === "sent" ? "Re-send Cert" : "Send Cert"}
                     </Button>
                   </>
                 )}
               </div>
             </div>
+
+            {/* CARD 4: PAYMENT & FINANCIAL DETAILS */}
+            <ParticipantFinancialCard
+              rider={rider}
+              copyToClipboard={copyToClipboard}
+              copiedId={copiedId}
+            />
           </div>
         </div>
       </td>

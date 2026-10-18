@@ -4,6 +4,7 @@ const {
   registrationCreateSchema,
   cashfreePaymentVerifySchema,
   normalizeRegistrationInput,
+  validateCategoryAge,
 } = require("../services/validation");
 const { ValidationError, NotFoundError } = require("../errors");
 
@@ -132,6 +133,7 @@ function createCyclothonRouter({
 
       const parsed = parseSchema(registrationCreateSchema, req.body);
       const payload = normalizeRegistrationInput(parsed);
+      validateCategoryAge(payload, settings.race_categories);
       if (!payload.waiver_accepted || !payload.privacy_accepted) {
         throw new ValidationError(
           "The rider waiver and privacy notice must be accepted"
@@ -141,6 +143,8 @@ function createCyclothonRouter({
       const result = await repository.createCyclothonRegistration(payload, {
         paymentEnabled: config.cashfreeEnabled,
         eventDate: settings.event_date,
+        earlyBirdLimit: settings.early_bird_limit,
+        raceCategories: settings.race_categories,
         createPaymentOrder: ({ amountPaise, receipt, registration }) =>
           cashfreeService.createOrder({
             orderId: receipt,

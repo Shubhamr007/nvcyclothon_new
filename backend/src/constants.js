@@ -144,6 +144,13 @@ const SITE_SECTIONS = [
   "community",
 ];
 
+const DEFAULT_SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/nvcyclothon",
+  youtube: "https://www.youtube.com/@nvcyclothon",
+  facebook: "https://www.facebook.com/nvcyclothon",
+  linkedin: "https://www.linkedin.com/company/nvcyclothon",
+};
+
 module.exports = {
   EVENT_DATE,
   LAST_WEEK_START,
@@ -154,4 +161,5 @@ module.exports = {
   DELEGATION_STATUSES,
   DEFAULT_GALLERY_ITEMS,
   SITE_SECTIONS,
+  DEFAULT_SOCIAL_LINKS,
 };

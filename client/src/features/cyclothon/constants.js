@@ -10,3 +10,11 @@ export const RIDE_OPTIONS = [
   { distance: '10 Km Green Ride', length: '10 KM', title: 'Green Ride', description: 'A 10 km community ride for a cleaner, greener city.', fee: '₹399 early bird', pricing: '₹399 early bird · ₹499 regular · ₹599 last week', capacity: 200, jersey: false, kit: ['Bib', 'Medal', 'E-certificate', 'Hydration'], color: 'pink' },
   { distance: 'Kid-o-thon', length: 'KIDS', title: 'Kid-o-thon', description: 'A joyful, family-friendly ride for ages 10–13 in a closed, monitored area.', fee: '₹299 fixed', pricing: '₹299 fixed fee', capacity: 50, minAge: 10, maxAge: 13, jersey: false, kit: ['Medal', 'Certificate', 'Refreshment'], color: 'sky' },
 ];
+
+export const DEFAULT_SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/nvcyclothon",
+  youtube: "https://www.youtube.com/@nvcyclothon",
+  facebook: "https://www.facebook.com/nvcyclothon",
+  linkedin: "https://www.linkedin.com/company/nvcyclothon",
+};
+

@@ -13,6 +13,7 @@ import { EventUpdates } from "../features/cyclothon/components/EventUpdates";
 import { CommunityWall } from "../features/cyclothon/components/CommunityWall";
 import { RouteNavigator } from "../features/cyclothon/components/RouteNavigator";
 import { Reveal } from "../components/Reveal";
+import { SocialLinks } from "../components/SocialLinks";
 import { useSiteSettings } from "../state/SiteSettingsContext";
 import { resolveApiAssetUrl } from "../api/http";
 
@@ -106,6 +107,12 @@ export function HomePage() {
                 <p className="text-sm text-white/60">
                   For queries, partnerships, and volunteering — reach out to us at the address above or through our social channels.
                 </p>
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-xs font-black uppercase tracking-[.18em] text-[#d9ff38] mb-3">
+                    Follow & Connect
+                  </p>
+                  <SocialLinks variant="buttons" />
+                </div>
               </div>
             </Reveal>
             <Reveal delay={0.2}>

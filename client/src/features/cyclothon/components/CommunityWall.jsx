@@ -254,7 +254,7 @@ function CommunitySubmissionForm({ onSubmitted }) {
           className="mt-2 inline-flex items-center justify-center rounded-full bg-[#d9ff38] px-5 py-3 text-xs font-black tracking-[.16em] uppercase text-[#071313] transition disabled:opacity-50"
         >
           {status.state === "loading" ? (
-            <LoadingIndicator label="Submitting…" className="text-[#071313]" />
+            <LoadingIndicator label="Submitting…" className="text-[#071313]" inline />
           ) : (
             "Post to the wall"
           )}

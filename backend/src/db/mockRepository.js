@@ -5,12 +5,14 @@ const {
   LAST_WEEK_START,
   RACE_CATEGORIES,
   SITE_SECTIONS,
+  DEFAULT_SOCIAL_LINKS,
 } = require("../constants");
 const {
   ConflictError,
   NotFoundError,
   ValidationError,
 } = require("../errors");
+const { DEFAULT_EVENT_BUDGET, calculateFinancialTotals } = require("../services/defaultBudget");
 
 function defaultSiteSettings() {
   const sections = {};
@@ -26,6 +28,41 @@ function defaultSiteSettings() {
     registration_tentative_date: "Upcoming Monday at 10:00 AM",
     partner_applications_open: true,
     vendor_applications_open: true,
+    early_bird_limit: EARLY_BIRD_LIMIT,
+    race_categories: {
+      "60 Km Road Challenge": {
+        capacity: 100,
+        min_age: 18,
+        max_age: null,
+        early_bird: 89_900,
+        regular: 109_900,
+        last_week: 129_900,
+      },
+      "30 Km MTB Challenge": {
+        capacity: 150,
+        min_age: 16,
+        max_age: null,
+        early_bird: 79_900,
+        regular: 99_900,
+        last_week: 119_900,
+      },
+      "10 Km Green Ride": {
+        capacity: 200,
+        min_age: 10,
+        max_age: null,
+        early_bird: 39_900,
+        regular: 49_900,
+        last_week: 59_900,
+      },
+      "Kid-o-thon": {
+        capacity: 50,
+        min_age: 10,
+        max_age: 13,
+        early_bird: 29_900,
+        regular: 29_900,
+        last_week: 29_900,
+      },
+    },
     hero_images: [],
     feature_section: {
       enabled: false,
@@ -44,6 +81,8 @@ function defaultSiteSettings() {
       note: "Included with every registered category.",
     },
     sections,
+    social_links: { ...DEFAULT_SOCIAL_LINKS },
+    event_budget: { ...DEFAULT_EVENT_BUDGET },
     updated_at: null,
   };
 }
@@ -60,16 +99,30 @@ function mergeSiteSettings(current, patch) {
     "partner_applications_open",
     "vendor_applications_open",
     "hero_images",
+    "early_bird_limit",
   ];
   for (const key of allowedKeys) {
     if (patch[key] !== undefined) {
       next[key] = patch[key];
     }
   }
+  if (patch.race_categories && typeof patch.race_categories === "object") {
+    const base = current.race_categories || defaultSiteSettings().race_categories;
+    const merged = { ...base };
+    for (const [key, value] of Object.entries(patch.race_categories)) {
+      if (value && typeof value === "object") {
+        merged[key] = {
+          ...(merged[key] || {}),
+          ...value,
+        };
+      }
+    }
+    next.race_categories = merged;
+  }
   if (patch.feature_section && typeof patch.feature_section === "object") {
     next.feature_section = { ...current.feature_section, ...patch.feature_section };
   }
-  for (const key of ["prize_pool", "participant_kit"]) {
+  for (const key of ["prize_pool", "participant_kit", "event_budget"]) {
     if (patch[key] && typeof patch[key] === "object") {
       next[key] = { ...(current[key] || defaultSiteSettings()[key]), ...patch[key] };
     }
@@ -82,6 +135,12 @@ function mergeSiteSettings(current, patch) {
       }
     }
     next.sections = nextSections;
+  }
+  if (patch.social_links && typeof patch.social_links === "object") {
+    next.social_links = {
+      ...(current.social_links || defaultSiteSettings().social_links),
+      ...patch.social_links,
+    };
   }
   next.updated_at = new Date().toISOString();
   return next;
@@ -119,6 +178,9 @@ class MockRepository {
       partner_payments: [],
       vendor_applications: [],
       gallery_items: [],
+      ai_feedbacks: [],
+      ai_conversations: [],
+      ai_messages: [],
     };
     this.ids = {
       products: 1,
@@ -335,8 +397,9 @@ class MockRepository {
       }));
   }
 
-  calculateRegistrationFee(rideCategory, eventDate = "2026-11-22") {
-    const category = RACE_CATEGORIES[rideCategory];
+  calculateRegistrationFee(rideCategory, eventDate = "2026-11-22", customCategories = null, customEarlyBirdLimit = null) {
+    const categories = customCategories || this.siteSettings?.race_categories || RACE_CATEGORIES;
+    const category = categories[rideCategory] || RACE_CATEGORIES[rideCategory];
     const categoryCount = this.tables.cyclothon_registrations.filter(
       (item) => item.ride_category === rideCategory && item.status !== "cancelled"
     ).length;
@@ -354,10 +417,14 @@ class MockRepository {
       return category.last_week;
     }
 
+    const earlyBirdThreshold = typeof customEarlyBirdLimit === "number"
+      ? customEarlyBirdLimit
+      : (typeof this.siteSettings?.early_bird_limit === "number" ? this.siteSettings.early_bird_limit : EARLY_BIRD_LIMIT);
+
     const activeRegistrations = this.tables.cyclothon_registrations.filter(
       (item) => item.status !== "cancelled" && item.payment_status === "paid"
     ).length;
-    return activeRegistrations < EARLY_BIRD_LIMIT
+    return activeRegistrations < earlyBirdThreshold
       ? category.early_bird
       : category.regular;
   }
@@ -366,7 +433,7 @@ class MockRepository {
     return crypto.randomBytes(18).toString("base64url");
   }
 
-  async createCyclothonRegistration(payload, options) {
+  async createCyclothonRegistration(payload, options = {}) {
     // Remove any stale unpaid pending registration for this email so the user can retry
     this.tables.cyclothon_registrations = this.tables.cyclothon_registrations.filter(
       (item) =>
@@ -384,7 +451,9 @@ class MockRepository {
 
     const registrationFee = this.calculateRegistrationFee(
       payload.ride_category,
-      options.eventDate
+      options.eventDate,
+      options.raceCategories,
+      options.earlyBirdLimit
     );
     const isPaidRegistration = options.paymentEnabled;
     const registration = {
@@ -1762,6 +1831,218 @@ class MockRepository {
     }
     const deleted = found.map((item) => Number(item.id));
     return { deleted, skipped: requested.filter((id) => !deleted.includes(id)), mediaKeys };
+  }
+
+  async getFinanceSummary() {
+    const settings = this.tables.site_settings || defaultSiteSettings();
+    const budget = settings.event_budget || DEFAULT_EVENT_BUDGET;
+    return calculateFinancialTotals(this.tables.cyclothon_registrations, budget);
+  }
+
+  async updateEventBudget(payload, expectedUpdatedAt = null) {
+    if (!this.tables.site_settings) {
+      this.tables.site_settings = defaultSiteSettings();
+    }
+    const currentBudget = this.tables.site_settings.event_budget || DEFAULT_EVENT_BUDGET;
+    if (expectedUpdatedAt && currentBudget.updated_at && expectedUpdatedAt !== currentBudget.updated_at) {
+      throw new ConflictError("This budget was updated by another administrator. Reload before saving.");
+    }
+    const updatedBudget = {
+      ...currentBudget,
+      ...payload,
+      updated_at: this.now().toISOString(),
+    };
+    this.tables.site_settings.event_budget = updatedBudget;
+    return this.getFinanceSummary();
+  }
+
+  async recordAiFeedback(data) {
+    if (!this.tables.ai_feedbacks) {
+      this.tables.ai_feedbacks = [];
+    }
+    const id = `fb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const nowIso = this.now().toISOString();
+    const item = {
+      id,
+      rating: data.rating,
+      reason: data.reason || null,
+      comments: data.comments || null,
+      message_id: data.message_id || null,
+      conversation_id: data.conversation_id || null,
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+    const existingIndex = this.tables.ai_feedbacks.findIndex(
+      (f) => f.message_id && f.message_id === item.message_id && f.conversation_id === item.conversation_id
+    );
+    if (existingIndex >= 0) {
+      this.tables.ai_feedbacks[existingIndex] = {
+        ...this.tables.ai_feedbacks[existingIndex],
+        rating: item.rating,
+        reason: item.reason,
+        comments: item.comments,
+        updated_at: nowIso,
+      };
+      return this.tables.ai_feedbacks[existingIndex];
+    }
+    this.tables.ai_feedbacks.push(item);
+    return item;
+  }
+
+  async listAiConversations(ownerId = "admin", { retentionDays = 4 } = {}) {
+    if (!this.tables.ai_conversations) this.tables.ai_conversations = [];
+    if (!this.tables.ai_messages) this.tables.ai_messages = [];
+
+    const cutoff = new Date(this.now().getTime() - retentionDays * 24 * 60 * 60 * 1000);
+
+    return this.tables.ai_conversations
+      .filter((c) => c.owner_id === ownerId && !c.archived && new Date(c.last_activity_at) >= cutoff)
+      .sort((a, b) => new Date(b.last_activity_at) - new Date(a.last_activity_at))
+      .map((c) => {
+        const msgs = this.tables.ai_messages.filter((m) => m.conversation_id === c.id);
+        const lastMsg = msgs[msgs.length - 1];
+        return {
+          id: c.id,
+          title: c.title,
+          created_at: c.created_at,
+          updated_at: c.updated_at,
+          last_activity_at: c.last_activity_at,
+          message_count: msgs.length,
+          last_message_preview: lastMsg ? lastMsg.content.slice(0, 80) : "",
+        };
+      });
+  }
+
+  async getAiConversation(id, ownerId = "admin") {
+    if (!this.tables.ai_conversations) this.tables.ai_conversations = [];
+    if (!this.tables.ai_messages) this.tables.ai_messages = [];
+    if (!this.tables.ai_feedbacks) this.tables.ai_feedbacks = [];
+
+    const conv = this.tables.ai_conversations.find((c) => c.id === id && c.owner_id === ownerId && !c.archived);
+    if (!conv) return null;
+
+    const messages = this.tables.ai_messages
+      .filter((m) => m.conversation_id === id)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .map((m) => {
+        const feedback = this.tables.ai_feedbacks.find((f) => f.message_id === m.id);
+        return {
+          ...m,
+          feedback: feedback || null,
+        };
+      });
+
+    return {
+      ...conv,
+      messages,
+    };
+  }
+
+  async createAiConversation({ id, ownerId = "admin", title = "New Operations Thread" }) {
+    if (!this.tables.ai_conversations) this.tables.ai_conversations = [];
+    const convId = id || `conv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const nowIso = this.now().toISOString();
+    const conv = {
+      id: convId,
+      owner_id: ownerId,
+      title: title || "New Operations Thread",
+      created_at: nowIso,
+      updated_at: nowIso,
+      last_activity_at: nowIso,
+      archived: false,
+    };
+    this.tables.ai_conversations.push(conv);
+    return conv;
+  }
+
+  async saveAiMessage({ id, conversationId, role, content, status = "completed", errorMessage = null, ragCitations = [] }) {
+    if (!this.tables.ai_conversations) this.tables.ai_conversations = [];
+    if (!this.tables.ai_messages) this.tables.ai_messages = [];
+
+    const msgId = id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const nowIso = this.now().toISOString();
+
+    const msg = {
+      id: msgId,
+      conversation_id: conversationId,
+      role,
+      content,
+      status,
+      error_message: errorMessage || null,
+      rag_citations: ragCitations || [],
+      created_at: nowIso,
+    };
+    this.tables.ai_messages.push(msg);
+
+    const conv = this.tables.ai_conversations.find((c) => c.id === conversationId);
+    if (conv) {
+      conv.last_activity_at = nowIso;
+      conv.updated_at = nowIso;
+      if (role === "user" && (!conv.title || conv.title === "New Operations Thread")) {
+        conv.title = content.slice(0, 50).trim() || "Operations Inquiry";
+      }
+    }
+
+    return msg;
+  }
+
+  async clearAiConversation(id, ownerId = "admin") {
+    if (!this.tables.ai_conversations) return false;
+    const conv = this.tables.ai_conversations.find((c) => c.id === id && c.owner_id === ownerId);
+    if (!conv) return false;
+
+    if (this.tables.ai_messages) {
+      this.tables.ai_messages = this.tables.ai_messages.filter((m) => m.conversation_id !== id);
+    }
+    if (this.tables.ai_feedbacks) {
+      this.tables.ai_feedbacks = this.tables.ai_feedbacks.filter((f) => f.conversation_id !== id);
+    }
+    conv.last_activity_at = this.now().toISOString();
+    conv.updated_at = this.now().toISOString();
+    return true;
+  }
+
+  async deleteAiConversation(id, ownerId = "admin") {
+    if (!this.tables.ai_conversations) return false;
+    const initialLen = this.tables.ai_conversations.length;
+    this.tables.ai_conversations = this.tables.ai_conversations.filter(
+      (c) => !(c.id === id && c.owner_id === ownerId)
+    );
+    if (this.tables.ai_conversations.length === initialLen) return false;
+
+    if (this.tables.ai_messages) {
+      this.tables.ai_messages = this.tables.ai_messages.filter((m) => m.conversation_id !== id);
+    }
+    if (this.tables.ai_feedbacks) {
+      this.tables.ai_feedbacks = this.tables.ai_feedbacks.filter((f) => f.conversation_id !== id);
+    }
+    return true;
+  }
+
+  async updateAiMessageStatus(messageId, status, errorMessage = null, partialContent = null) {
+    if (!this.tables.ai_messages) return null;
+    const msg = this.tables.ai_messages.find((m) => m.id === messageId);
+    if (!msg) return null;
+    msg.status = status;
+    if (errorMessage) msg.error_message = errorMessage;
+    if (partialContent) msg.content = partialContent;
+    return msg;
+  }
+
+  async cleanupExpiredAiConversations(retentionDays = 4) {
+    if (!this.tables.ai_conversations) return 0;
+    const cutoff = new Date(this.now().getTime() - retentionDays * 24 * 60 * 60 * 1000);
+    const expired = this.tables.ai_conversations.filter((c) => new Date(c.last_activity_at) < cutoff);
+    const expiredIds = new Set(expired.map((c) => c.id));
+
+    this.tables.ai_conversations = this.tables.ai_conversations.filter((c) => !expiredIds.has(c.id));
+    if (this.tables.ai_messages) {
+      this.tables.ai_messages = this.tables.ai_messages.filter((m) => !expiredIds.has(m.conversation_id));
+    }
+    if (this.tables.ai_feedbacks) {
+      this.tables.ai_feedbacks = this.tables.ai_feedbacks.filter((f) => !expiredIds.has(f.conversation_id));
+    }
+    return expiredIds.size;
   }
 }
 

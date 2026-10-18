@@ -9,27 +9,27 @@ export function ParticipantQrModal({ rider, onClose }) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl text-[#071313]"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl border border-slate-200 text-slate-900"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-black/10">
-          <span className="text-xs font-mono font-bold text-black/50">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+          <span className="text-xs font-mono font-semibold text-slate-500">
             #{rider.id} CHECK-IN PASS
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="text-black/40 hover:text-black"
+            className="text-slate-400 hover:text-slate-700 transition"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="my-6 flex justify-center">
-          <div className="p-4 rounded-2xl border-2 border-[#071313] bg-white shadow-inner">
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 shadow-xs">
             <QRCodeSVG
               value={`nvcyclothon-checkin:${rider.checkin_token || rider.id}`}
               size={190}
@@ -38,13 +38,16 @@ export function ParticipantQrModal({ rider, onClose }) {
           </div>
         </div>
 
-        <h3 className="text-base font-black">{rider.full_name}</h3>
-        <p className="text-xs text-black/60 font-semibold">{rider.ride_category}</p>
-        <p className="mt-1 text-[11px] font-mono text-black/40">
+        <h3 className="text-base font-bold text-slate-900">{rider.full_name}</h3>
+        <p className="text-xs text-slate-500 font-medium">{rider.ride_category}</p>
+        <p className="mt-1 text-[11px] font-mono text-slate-400">
           Token: {(rider.checkin_token || `ID-${rider.id}`).slice(0, 16)}…
         </p>
 
-        <Button onClick={onClose} className="mt-6 w-full" variant="default">
+        <Button
+          onClick={onClose}
+          className="mt-6 w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl"
+        >
           Close Pass
         </Button>
       </div>

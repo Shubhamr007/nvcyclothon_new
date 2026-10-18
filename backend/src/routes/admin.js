@@ -8,6 +8,7 @@ const { parse: parseCsv } = require("csv-parse/sync");
 const ExcelJS = require("exceljs");
 const pdfParse = require("pdf-parse");
 const { generateParticipationCertificate, generateRiderPassPdf, generateVolunteerCertificatePdf, riderId } = require("../services/eventDocuments");
+const { generateFinanceAuditWorkbook } = require("../services/financeExcelExport");
 const {
   ValidationError,
   NotFoundError,
@@ -31,6 +32,7 @@ const {
   communityModerationSchema,
   volunteerAccountCreateSchema,
   volunteerAccountUpdateSchema,
+  financeBudgetSchema,
   normalizeOfferInput,
   normalizeChiefGuestInput,
   normalizeGalleryItemInput,
@@ -391,6 +393,33 @@ function createAdminRouter({ config, repository, emailService }) {
   });
   router.get("/visitor-analytics", async (_req, res) => {
     res.json(await repository.getVisitorAnalytics());
+  });
+
+  router.get("/finance/summary", async (_req, res) => {
+    const summary = await repository.getFinanceSummary();
+    res.json(summary);
+  });
+
+  router.put("/finance/budget", async (req, res) => {
+    const payload = parseSchema(financeBudgetSchema, req.body || {});
+    const { expected_updated_at: expectedUpdatedAt, ...budget } = payload;
+    const updated = await repository.updateEventBudget(budget, expectedUpdatedAt || null);
+    res.json(updated);
+  });
+
+  router.get("/finance/export-excel", async (_req, res) => {
+    const summary = await repository.getFinanceSummary();
+    const workbook = await generateFinanceAuditWorkbook(summary);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="NV_Cyclothon_2026_CA_Audit_Report.xlsx"'
+    );
+    await workbook.xlsx.write(res);
+    res.end();
   });
 
   router.post("/profile-images", async (req, res) => {

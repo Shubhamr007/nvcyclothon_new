@@ -32,7 +32,7 @@ export default function InternalApp() {
   return (
     <>
       <InternalSeo />
-      <main id="main-content">
+      <div id="main-content" className="h-screen h-[100dvh] w-full overflow-hidden flex flex-col">
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/" element={<Navigate to="/admin" replace />} />
@@ -40,7 +40,7 @@ export default function InternalApp() {
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </Suspense>
-      </main>
+      </div>
     </>
   );
 }

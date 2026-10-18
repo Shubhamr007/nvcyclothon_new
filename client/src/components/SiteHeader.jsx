@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { EVENT } from "../features/cyclothon/constants";
+import { SocialLinks } from "./SocialLinks";
 import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
 
 const NAV_ITEMS = [
@@ -246,6 +247,12 @@ export function SiteHeader({ theme, onToggleTheme }) {
                   <div className="flex items-center justify-between px-2 text-[11px] font-bold text-white/60">
                     <span>22 Nov 2026 • Rewa, MP</span>
                     <span className="text-[#d9ff38]">3rd Edition</span>
+                  </div>
+                  <div className="pt-2 flex items-center justify-between border-t border-white/10 px-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white/50">
+                      Follow us
+                    </span>
+                    <SocialLinks variant="compact" />
                   </div>
                 </div>
               </div>

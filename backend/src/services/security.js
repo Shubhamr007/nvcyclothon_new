@@ -70,11 +70,28 @@ function issueAdminToken(config) {
   });
 }
 
+function issueAdminRefreshToken(config) {
+  return issueScopedToken({
+    scope: "admin_refresh",
+    expiresInSeconds: config.adminRefreshSessionTtlSeconds,
+    secret: config.adminRefreshTokenSecret,
+    claims: { subject: "admin" },
+  });
+}
+
 function verifyAdminToken(token, config) {
   return verifyScopedToken(token, {
     expectedScope: "admin",
     secret: config.adminTokenSecret,
     errorMessage: "Invalid or expired admin session",
+  });
+}
+
+function verifyAdminRefreshToken(token, config) {
+  return verifyScopedToken(token, {
+    expectedScope: "admin_refresh",
+    secret: config.adminRefreshTokenSecret,
+    errorMessage: "Invalid or expired admin refresh session",
   });
 }
 
@@ -145,7 +162,9 @@ function requireVolunteer(config, repository) {
 module.exports = {
   safeCompare,
   issueAdminToken,
+  issueAdminRefreshToken,
   verifyAdminToken,
+  verifyAdminRefreshToken,
   issueVolunteerToken,
   verifyVolunteerToken,
   requireAdmin,

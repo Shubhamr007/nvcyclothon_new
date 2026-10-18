@@ -9,8 +9,39 @@ const internalEntryPlugin = {
   name: 'internal-entry',
   configureServer(server) {
     server.middlewares.use((request, _response, next) => {
-      if (request.url === '/' || request.url === '/index.html') {
-        request.url = '/internal.html';
+      if (request.url) {
+        const [rawPath, query = ''] = request.url.split('?');
+        const search = query ? `?${query}` : '';
+        const isInternalHtml = rawPath === '/internal.html';
+        const isStaticAsset = rawPath.includes('.') && !rawPath.endsWith('.html');
+        const isDevOrApi =
+          rawPath.startsWith('/@') ||
+          rawPath.startsWith('/src/') ||
+          rawPath.startsWith('/node_modules/') ||
+          rawPath.startsWith('/api') ||
+          rawPath.startsWith('/upload');
+
+        if (!isStaticAsset && !isDevOrApi && !isInternalHtml) {
+          request.url = `/internal.html${search}`;
+        }
+      }
+      next();
+    });
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((request, _response, next) => {
+      if (request.url) {
+        const [rawPath, query = ''] = request.url.split('?');
+        const search = query ? `?${query}` : '';
+        const isInternalHtml = rawPath === '/internal.html';
+        const isStaticAsset = rawPath.includes('.') && !rawPath.endsWith('.html');
+        const isApiOrUpload =
+          rawPath.startsWith('/api') ||
+          rawPath.startsWith('/upload');
+
+        if (!isStaticAsset && !isApiOrUpload && !isInternalHtml) {
+          request.url = `/internal.html${search}`;
+        }
       }
       next();
     });

@@ -1,4 +1,4 @@
-import { forwardRef, useState, useCallback, useEffect } from "react";
+import { forwardRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import Confetti from "react-confetti";
@@ -9,7 +9,7 @@ import { LoadingIndicator } from "../../../components/LoadingIndicator";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { EVENT, RIDE_OPTIONS } from "../constants";
-import { useSiteSettings } from "../../../state/SiteSettingsContext";
+import { useSiteSettings, getMergedRideOptions } from "../../../state/SiteSettingsContext";
 import { PolicyModal } from "../../../components/PolicyModal";
 import { ErrorAlert } from "../../../components/ErrorAlert";
 import { normalizeError } from "../../../utils/errorHandler";
@@ -66,8 +66,12 @@ export function RegistrationForm({ initialRoute }) {
   const [pendingRegistration, setPendingRegistration] = useState(null);
   const [policyModal, setPolicyModal] = useState({ isOpen: false, tab: "refund" });
   const selectedRoute = watch("ride_category");
+  const rideOptions = useMemo(
+    () => getMergedRideOptions(settings?.race_categories),
+    [settings?.race_categories]
+  );
   const selectedRide =
-    RIDE_OPTIONS.find((route) => route.distance === selectedRoute) || RIDE_OPTIONS[0];
+    rideOptions.find((route) => route.distance === selectedRoute) || rideOptions[0];
   const requiresSafetyEquipment = ["60 Km Road Challenge", "30 Km MTB Challenge"].includes(selectedRoute);
   const orgType = watch("organization_type");
 
@@ -351,14 +355,17 @@ export function RegistrationForm({ initialRoute }) {
           {...register("age", {
             required: "Enter your age",
             valueAsNumber: true,
-            min: { value: 10, message: "You must be at least 10 years old" },
+            min: {
+              value: selectedRide?.minAge ? Math.min(selectedRide.minAge, 10) : 5,
+              message: "Enter a valid participant age",
+            },
             max: { value: 100, message: "Enter an age of 100 or below" },
             validate: (value) => {
-              if (selectedRide.minAge && value < selectedRide.minAge) {
+              if (selectedRide?.minAge && value < selectedRide.minAge) {
                 return `${selectedRide.title} is open to riders aged ${selectedRide.minAge} and above`;
               }
-              if (selectedRide.maxAge && value > selectedRide.maxAge) {
-                return `${selectedRide.title} is for riders aged ${selectedRide.minAge}–${selectedRide.maxAge}`;
+              if (selectedRide?.maxAge && value > selectedRide.maxAge) {
+                return `${selectedRide.title} is for riders aged ${selectedRide.minAge || 10}–${selectedRide.maxAge}`;
               }
               return true;
             },
@@ -473,7 +480,7 @@ export function RegistrationForm({ initialRoute }) {
           Choose your race category
         </legend>
         <div className="grid grid-cols-1 gap-2.5 min-[360px]:grid-cols-2 lg:grid-cols-3">
-          {RIDE_OPTIONS.map((route) => {
+          {rideOptions.map((route) => {
             const isSelected = selectedRoute === route.distance;
             const ageRequirement = route.maxAge
               ? `Ages ${route.minAge}–${route.maxAge}`
@@ -555,7 +562,7 @@ export function RegistrationForm({ initialRoute }) {
             Kid-o-thon: closed and monitored area
           </p>
           <p className="mt-2 text-sm font-bold leading-5">
-            Kid-o-thon is for riders aged 10–13 and takes place in a closed, monitored riding area. A parent or legal guardian must accompany each child.
+            Kid-o-thon is for riders aged {selectedRide?.minAge || 10}–{selectedRide?.maxAge || 13} and takes place in a closed, monitored riding area. A parent or legal guardian must accompany each child.
           </p>
         </aside>
       )}
@@ -656,7 +663,7 @@ export function RegistrationForm({ initialRoute }) {
         className="mt-6 w-full disabled:cursor-wait sm:mt-7"
       >
         {status.state === "loading" ? (
-          <LoadingIndicator label="OPENING PAYMENT…" className="text-white" />
+          <LoadingIndicator label="OPENING PAYMENT…" className="text-white" inline />
         ) : (
           "CONTINUE TO SECURE PAYMENT →"
         )}

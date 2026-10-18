@@ -1,80 +1,135 @@
-import React from "react";
-import { LogOut, ShieldCheck, Menu, X, Zap } from "lucide-react";
+import React, { useState } from "react";
+import {
+  LogOut,
+  Menu,
+  X,
+  ChevronRight,
+  ShieldCheck,
+  Bot,
+} from "lucide-react";
 import nvCyclothonLogo from "../../../../assets/NV_Cyclothon_logo.png";
-import { Badge } from "../../../components/ui/badge";
-import { Button } from "../../../components/ui/button";
 
 export function AdminHeader({
   onSignOut,
   mobileMenuOpen,
   onToggleMobileMenu,
   activeTabLabel = "Overview",
+  onOpenAiCoPilot,
 }) {
+  const [personaOpen, setPersonaOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#071313] text-white backdrop-blur-md shadow-md">
-      <div className="mx-auto flex h-16 w-full max-w-[1520px] items-center justify-between px-4 sm:px-8">
-        {/* Brand & Mobile Menu Button */}
-        <div className="flex items-center gap-3 sm:gap-4">
+    <header className="shrink-0 z-30 w-full border-b border-slate-200 bg-white/95 backdrop-blur-xs text-slate-900 shadow-xs">
+      {/* Microsoft-inspired product accent */}
+      <div className="h-1 bg-gradient-to-r from-[#0078d4] via-[#2b88d8] to-[#50e6ff] w-full" />
+      <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6">
+        {/* LEFT: Mobile Menu Button + Logo + Breadcrumbs */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           <button
             type="button"
             onClick={onToggleMobileMenu}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10 lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-800 transition hover:bg-slate-100 lg:hidden shrink-0"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? (
-              <X className="h-5 w-5 text-[#d9ff38]" />
+              <X className="h-4 w-4 text-slate-950" />
             ) : (
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4 w-4" />
             )}
           </button>
 
-          <div className="flex items-center gap-3">
-            <img
-              src={nvCyclothonLogo}
-              alt="NV Cyclothon"
-              className="h-9 w-auto rounded-md object-contain bg-white/10 p-1 border border-white/10"
-            />
-            <div className="hidden sm:block">
-              <div className="flex items-center gap-2">
-                <span className="font-display text-sm font-black tracking-wider uppercase text-white">
-                  NV CYCLOTHON <span className="text-[#d9ff38]">2026</span>
-                </span>
-                <span className="text-white/30 text-xs">•</span>
-                <span className="text-[11px] font-bold tracking-widest uppercase text-white/60">
-                  OPERATIONS CONSOLE
-                </span>
-              </div>
-              <p className="text-xs text-white/40 font-mono">Rewa, MP • Secure Control Room</p>
+          {/* NV Cyclothon Logo */}
+          <a
+            href="#/admin"
+            className="shrink-0 focus:outline-none focus:ring-2 focus:ring-[#0078d4] rounded-md p-0.5"
+            title="NV Cyclothon Operations Portal"
+          >
+            <div className="flex h-10 w-14 items-center justify-center overflow-hidden rounded-md border border-[#005a9e] bg-[#001b44] p-0.5 shadow-sm">
+              <img
+                src={nvCyclothonLogo}
+                alt="NV Cyclothon"
+                className="h-full w-full object-contain"
+              />
             </div>
+          </a>
+
+          {/* Breadcrumb Separator */}
+          <div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200">
+            <span className="text-xs text-slate-700 font-bold">Console</span>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
+            <span className="inline-flex items-center rounded-sm bg-[#deecf9] border border-[#c7e0f4] px-2.5 py-0.5 text-xs font-semibold text-[#005a9e]">
+              {activeTabLabel}
+            </span>
           </div>
         </div>
 
-        {/* Center / Current Section Title on Mobile */}
-        <div className="block sm:hidden">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#d9ff38]">
+        {/* CENTER: Mobile Section Title or Live Badge */}
+        <div className="block md:hidden truncate px-2">
+          <span className="text-xs font-extrabold text-slate-950 uppercase tracking-wide">
             {activeTabLabel}
           </span>
         </div>
 
-        {/* Right Status Badge & Actions */}
-        <div className="flex items-center gap-3">
-          <Badge
-            variant="accent"
-            className="hidden md:inline-flex items-center gap-1.5 border-[#d9ff38]/40 bg-[#d9ff38]/10 px-3 py-1 text-[11px] font-bold tracking-wider text-[#d9ff38]"
+        {/* RIGHT: Live Status + Logged-in User Profile + Sign Out */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* AI Co-Pilot Header Trigger */}
+          <button
+            type="button"
+            onClick={onOpenAiCoPilot}
+            className="grid h-9 w-9 place-items-center rounded-full border border-[#c7e0f4] bg-[#deecf9] text-[#004578] shadow-xs transition-colors hover:bg-[#c7e0f4] focus:outline-none focus:ring-2 focus:ring-[#0078d4] focus:ring-offset-2"
+            title="Open AI Operations Co-Pilot (⌘K)"
+            aria-label="Open AI Operations Co-Pilot"
           >
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>AUTHENTICATED OPERATOR</span>
-          </Badge>
+            <span className="relative grid h-5 w-5 grid-cols-2 gap-px rounded-sm bg-white p-0.5 shadow-xs" aria-hidden="true">
+              <span className="bg-[#f25022]" />
+              <span className="bg-[#7fba00]" />
+              <span className="bg-[#00a4ef]" />
+              <span className="bg-[#ffb900]" />
+              <Bot className="absolute inset-0 m-auto h-3 w-3 text-[#005a9e]" />
+            </span>
+          </button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSignOut}
-            className="border-white/20 bg-white/5 text-xs font-bold text-white hover:border-red-400 hover:bg-red-500/10 hover:text-red-400"
-          >
-            <LogOut className="h-3.5 w-3.5 mr-1" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </Button>
+          {/* Live System Indicator */}
+          <div className="hidden lg:flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 font-mono text-xs font-bold text-emerald-800 shadow-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
+            </span>
+            <span>Live Operations</span>
+          </div>
+
+          {/* Persona menu keeps account controls available without crowding the header. */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setPersonaOpen((open) => !open)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0078d4] text-xs font-semibold text-white shadow-xs ring-2 ring-[#deecf9] transition hover:bg-[#005a9e] focus:outline-none focus:ring-2 focus:ring-[#0078d4] focus:ring-offset-2"
+              aria-label="Open administrator account menu"
+              aria-expanded={personaOpen}
+              aria-haspopup="menu"
+            >
+              AD
+            </button>
+            {personaOpen && (
+              <div className="absolute right-0 top-11 z-50 w-64 rounded-md border border-slate-200 bg-white p-2 shadow-xl" role="menu">
+                <div className="border-b border-slate-100 px-3 py-2.5">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    Admin Operator <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">Super Admin • Rewa</p>
+                  <p className="mt-2 text-[11px] font-medium text-[#005a9e]">Secure access-token session</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setPersonaOpen(false); onSignOut(); }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm font-medium text-rose-700 transition hover:bg-rose-50"
+                  role="menuitem"
+                >
+                  <LogOut className="h-4 w-4" /> Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

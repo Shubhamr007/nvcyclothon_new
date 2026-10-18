@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FaArrowLeft, FaArrowRight, FaCheck, FaXmark } from "react-icons/fa6";
 import { RIDE_OPTIONS } from "../constants";
+import { useSiteSettings, getMergedRideOptions } from "../../../state/SiteSettingsContext";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { A11y, Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -10,6 +11,18 @@ import "swiper/css/navigation";
 
 export function RideCards() {
   const [selectedRide, setSelectedRide] = useState(null);
+  const { settings } = useSiteSettings();
+  const rideOptions = useMemo(
+    () => getMergedRideOptions(settings?.race_categories),
+    [settings?.race_categories]
+  );
+  const earlyBirdLimit = settings?.early_bird_limit ?? 50;
+
+  const activeSelectedRide = useMemo(() => {
+    if (!selectedRide) return null;
+    return rideOptions.find((r) => r.distance === selectedRide.distance) || selectedRide;
+  }, [selectedRide, rideOptions]);
+
   return (
     <section id="routes" className="bg-[#071313] px-4 py-20 sm:px-6 sm:py-28 lg:px-8 text-white overflow-hidden">
       <div className="mx-auto max-w-[1400px]">
@@ -20,7 +33,7 @@ export function RideCards() {
               Five ways<br />to fly.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-white/85">
-              The first 50 registrations across all categories receive the early-bird rate. Each category has a limited number of places.
+              The first {earlyBirdLimit} registrations across all categories receive the early-bird rate. Each category has a limited number of places.
             </p>
           </div>
           <div className="flex items-center gap-3 self-start sm:self-end">
@@ -61,7 +74,7 @@ export function RideCards() {
           }}
           className="ride-swiper mt-10 sm:mt-14 w-full !pb-14"
         >
-          {RIDE_OPTIONS.map((route, index) => (
+          {rideOptions.map((route, index) => (
             <SwiperSlide key={route.distance} className="!h-auto w-full">
               <article
                 className={`route-card route-${route.color} group relative flex min-h-[24rem] sm:min-h-[26rem] h-full w-full flex-col overflow-hidden rounded-2xl p-6 sm:p-7 md:p-8 text-[#071313] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl`}
@@ -97,7 +110,7 @@ export function RideCards() {
           ))}
         </Swiper>
       </div>
-      <RideDetailDialog ride={selectedRide} onClose={() => setSelectedRide(null)} />
+      <RideDetailDialog ride={activeSelectedRide} onClose={() => setSelectedRide(null)} />
     </section>
   );
 }

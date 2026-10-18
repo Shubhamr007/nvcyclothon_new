@@ -13,6 +13,8 @@ const {
 const {
   safeCompare,
   issueAdminToken,
+  issueAdminRefreshToken,
+  verifyAdminRefreshToken,
   requireAdmin,
 } = require("./services/security");
 const {
@@ -25,6 +27,7 @@ const { createCyclothonRouter } = require("./routes/cyclothon");
 const { createCheckinRouter } = require("./routes/checkin");
 const { createUploadsRouter } = require("./routes/uploads");
 const { createAdminRouter } = require("./routes/admin");
+const { createAiRouter } = require("./routes/ai");
 const { createContentRouter } = require("./routes/content");
 const { createCommunityRouter } = require("./routes/community");
 const { createPartnersRouter } = require("./routes/partners");
@@ -201,6 +204,22 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
 
       res.json({
         access_token: issueAdminToken(config),
+        refresh_token: issueAdminRefreshToken(config),
+        token_type: "bearer",
+        expires_in: config.adminSessionTtlSeconds,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/admin/session/refresh", async (req, res, next) => {
+    try {
+      const refreshToken = String(req.body?.refresh_token || "").trim();
+      verifyAdminRefreshToken(refreshToken, config);
+      res.json({
+        access_token: issueAdminToken(config),
+        refresh_token: issueAdminRefreshToken(config),
         token_type: "bearer",
         expires_in: config.adminSessionTtlSeconds,
       });
@@ -292,6 +311,15 @@ function createApp({ config, repository, emailService, cashfreeService, logger =
       config,
       repository,
       emailService,
+    })
+  );
+
+  app.use(
+    "/api/admin/ai",
+    requireAdmin(config),
+    createAiRouter({
+      config,
+      repository,
     })
   );
 

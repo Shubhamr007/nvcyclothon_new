@@ -427,6 +427,76 @@ describe("NV Cyclothon Node backend", () => {
     expect(invalid.statusCode).toBe(400);
   });
 
+  it("allows admin to configure race category age limits, registration fees, and early-bird count with immediate enforcement", async () => {
+    const login = await request(runtime.app)
+      .post("/api/admin/session")
+      .send({ admin_key: "test-admin-key-for-ci" });
+    const adminToken = login.body.access_token;
+
+    const patchRes = await request(runtime.app)
+      .patch("/api/admin/settings")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        early_bird_limit: 75,
+        race_categories: {
+          "60 Km Road Challenge": {
+            min_age: 21,
+            early_bird: 95_000,
+          },
+          "Kid-o-thon": {
+            min_age: 8,
+            max_age: 14,
+            regular: 35_000,
+          },
+        },
+      });
+    expect(patchRes.statusCode).toBe(200);
+    expect(patchRes.body.early_bird_limit).toBe(75);
+    expect(patchRes.body.race_categories["60 Km Road Challenge"].min_age).toBe(21);
+    expect(patchRes.body.race_categories["60 Km Road Challenge"].early_bird).toBe(95_000);
+    expect(patchRes.body.race_categories["Kid-o-thon"].min_age).toBe(8);
+
+    const publicSettings = await request(runtime.app).get("/api/content/settings");
+    expect(publicSettings.statusCode).toBe(200);
+    expect(publicSettings.body.early_bird_limit).toBe(75);
+    expect(publicSettings.body.race_categories["60 Km Road Challenge"].min_age).toBe(21);
+
+    runtime.resetRateLimits();
+    const underageRes = await request(runtime.app)
+      .post("/api/cyclothon/registrations")
+      .send({
+        full_name: "Rider Under Twenty One",
+        email: "under21@example.com",
+        phone: "+919876543210",
+        age: 19,
+        city: "Rewa",
+        gender: "Female",
+        ride_category: "60 Km Road Challenge",
+        waiver_accepted: true,
+        privacy_accepted: true,
+        t_shirt_size: "M",
+      });
+    expect(underageRes.statusCode).toBe(400);
+    expect(underageRes.body.detail || underageRes.body.error).toContain("minimum age");
+
+    runtime.resetRateLimits();
+    const validRes = await request(runtime.app)
+      .post("/api/cyclothon/registrations")
+      .send({
+        full_name: "Rider Over Twenty One",
+        email: "over21@example.com",
+        phone: "+919876543210",
+        age: 23,
+        city: "Rewa",
+        gender: "Male",
+        ride_category: "60 Km Road Challenge",
+        waiver_accepted: true,
+        privacy_accepted: true,
+        t_shirt_size: "L",
+      });
+    expect(validRes.statusCode).toBe(201);
+  });
+
   it("enforces registration closure on the server", async () => {
     const login = await request(runtime.app)
       .post("/api/admin/session")

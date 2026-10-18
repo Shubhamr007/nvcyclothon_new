@@ -235,6 +235,40 @@ h1, h2, h3 { font-family: "Sora", Arial, sans-serif; }
   -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 .admin-shell { background: #edf1f0; }
+
+/* Microsoft Fluent-inspired admin foundation. Scoped so the public event site retains its own identity. */
+.admin-workspace {
+  --ms-blue: #0078d4;
+  --ms-blue-dark: #005a9e;
+  --ms-blue-light: #deecf9;
+  --ms-border: #d1d1d1;
+  --ms-surface: #ffffff;
+  --ms-canvas: #f5f5f5;
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  background: var(--ms-canvas);
+}
+.admin-workspace h1,
+.admin-workspace h2,
+.admin-workspace h3,
+.admin-workspace h4,
+.admin-workspace button,
+.admin-workspace input,
+.admin-workspace select,
+.admin-workspace textarea {
+  font-family: inherit;
+}
+.admin-workspace .font-display { font-family: inherit; }
+.admin-workspace .font-mono { font-family: "Cascadia Mono", Consolas, "Courier New", monospace; }
+.admin-workspace :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ms-blue);
+  outline-offset: 2px;
+}
+.admin-workspace ::selection { background: var(--ms-blue); color: #fff; }
+.admin-workspace main { background: var(--ms-canvas); }
+.admin-workspace .bg-slate-900 { background-color: #005a9e; }
+.admin-workspace .hover\:bg-slate-800:hover { background-color: #004578; }
+.admin-workspace .focus\:border-slate-900:focus { border-color: var(--ms-blue); }
+.admin-workspace .focus\:ring-slate-900\/10:focus { --tw-ring-color: rgb(0 120 212 / .2); }
 .admin-topbar {
   background: linear-gradient(100deg, #071313 0%, #0d2929 62%, #133535 100%);
   box-shadow: 0 8px 24px rgba(7, 19, 19, .18);
@@ -735,4 +769,3 @@ body[data-theme="light"] .ride-swiper .swiper-pagination-bullet-active {
 .gallery-stream-container:hover .gallery-stream-r2l {
   animation-play-state: paused;
 }
-

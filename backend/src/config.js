@@ -135,6 +135,10 @@ function loadConfig(env = process.env) {
       env.ADMIN_TOKEN_SECRET ||
       (environment === "production" ? "" : env.ADMIN_API_KEY || "development-admin-token-secret"),
     adminSessionTtlSeconds: parseIntWithDefault(env.ADMIN_SESSION_TTL_SECONDS, 900),
+    adminRefreshTokenSecret:
+      env.ADMIN_REFRESH_TOKEN_SECRET ||
+      (env.ADMIN_TOKEN_SECRET ? `${env.ADMIN_TOKEN_SECRET}-refresh` : (environment === "production" ? "" : `${env.ADMIN_API_KEY || "development-admin-token-secret"}-refresh`)),
+    adminRefreshSessionTtlSeconds: parseIntWithDefault(env.ADMIN_REFRESH_SESSION_TTL_SECONDS, 7 * 24 * 60 * 60),
     volunteerCheckinEnabled: parseBool(env.VOLUNTEER_CHECKIN_ENABLED, true),
     registrationOpen:
       env.REGISTRATION_OPEN !== undefined
@@ -175,6 +179,8 @@ function loadConfig(env = process.env) {
     smtpPassword: String(env.SMTP_PASSWORD || "").replace(/\s+/g, ""),
     smtpFromEmail: env.SMTP_FROM_EMAIL || "",
     smtpUseTls: parseBool(env.SMTP_USE_TLS, true),
+    smtpSecure: env.SMTP_SECURE !== undefined ? parseBool(env.SMTP_SECURE) : undefined,
+    resendApiKey: String(env.RESEND_API_KEY || "").trim(),
     emailBannerImagePath: resolveAssetPath(env.EMAIL_BANNER_IMAGE_PATH, [
       "assets/email-banner.png",
       "assets/email_banner_image.png",
@@ -196,6 +202,9 @@ function loadConfig(env = process.env) {
     publicApiUrl: String(env.PUBLIC_API_URL || "https://api.nvcyclothon.com").replace(/\/$/, ""),
     publicSiteUrl: String(env.PUBLIC_SITE_URL || "https://nvcyclothon.com").replace(/\/$/, ""),
     communityModeratorEmails: parseCsv(env.COMMUNITY_MODERATOR_EMAILS || "", ""),
+    ollamaEnabled: parseBool(env.OLLAMA_ENABLED, true),
+    ollamaUrl: String(env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/$/, ""),
+    ollamaModel: String(env.OLLAMA_MODEL || "llama3.2:latest").trim(),
   };
 
   fs.mkdirSync(config.uploadDir, { recursive: true });
@@ -209,6 +218,9 @@ function loadConfig(env = process.env) {
     }
     if (isPlaceholderSecret(config.adminTokenSecret)) {
       throw new Error("ADMIN_TOKEN_SECRET must not use a default placeholder secret in production");
+    }
+    if (!config.adminRefreshTokenSecret || config.adminRefreshTokenSecret.length < 32 || isPlaceholderSecret(config.adminRefreshTokenSecret)) {
+      throw new Error("ADMIN_REFRESH_TOKEN_SECRET must be a non-placeholder 32+ character secret in production");
     }
     if (config.adminBootstrapPassword && isPlaceholderSecret(config.adminBootstrapPassword)) {
       throw new Error("ADMIN_BOOTSTRAP_PASSWORD/ADMIN_API_KEY must not use a default placeholder secret in production");
@@ -245,9 +257,9 @@ function loadConfig(env = process.env) {
         );
       }
     }
-    if (config.emailEnabled && (!config.smtpHost || !config.smtpFromEmail)) {
+    if (config.emailEnabled && (!config.smtpHost || !config.smtpFromEmail) && !config.resendApiKey) {
       console.warn(
-        "[Config Fallback] SMTP_HOST or SMTP_FROM_EMAIL is missing. Gracefully disabling EMAIL_ENABLED so the server stays online."
+        "[Config Fallback] SMTP_HOST/SMTP_FROM_EMAIL or RESEND_API_KEY is missing. Gracefully disabling EMAIL_ENABLED so the server stays online."
       );
       config.emailEnabled = false;
     }

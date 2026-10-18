@@ -14,6 +14,7 @@ const {
   ApiError,
 } = require("../errors");
 const { defaultSiteSettings, mergeSiteSettings } = require("./mockRepository");
+const { DEFAULT_EVENT_BUDGET, calculateFinancialTotals } = require("../services/defaultBudget");
 
 class PostgresRepository {
   constructor(config) {
@@ -708,6 +709,53 @@ class PostgresRepository {
       )`
     );
 
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS ai_conversations (
+        id VARCHAR(64) PRIMARY KEY,
+        owner_id VARCHAR(64) NOT NULL DEFAULT 'admin',
+        title VARCHAR(200) NOT NULL,
+        last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        archived BOOLEAN NOT NULL DEFAULT FALSE
+      )`
+    );
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS ai_messages (
+        id VARCHAR(64) PRIMARY KEY,
+        conversation_id VARCHAR(64) NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
+        role VARCHAR(32) NOT NULL,
+        content TEXT NOT NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'completed',
+        error_message TEXT,
+        rag_citations JSONB DEFAULT '[]',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`
+    );
+
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS ai_conversations_owner_activity_idx
+        ON ai_conversations (owner_id, last_activity_at DESC)`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS ai_messages_conversation_idx
+        ON ai_messages (conversation_id, created_at ASC)`
+    );
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS ai_feedbacks (
+        id VARCHAR(64) PRIMARY KEY,
+        rating VARCHAR(16) NOT NULL,
+        reason VARCHAR(100),
+        comments TEXT,
+        message_id VARCHAR(64),
+        conversation_id VARCHAR(64),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`
+    );
+
     await this.backfillMissingCheckinTokens();
   }
 
@@ -1007,8 +1055,10 @@ class PostgresRepository {
     return Array.from(grouped.values());
   }
 
-  calculateFeeChoice(now, rideCategory, activeCategoryCount, activeRegistrationCount, eventDate = "2026-11-22") {
-    const category = RACE_CATEGORIES[rideCategory];
+  calculateFeeChoice(now, rideCategory, activeCategoryCount, activeRegistrationCount, eventDate = "2026-11-22", customCategories = null, customEarlyBirdLimit = null) {
+    const categories = customCategories || RACE_CATEGORIES;
+    const earlyBirdThreshold = typeof customEarlyBirdLimit === "number" ? customEarlyBirdLimit : EARLY_BIRD_LIMIT;
+    const category = categories[rideCategory] || RACE_CATEGORIES[rideCategory];
     if (activeCategoryCount >= category.capacity) {
       throw new ConflictError(`${rideCategory} is full`);
     }
@@ -1020,7 +1070,7 @@ class PostgresRepository {
     if (now >= lastWeekStart) {
       return category.last_week;
     }
-    return activeRegistrationCount < EARLY_BIRD_LIMIT
+    return activeRegistrationCount < earlyBirdThreshold
       ? category.early_bird
       : category.regular;
   }
@@ -1075,7 +1125,9 @@ class PostgresRepository {
         payload.ride_category,
         categoryCount,
         activeCount,
-        options.eventDate
+        options.eventDate,
+        options.raceCategories,
+        options.earlyBirdLimit
       );
       const checkinToken = this.generateCheckinToken();
       const initialStatus = options.paymentEnabled ? "pending" : "approved";
@@ -2359,6 +2411,18 @@ class PostgresRepository {
         }
       }
     }
+    if (!data.social_links || typeof data.social_links !== "object") {
+      data.social_links = defaultSiteSettings().social_links;
+      dirty = true;
+    }
+    if (data.early_bird_limit === undefined) {
+      data.early_bird_limit = defaultSiteSettings().early_bird_limit;
+      dirty = true;
+    }
+    if (!data.race_categories || typeof data.race_categories !== "object") {
+      data.race_categories = defaultSiteSettings().race_categories;
+      dirty = true;
+    }
     if (dirty) {
       await this.pool.query(
         "UPDATE site_settings SET data = $1, updated_at = NOW() WHERE id = 1",
@@ -2970,6 +3034,173 @@ class PostgresRepository {
       [ttlMinutes]
     );
     return result.rows;
+  }
+
+  async getFinanceSummary() {
+    const [settings, regResult] = await Promise.all([
+      this.getSiteSettings(),
+      this.pool.query(
+        `SELECT ride_category, payment_status, registration_fee_paise FROM cyclothon_registrations`
+      ),
+    ]);
+    const budget = settings.event_budget || DEFAULT_EVENT_BUDGET;
+    return calculateFinancialTotals(regResult.rows, budget);
+  }
+
+  async updateEventBudget(payload, expectedUpdatedAt = null) {
+    const settings = await this.getSiteSettings();
+    const currentBudget = settings.event_budget || DEFAULT_EVENT_BUDGET;
+    if (expectedUpdatedAt && currentBudget.updated_at && expectedUpdatedAt !== currentBudget.updated_at) {
+      throw new ConflictError("This budget was updated by another administrator. Reload before saving.");
+    }
+    const updatedBudget = {
+      ...currentBudget,
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+    await this.updateSiteSettings({ event_budget: updatedBudget });
+    return this.getFinanceSummary();
+  }
+
+  async recordAiFeedback(data) {
+    const id = `fb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const result = await this.pool.query(
+      `INSERT INTO ai_feedbacks (id, rating, reason, comments, message_id, conversation_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       RETURNING id, rating, reason, comments, message_id, conversation_id, created_at, updated_at`,
+      [id, data.rating, data.reason || null, data.comments || null, data.message_id || null, data.conversation_id || null]
+    );
+    return result.rows[0];
+  }
+
+  async listAiConversations(ownerId = "admin", { retentionDays = 4 } = {}) {
+    const result = await this.pool.query(
+      `SELECT c.id, c.title, c.last_activity_at, c.created_at, c.updated_at,
+              (SELECT m.content FROM ai_messages m WHERE m.conversation_id = c.id ORDER BY m.created_at DESC LIMIT 1) AS last_message_preview,
+              (SELECT COUNT(*)::int FROM ai_messages m WHERE m.conversation_id = c.id) AS message_count
+       FROM ai_conversations c
+       WHERE c.owner_id = $1
+         AND c.archived = FALSE
+         AND c.last_activity_at >= NOW() - ($2 || ' days')::INTERVAL
+       ORDER BY c.last_activity_at DESC`,
+      [ownerId, retentionDays]
+    );
+    return result.rows.map((row) => ({
+      ...row,
+      last_message_preview: row.last_message_preview ? row.last_message_preview.slice(0, 80) : "",
+    }));
+  }
+
+  async getAiConversation(id, ownerId = "admin") {
+    const convResult = await this.pool.query(
+      `SELECT id, owner_id, title, last_activity_at, created_at, updated_at
+       FROM ai_conversations
+       WHERE id = $1 AND owner_id = $2 AND archived = FALSE`,
+      [id, ownerId]
+    );
+    if (convResult.rowCount === 0) return null;
+
+    const messagesResult = await this.pool.query(
+      `SELECT m.id, m.conversation_id, m.role, m.content, m.status, m.error_message, m.rag_citations, m.created_at,
+              (SELECT json_build_object('id', f.id, 'rating', f.rating, 'reason', f.reason, 'comments', f.comments)
+               FROM ai_feedbacks f WHERE f.message_id = m.id LIMIT 1) AS feedback
+       FROM ai_messages m
+       WHERE m.conversation_id = $1
+       ORDER BY m.created_at ASC`,
+      [id]
+    );
+
+    return {
+      ...convResult.rows[0],
+      messages: messagesResult.rows,
+    };
+  }
+
+  async createAiConversation({ id, ownerId = "admin", title = "New Operations Thread" }) {
+    const convId = id || `conv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const result = await this.pool.query(
+      `INSERT INTO ai_conversations (id, owner_id, title, last_activity_at, created_at, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW(), NOW())
+       RETURNING id, owner_id, title, last_activity_at, created_at, updated_at`,
+      [convId, ownerId, title || "New Operations Thread"]
+    );
+    return result.rows[0];
+  }
+
+  async saveAiMessage({ id, conversationId, role, content, status = "completed", errorMessage = null, ragCitations = [] }) {
+    const msgId = id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const result = await this.pool.query(
+      `INSERT INTO ai_messages (id, conversation_id, role, content, status, error_message, rag_citations, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, NOW())
+       RETURNING id, conversation_id, role, content, status, error_message, rag_citations, created_at`,
+      [msgId, conversationId, role, content, status, errorMessage || null, JSON.stringify(ragCitations || [])]
+    );
+
+    if (role === "user") {
+      const generatedTitle = content.slice(0, 50).trim() || "Operations Inquiry";
+      await this.pool.query(
+        `UPDATE ai_conversations
+         SET last_activity_at = NOW(),
+             updated_at = NOW(),
+             title = CASE WHEN title = 'New Operations Thread' THEN $2 ELSE title END
+         WHERE id = $1`,
+        [conversationId, generatedTitle]
+      );
+    } else {
+      await this.pool.query(
+        `UPDATE ai_conversations SET last_activity_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [conversationId]
+      );
+    }
+
+    return result.rows[0];
+  }
+
+  async clearAiConversation(id, ownerId = "admin") {
+    const check = await this.pool.query(
+      `SELECT id FROM ai_conversations WHERE id = $1 AND owner_id = $2`,
+      [id, ownerId]
+    );
+    if (check.rowCount === 0) return false;
+
+    await this.pool.query(`DELETE FROM ai_messages WHERE conversation_id = $1`, [id]);
+    await this.pool.query(`DELETE FROM ai_feedbacks WHERE conversation_id = $1`, [id]);
+    await this.pool.query(
+      `UPDATE ai_conversations SET last_activity_at = NOW(), updated_at = NOW() WHERE id = $1`,
+      [id]
+    );
+    return true;
+  }
+
+  async deleteAiConversation(id, ownerId = "admin") {
+    const result = await this.pool.query(
+      `DELETE FROM ai_conversations WHERE id = $1 AND owner_id = $2 RETURNING id`,
+      [id, ownerId]
+    );
+    return result.rowCount > 0;
+  }
+
+  async updateAiMessageStatus(messageId, status, errorMessage = null, partialContent = null) {
+    const result = await this.pool.query(
+      `UPDATE ai_messages
+       SET status = $2,
+           error_message = COALESCE($3, error_message),
+           content = COALESCE($4, content)
+       WHERE id = $1
+       RETURNING *`,
+      [messageId, status, errorMessage, partialContent]
+    );
+    return result.rows[0] || null;
+  }
+
+  async cleanupExpiredAiConversations(retentionDays = 4) {
+    const result = await this.pool.query(
+      `DELETE FROM ai_conversations
+       WHERE last_activity_at < NOW() - ($1 || ' days')::INTERVAL
+       RETURNING id`,
+      [retentionDays]
+    );
+    return result.rowCount;
   }
 }
 

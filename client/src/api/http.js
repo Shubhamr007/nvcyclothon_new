@@ -92,6 +92,14 @@ export async function createAdminSession(adminKey) {
   });
 }
 
+export async function refreshAdminSession(refreshToken) {
+  return request("/admin/session/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+}
+
 export async function createCheckinSession(volunteerPin, volunteerName) {
   return request("/checkin/session", {
     method: "POST",
@@ -477,3 +485,125 @@ export async function getAdminVendorDocument(accessToken, id) {
   }
   return response.blob();
 }
+
+let aiStatusInFlightPromise = null;
+let aiStatusCache = null;
+let aiStatusCacheTimestamp = 0;
+
+export function getAdminAiStatus(accessToken) {
+  const now = Date.now();
+  if (aiStatusCache && now - aiStatusCacheTimestamp < 30000) {
+    return Promise.resolve(aiStatusCache);
+  }
+  if (aiStatusInFlightPromise) {
+    return aiStatusInFlightPromise;
+  }
+  aiStatusInFlightPromise = adminRequest('/ai/status', accessToken)
+    .then((data) => {
+      aiStatusCache = data;
+      aiStatusCacheTimestamp = Date.now();
+      return data;
+    })
+    .finally(() => {
+      aiStatusInFlightPromise = null;
+    });
+  return aiStatusInFlightPromise;
+}
+
+export function adminAiModeratePost(accessToken, payload) {
+  return adminRequest('/ai/moderate-post', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminAiDraftEmail(accessToken, payload) {
+  return adminRequest('/ai/draft-email', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminAiAnalyticsSummary(accessToken) {
+  return adminRequest('/ai/analytics-summary', accessToken, {
+    method: 'POST',
+  });
+}
+
+export function sendAdminEventUpdateEmail(accessToken, payload) {
+  return adminRequest('/event-updates/email', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminAiCoPilot(accessToken, payload, options = {}) {
+  return adminRequest('/ai/copilot', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    timeoutMs: options.timeoutMs || 60000,
+    signal: options.signal,
+  });
+}
+
+export function adminAiFeedback(accessToken, payload) {
+  return adminRequest('/ai/feedback', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getAdminRagStatus(accessToken) {
+  return adminRequest('/ai/rag/status', accessToken);
+}
+
+export function searchAdminRagKnowledge(accessToken, payload) {
+  return adminRequest('/ai/rag/search', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listAdminAiConversations(accessToken) {
+  return adminRequest('/ai/conversations', accessToken);
+}
+
+export function getAdminAiConversation(accessToken, id) {
+  return adminRequest(`/ai/conversations/${encodeURIComponent(id)}`, accessToken);
+}
+
+export function createAdminAiConversation(accessToken, payload = {}) {
+  return adminRequest('/ai/conversations', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAdminAiConversation(accessToken, id) {
+  return adminRequest(`/ai/conversations/${encodeURIComponent(id)}`, accessToken, {
+    method: 'DELETE',
+  });
+}
+
+export function clearAdminAiConversation(accessToken, id) {
+  return adminRequest(`/ai/conversations/${encodeURIComponent(id)}/clear`, accessToken, {
+    method: 'POST',
+  });
+}
+
+export function cancelAdminAiMessage(accessToken, id, payload = {}) {
+  return adminRequest(`/ai/conversations/${encodeURIComponent(id)}/cancel`, accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+

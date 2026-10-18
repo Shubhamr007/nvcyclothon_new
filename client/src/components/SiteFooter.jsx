@@ -3,6 +3,7 @@ import { EVENT } from "../features/cyclothon/constants";
 import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
 import associationLogo from "../../assets/Rewa_District_Cycyling_Association.jpeg";
 import { PolicyModal } from "./PolicyModal";
+import { SocialLinks } from "./SocialLinks";
 
 export function SiteFooter() {
   const [modalState, setModalState] = useState({ isOpen: false, tab: "refund" });
@@ -17,10 +18,24 @@ export function SiteFooter() {
 
   return (
     <>
-      <footer className="border-t border-white/10 bg-[#071313] px-5 py-10 text-white/60 overflow-hidden">
-        <div className="mx-auto flex max-w-[1400px] flex-col gap-6 text-xs md:flex-row md:items-center md:justify-between">
-          {/* Logo & Identity */}
-          <div className="flex items-center gap-3">
+      <footer className="border-t border-white/10 bg-[#071313] px-5 py-12 text-white/60 overflow-hidden">
+        <div className="mx-auto max-w-[1400px] space-y-8">
+          {/* Social Media Channels Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[.25em] text-[#d9ff38]">
+                Follow the ride
+              </p>
+              <p className="text-sm font-bold text-white mt-0.5">
+                Stay connected with Vindhya's premier cycling movement
+              </p>
+            </div>
+            <SocialLinks variant="pills" showLabels={true} />
+          </div>
+
+          <div className="flex flex-col gap-6 text-xs md:flex-row md:items-center md:justify-between">
+            {/* Logo & Identity */}
+            <div className="flex items-center gap-3">
             <img src={nvCyclothonLogo} alt="NV Cyclothon" className="h-10 w-16 rounded object-cover" />
             <div className="flex flex-col">
               <span className="font-bold text-white tracking-wide">NV CYCLOTHON · 2026</span>
@@ -80,6 +95,7 @@ export function SiteFooter() {
             />
             <span className="text-right">In association with {EVENT.association}</span>
           </div>
+        </div>
         </div>
         <div className="mx-auto mt-6 max-w-[1400px] border-t border-white/5 pt-4 text-center text-[10px] text-white/40">
           © 2026 NV Cyclothon. All rights reserved. Registration fees are strictly non-refundable and non-transferable under all circumstances.

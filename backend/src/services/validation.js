@@ -199,7 +199,7 @@ const registrationCreateSchema = z
         },
         { message: "Enter a valid mobile number" }
       ),
-    age: z.number().int().min(10).max(100),
+    age: z.number().int().min(5).max(100),
     city: z.string().trim().min(2).max(100),
     gender: z.enum(["Female", "Male", "Non-binary", "Prefer not to say"]),
     ride_category: z.enum(Object.keys(RACE_CATEGORIES)),
@@ -210,26 +210,6 @@ const registrationCreateSchema = z
     waiver_accepted: z.boolean(),
     privacy_accepted: z.boolean(),
   })
-  .refine(
-    (data) => {
-      const category = RACE_CATEGORIES[data.ride_category];
-      return !category.min_age || data.age >= category.min_age;
-    },
-    {
-      message: "You do not meet the minimum age requirement for this ride category",
-      path: ["age"],
-    }
-  )
-  .refine(
-    (data) => {
-      const category = RACE_CATEGORIES[data.ride_category];
-      return !category.max_age || data.age <= category.max_age;
-    },
-    {
-      message: "You exceed the maximum age requirement for this ride category",
-      path: ["age"],
-    }
-  )
   .refine(
     (data) => {
       return (
@@ -243,6 +223,21 @@ const registrationCreateSchema = z
       path: ["organization_name"],
     }
   );
+
+function validateCategoryAge(data, categories = RACE_CATEGORIES) {
+  const category = (categories && categories[data.ride_category]) || RACE_CATEGORIES[data.ride_category];
+  if (!category) return;
+  if (category.min_age !== null && category.min_age !== undefined && data.age < category.min_age) {
+    throw new ValidationError(
+      `You do not meet the minimum age requirement (${category.min_age} years) for this ride category`
+    );
+  }
+  if (category.max_age !== null && category.max_age !== undefined && data.age > category.max_age) {
+    throw new ValidationError(
+      `You exceed the maximum age requirement (${category.max_age} years) for this ride category`
+    );
+  }
+}
 
 const paymentVerifySchema = z.object({
   order_id: z.string().trim().min(3).max(100),
@@ -327,6 +322,36 @@ const adminLoginSchema = z.object({
   admin_key: z.string().trim().min(1).max(512),
 });
 
+const financeRevenueItemSchema = z.object({ id: z.string().trim().min(1).max(80), name: z.string().trim().min(1).max(240), amount: z.coerce.number().finite().min(0).max(100_000_000), confirmed: z.boolean().default(false), category: z.string().trim().max(80).optional() });
+const financeExpenseItemSchema = z.object({ id: z.string().trim().min(1).max(80), label: z.string().trim().min(1).max(300), amount: z.coerce.number().finite().min(0).max(100_000_000), unitCost: z.coerce.number().finite().min(0).max(100_000).optional(), isVariable: z.boolean().optional(), variablePerRider: z.coerce.number().finite().min(0).max(100_000).optional() });
+const financeBudgetSchema = z.object({
+  sponsorships: z.array(financeRevenueItemSchema).max(100), vendors: z.array(financeRevenueItemSchema).max(100), delegations: z.array(financeRevenueItemSchema).max(100),
+  expense_categories: z.array(z.object({ id: z.string().trim().min(1).max(80), title: z.string().trim().min(1).max(160), icon: z.string().trim().max(64).optional(), color: z.string().trim().max(32).optional(), items: z.array(financeExpenseItemSchema).max(200) })).max(50),
+  expected_updated_at: z.union([z.string().datetime(), z.string().max(80), z.literal(""), z.null()]).optional(),
+});
+
+const aiFeedbackSchema = z.object({
+  rating: z.enum(["positive", "negative"]),
+  reason: z.string().trim().max(100).nullable().optional(),
+  comments: z.string().trim().max(1000).nullable().optional(),
+  message_id: z.string().trim().max(64).nullable().optional(),
+  conversation_id: z.string().trim().max(64).nullable().optional(),
+});
+
+const aiConversationCreateSchema = z.object({
+  id: z.string().trim().max(64).optional(),
+  title: z.string().trim().max(200).optional(),
+});
+
+const aiMessageCreateSchema = z.object({
+  id: z.string().trim().max(64).optional(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string().trim().min(1).max(50000),
+  status: z.enum(["pending", "streaming", "completed", "cancelled", "failed"]).default("completed"),
+  error_message: z.string().trim().max(1000).nullable().optional(),
+  rag_citations: z.array(z.any()).optional(),
+});
+
 const volunteerSessionSchema = z.object({
   volunteer_pin: z.string().trim().min(4).max(64),
   volunteer_name: z.string().trim().min(2).max(80).default("Volunteer"),
@@ -367,6 +392,17 @@ const siteSectionsPatchSchema = z
   })
   .partial();
 
+const raceCategorySettingSchema = z
+  .object({
+    capacity: z.number().int().min(1).max(100000).optional(),
+    min_age: z.union([z.number().int().min(1).max(100), z.null()]).optional(),
+    max_age: z.union([z.number().int().min(1).max(100), z.null()]).optional(),
+    early_bird: z.number().int().min(0).max(10000000).optional(),
+    regular: z.number().int().min(0).max(10000000).optional(),
+    last_week: z.number().int().min(0).max(10000000).optional(),
+  })
+  .partial();
+
 const siteSettingsPatchSchema = z
   .object({
     event_date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -376,6 +412,8 @@ const siteSettingsPatchSchema = z
     registration_open: z.boolean().optional(),
     partner_applications_open: z.boolean().optional(),
     vendor_applications_open: z.boolean().optional(),
+    early_bird_limit: z.number().int().min(0).max(100000).optional(),
+    race_categories: z.record(z.string(), raceCategorySettingSchema).optional(),
     hero_images: z.array(z.string().max(1000).refine((v) => isLocalOrInternalMediaPath(v) || v.startsWith("https://"))).max(5).optional(),
     feature_section: z.object({
       enabled: z.boolean().optional(),
@@ -405,6 +443,12 @@ const siteSettingsPatchSchema = z
       note: z.string().trim().max(500).optional(),
     }).optional(),
     sections: siteSectionsPatchSchema.optional(),
+    social_links: z.object({
+      instagram: z.string().trim().max(300).optional(),
+      youtube: z.string().trim().max(300).optional(),
+      facebook: z.string().trim().max(300).optional(),
+      linkedin: z.string().trim().max(300).optional(),
+    }).optional(),
   })
   .partial()
   .refine((value) => Object.keys(value).length > 0, {
@@ -728,6 +772,10 @@ module.exports = {
   sponsorshipTierSchema,
   delegationSchema,
   adminLoginSchema,
+  financeBudgetSchema,
+  aiFeedbackSchema,
+  aiConversationCreateSchema,
+  aiMessageCreateSchema,
   volunteerSessionSchema,
   checkinScanSchema,
   checkinManualSchema,
@@ -754,6 +802,7 @@ module.exports = {
   normalizeVendorApplicationInput,
   validateHttpsUrl,
   validateProfileImageUrl,
+  validateCategoryAge,
   VENDOR_CATEGORIES,
   PARTNER_STATUSES,
   VENDOR_STATUSES,

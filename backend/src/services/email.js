@@ -27,28 +27,90 @@ function emailShell({ title, greeting, body, banner }) {
 }
 
 function createEmailService(config, logger = console) {
-  let transporter = null;
+  let primaryTransporter = null;
+  let fallbackTransporter = null;
 
-  function getTransporter() {
-    if (transporter) {
-      return transporter;
-    }
-    transporter = nodemailer.createTransport({
-      host: config.smtpHost,
-      port: config.smtpPort,
-      secure: false,
+  const primaryPort = Number(config.smtpPort || 587);
+  const primarySecure =
+    config.smtpSecure !== undefined
+      ? config.smtpSecure
+      : primaryPort === 465;
+
+  // If primary port is 587, fallback is 465 (SSL). If primary is 465, fallback is 587 (TLS).
+  const fallbackPort = primaryPort === 465 ? 587 : 465;
+  const fallbackSecure = fallbackPort === 465;
+
+  function buildTransporter(port, secure) {
+    return nodemailer.createTransport({
+      host: config.smtpHost || "smtp.gmail.com",
+      port,
+      secure,
+      // CRITICAL: Force IPv4 (family: 4) to prevent Linux VPS from hanging on unrouted IPv6 addresses
+      family: 4,
       auth: config.smtpUsername
         ? {
             user: config.smtpUsername,
             pass: config.smtpPassword,
           }
         : undefined,
-      requireTLS: config.smtpUseTls,
-      connectionTimeout: 6000,
-      greetingTimeout: 5000,
-      socketTimeout: 8000,
+      requireTLS: !secure && config.smtpUseTls,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+      tls: {
+        servername: config.smtpHost || undefined,
+        minVersion: "TLSv1.2",
+      },
     });
-    return transporter;
+  }
+
+  function getPrimaryTransporter() {
+    if (!primaryTransporter) {
+      primaryTransporter = buildTransporter(primaryPort, primarySecure);
+    }
+    return primaryTransporter;
+  }
+
+  function getFallbackTransporter() {
+    if (!fallbackTransporter) {
+      fallbackTransporter = buildTransporter(fallbackPort, fallbackSecure);
+    }
+    return fallbackTransporter;
+  }
+
+  async function sendViaResend({ recipient, subject, text, html, attachments = [] }) {
+    if (!config.resendApiKey) return false;
+    try {
+      const formattedAttachments = attachments.map((att) => ({
+        filename: att.filename,
+        content: Buffer.isBuffer(att.content) ? att.content.toString("base64") : att.content,
+      }));
+      const payload = {
+        from: config.smtpFromEmail || "NV Cyclothon <onboarding@resend.dev>",
+        to: [recipient],
+        subject,
+        html,
+        text,
+        ...(formattedAttachments.length ? { attachments: formattedAttachments } : {}),
+      };
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw new Error(`Resend HTTP API error (${res.status}): ${errBody}`);
+      }
+      logger.info(`Transactional email successfully delivered via Resend API to ${recipient}`);
+      return true;
+    } catch (err) {
+      logger.warn(`Resend API delivery failed (${err.message}). Falling back to SMTP...`);
+      return false;
+    }
   }
 
   let cachedBanner = null;
@@ -76,8 +138,15 @@ function createEmailService(config, logger = console) {
       logger.info(`Email disabled; skipped transactional message type=${subject}`);
       return false;
     }
+
+    // 1. Try Resend HTTP API if configured (bypasses any cloud provider SMTP port blocks)
+    if (config.resendApiKey) {
+      const sentViaResend = await sendViaResend({ recipient, subject, text, html, attachments });
+      if (sentViaResend) return true;
+    }
+
     const message = {
-      from: config.smtpFromEmail,
+      from: config.smtpFromEmail || config.smtpUsername,
       to: recipient,
       subject,
       text,
@@ -85,16 +154,54 @@ function createEmailService(config, logger = console) {
       attachments: attachments.length ? attachments : undefined,
     };
 
+    // 2. Try primary SMTP transport
     try {
-      await getTransporter().sendMail(message);
+      await getPrimaryTransporter().sendMail(message);
       return true;
-    } catch (error) {
+    } catch (primaryError) {
+      const isConnectionIssue =
+        primaryError.code === "ETIMEDOUT" ||
+        primaryError.code === "ECONNREFUSED" ||
+        primaryError.code === "ESOCKET" ||
+        primaryError.code === "ENOTFOUND" ||
+        primaryError.command === "CONN";
+
+      // 3. Self-healing dual-port fallback (e.g. if port 587 is blocked by VPS provider firewall, try port 465)
+      if (isConnectionIssue && config.smtpHost) {
+        logger.warn(
+          `Primary SMTP port ${primaryPort} connection failed (${primaryError.code || primaryError.message}). Attempting automatic fallback to port ${fallbackPort}...`
+        );
+        try {
+          await getFallbackTransporter().sendMail(message);
+          logger.info(`Transactional email successfully delivered via fallback port ${fallbackPort}`);
+          return true;
+        } catch (fallbackError) {
+          logger.error("Transactional email delivery failed on both primary and fallback SMTP ports", {
+            primaryPort,
+            primaryError: {
+              code: primaryError.code,
+              command: primaryError.command,
+              message: primaryError.message,
+            },
+            fallbackPort,
+            fallbackError: {
+              code: fallbackError.code,
+              command: fallbackError.command,
+              message: fallbackError.message,
+            },
+            recipient,
+            subject,
+          });
+          return false;
+        }
+      }
+
       logger.error("Transactional email delivery failed", {
-        code: error.code,
-        command: error.command,
-        message: error.message,
+        code: primaryError.code,
+        command: primaryError.command,
+        message: primaryError.message,
         recipient,
-        responseCode: error.responseCode,
+        responseCode: primaryError.responseCode,
         subject,
       });
       return false;

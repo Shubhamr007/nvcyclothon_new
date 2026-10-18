@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Zap, Flame, Gauge, Flag, Trophy, Activity, Wind } from "lucide-react";
+import nvCyclothonLogo from "../../assets/NV_Cyclothon_logo.png";
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 
@@ -107,8 +108,12 @@ export function LoadingScreen({
       {/* HEADER BAR */}
       <header className="relative z-10 flex w-full items-center justify-between px-6 pt-7 sm:px-12">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#ff5f3d] to-[#b94d25] p-2 shadow-[0_0_20px_rgba(255,95,61,0.4)]">
-            <Flame className="h-6 w-6 text-white animate-pulse" />
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white p-1.5 shadow-[0_0_20px_rgba(255,95,61,0.35)] ring-1 ring-white/30">
+            <img
+              src={nvCyclothonLogo}
+              alt="NV Cyclothon"
+              className="h-full w-full object-contain"
+            />
           </div>
           <div>
             <span className="block font-black text-sm tracking-wider uppercase text-white sm:text-base font-display">
@@ -140,6 +145,19 @@ export function LoadingScreen({
 
       {/* CENTER HUD: HERO HEADLINE & TELEMETRY */}
       <section className="relative z-10 my-auto flex flex-col items-center justify-center px-4 text-center">
+        {/* PROMINENT OFFICIAL WEBSITE LOGO */}
+        <div className="mb-5 relative flex items-center justify-center">
+          <div className="absolute -inset-4 rounded-full bg-gradient-to-tr from-[#ff5f3d]/30 to-[#d9ff38]/30 blur-xl animate-pulse" />
+          <div className="absolute -inset-3 rounded-full border-2 border-dashed border-[#ff5f3d]/40 animate-[spin_10s_linear_infinite]" />
+          <div className="relative flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-white p-2.5 shadow-2xl ring-2 ring-white/30">
+            <img
+              src={nvCyclothonLogo}
+              alt="NV Cyclothon"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        </div>
+
         {/* ENERGETIC MINI BADGE */}
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#ff5f3d]/30 bg-[#ff5f3d]/10 px-4 py-1 text-xs font-black tracking-widest uppercase text-[#ff5f3d] shadow-[0_0_20px_rgba(255,95,61,0.25)]">
           <Zap className="h-3.5 w-3.5 fill-[#ff5f3d]" />

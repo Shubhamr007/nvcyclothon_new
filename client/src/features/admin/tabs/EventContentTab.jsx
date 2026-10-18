@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { resolveApiAssetUrl, uploadAdminProfileImage } from "../../../api/http";
-import { uploadImage, isCloudinaryConfigured } from "../../../services/cloudinary";
-import { Button } from "../../../components/ui/button";
-import { Badge } from "../../../components/ui/badge";
-import { Edit2, Plus, Upload, Sparkles, Award, UsersRound, Tag, Flag } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { toast } from "react-toastify";
+import { Sparkles } from "lucide-react";
 import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
+import { ManagePanelRow } from "../components/ManagePanelRow";
+import { ManagePanelForm } from "../components/ManagePanelForm";
+
+export { ManagePanelRow, ManagePanelForm };
 
 function toEditableForm(fields, item) {
   const next = { ...fields };
@@ -33,10 +34,10 @@ export function ManagePanel({
   const [selectedIds, setSelectedIds] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setForm(fields);
     setEditing(null);
-  };
+  }, [fields]);
 
   const submit = (event) => {
     event.preventDefault();
@@ -51,210 +52,88 @@ export function ManagePanel({
     onSave(normalized, reset, editing);
   };
 
-  const beginEdit = (item) => {
-    setEditing(item.id);
-    setForm(toEditableForm(fields, item));
-  };
+  const beginEdit = useCallback(
+    (item) => {
+      setEditing(item.id);
+      setForm(toEditableForm(fields, item));
+    },
+    [fields]
+  );
+
+  const handleToggleSelect = useCallback((id) => {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    try {
+      await onBulkRemove?.(selectedIds);
+      setSelectedIds([]);
+    } catch (err) {
+      toast.error(err.message || "Failed to delete items.");
+    }
+  }, [selectedIds, onBulkRemove]);
+
+  const handleRemovePhoto = useCallback(() => {
+    setForm((current) => ({ ...current, image_url: "" }));
+  }, []);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-[#071313]/10 bg-white p-5 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <Icon className="h-5 w-5 text-[#ff5f3d]" />
-            <h2 className="text-xl font-black text-[#071313]">{title}</h2>
+            <Icon className="h-5 w-5 text-slate-700" />
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
           </div>
           {description && (
-            <p className="text-xs text-[#071313]/60 mt-0.5">{description}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{description}</p>
           )}
         </div>
-        <Badge variant="accent" className="font-bold uppercase text-[11px] px-3 py-1">
+        <span className="rounded-full bg-slate-100 border border-slate-200/80 px-3 py-1 text-xs font-semibold text-slate-700">
           {items.length} Record{items.length === 1 ? "" : "s"}
-        </Badge>
+        </span>
       </div>
 
       <SelectedDeleteAction
         count={selectedIds.length}
         label={title.toLowerCase()}
-        onDelete={async () => {
-          await onBulkRemove?.(selectedIds);
-          setSelectedIds([]);
-        }}
+        onDelete={handleBulkDelete}
       />
 
       <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
         {/* FORM */}
-        <form
+        <ManagePanelForm
+          title={title}
+          form={form}
+          setForm={setForm}
+          editing={editing}
           onSubmit={submit}
-          className="rounded-2xl border border-[#071313]/10 bg-white p-6 shadow-sm space-y-4"
-        >
-          <div className="flex items-center justify-between border-b border-black/10 pb-3">
-            <h3 className="text-sm font-black uppercase text-[#071313]">
-              {editing ? `Edit ${title}` : `Add New ${title}`}
-            </h3>
-            {editing && (
-              <button
-                type="button"
-                onClick={reset}
-                className="text-xs font-bold text-red-600 hover:underline"
-              >
-                Cancel Edit
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-3 pt-1">
-            {Object.entries(form).map(([name, value]) => (
-              <div key={name}>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-black/60 mb-1">
-                  {name === "image_url" ? "Profile Photograph" : name.replaceAll("_", " ")}
-                </label>
-
-                {typeof value === "boolean" ? (
-                  <label className="flex items-center gap-2 cursor-pointer pt-1">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                      onChange={(e) => setForm({ ...form, [name]: e.target.checked })}
-                      className="h-4 w-4 rounded accent-[#071313]"
-                    />
-                    <span className="text-xs font-bold text-[#071313]">
-                      Enable / Active on website
-                    </span>
-                  </label>
-                ) : name === "notes" ||
-                  name === "bio" ||
-                  name === "description" ||
-                  name === "message" ? (
-                  <textarea
-                    rows={3}
-                    value={value}
-                    onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white p-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-                  />
-                ) : name === "image_url" && adminKey ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer w-fit rounded-lg border border-black/15 bg-[#fbf8ef] px-3 py-1.5 text-xs font-bold text-black/70 hover:bg-black/5">
-                        <Upload className="h-3.5 w-3.5" />
-                        <span>{uploadingPhoto ? "Uploading photo…" : value ? "Replace Photo" : "Upload Photo"}</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="sr-only"
-                          disabled={uploadingPhoto}
-                          onChange={async (event) => {
-                            const input = event.currentTarget;
-                            const file = input.files?.[0];
-                            if (!file) return;
-                            setUploadingPhoto(true);
-                            try {
-                              if (isCloudinaryConfigured().hasCloudinary) {
-                                const result = await uploadImage(file, { folder: "nvcyclothon/profiles" });
-                                setForm((current) => ({ ...current, image_url: result.secureUrl }));
-                              } else {
-                                const result = await uploadAdminProfileImage(adminKey, file);
-                                setForm((current) => ({ ...current, image_url: result.image_url }));
-                              }
-                            } catch (error) {
-                              window.alert(error.message);
-                            } finally {
-                              input.value = "";
-                              setUploadingPhoto(false);
-                            }
-                          }}
-                        />
-                      </label>
-                      {value && (
-                        <button
-                          type="button"
-                          onClick={() => setForm((current) => ({ ...current, image_url: "" }))}
-                          className="text-xs text-red-600 hover:text-red-700 font-bold hover:underline"
-                        >
-                          Remove Photo
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-black/50">
-                      Choose an image from your device. The app uploads it and stores its URL automatically.
-                    </p>
-                    {value && (
-                      <img
-                        src={resolveApiAssetUrl(value)}
-                        alt="Preview"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                        className="h-16 w-16 rounded-xl object-cover border border-black/10 mt-1"
-                      />
-                    )}
-                  </div>
-                ) : name === "category" ? (
-                  <select
-                    value={value || "Event"}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="h-9 w-full rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-                  >
-                    <option value="Organizers">Organizers & Race Directors</option>
-                    <option value="Partners">Official Partners & Sponsors</option>
-                    <option value="Riders">Riders & Peloton Moments</option>
-                    <option value="Highlights">Route & Event Highlights</option>
-                    <option value="Event">General Event Photography</option>
-                  </select>
-                ) : (
-                  <input
-                    required={
-                      !["contact_email", "contact_phone", "code", "image_url", "caption"].includes(name)
-                    }
-                    type={typeof value === "number" ? "number" : "text"}
-                    value={value}
-                    onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                    className="h-9 w-full rounded-xl border border-black/15 bg-white px-3 text-xs text-[#071313] focus:border-[#071313] focus:outline-none"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-2 flex items-center gap-2">
-            <Button type="submit" variant="default" disabled={uploadingPhoto} className="w-full font-bold">
-              {editing ? "Save Changes" : `Create ${title}`}
-            </Button>
-          </div>
-        </form>
+          onCancelEdit={reset}
+          adminKey={adminKey}
+          uploadingPhoto={uploadingPhoto}
+          setUploadingPhoto={setUploadingPhoto}
+          onRemovePhoto={handleRemovePhoto}
+        />
 
         {/* LIST VIEW */}
         <div className="space-y-3">
           {items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#071313]/20 bg-white p-10 text-center text-xs text-black/50">
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-xs text-slate-400">
               No entries recorded in this list yet.
             </div>
           ) : (
             items.map((item) => (
-              <article
+              <ManagePanelRow
                 key={item.id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-[#071313]/10 bg-white p-4 shadow-sm hover:border-[#071313]/25 transition-colors"
-              >
-                <div className="flex items-center gap-3">{render(item)}</div>
-
-                <div className="flex shrink-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(item.id)}
-                    onChange={() => setSelectedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])}
-                    aria-label={`Select ${title} record`}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => beginEdit(item)}
-                    className="h-8 px-2.5 text-xs font-bold"
-                  >
-                    <Edit2 className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                </div>
-              </article>
+                item={item}
+                selected={selectedIds.includes(item.id)}
+                onToggleSelect={handleToggleSelect}
+                onEdit={beginEdit}
+                render={render}
+                title={title}
+              />
             ))
           )}
         </div>
@@ -262,3 +141,5 @@ export function ManagePanel({
     </div>
   );
 }
+
+export default ManagePanel;
