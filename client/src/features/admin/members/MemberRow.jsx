@@ -35,7 +35,7 @@ export const MemberRow = memo(function MemberRow({
     <tr
       onClick={handleToggle}
       className={`cursor-pointer transition-colors ${
-        isSelected ? "bg-slate-100/90 font-medium" : "hover:bg-slate-50/70"
+        isSelected ? "bg-[#deecf9]/40 font-medium" : "hover:bg-slate-50/70"
       }`}
     >
       {/* Row Checkbox */}
@@ -45,7 +45,7 @@ export const MemberRow = memo(function MemberRow({
           aria-label={`Select ${member.name}`}
           checked={isSelected}
           onChange={handleToggle}
-          className="accent-slate-900 rounded cursor-pointer"
+          className="accent-[#0078d4] rounded cursor-pointer"
         />
       </td>
 
@@ -68,7 +68,7 @@ export const MemberRow = memo(function MemberRow({
               />
             ) : null}
             <div
-              className={`h-10 w-10 rounded-xl bg-slate-900 text-white font-bold text-xs place-items-center shadow-xs ${
+              className={`h-10 w-10 rounded-xl bg-[#deecf9] border border-[#c7e0f4] text-[#005a9e] font-bold text-xs place-items-center shadow-xs ${
                 member.image_url ? "hidden" : "grid"
               }`}
             >
@@ -89,14 +89,14 @@ export const MemberRow = memo(function MemberRow({
 
       {/* Role Pill */}
       <td className="p-3.5 whitespace-nowrap">
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#deecf9] border border-[#c7e0f4] px-2.5 py-0.5 text-[11px] font-bold text-[#005a9e]">
           {member.role || "Committee Member"}
         </span>
       </td>
 
       {/* Display Order */}
       <td className="p-3.5 whitespace-nowrap">
-        <span className="inline-flex items-center rounded-lg bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 font-mono text-[11px] font-bold text-slate-700">
+        <span className="inline-flex items-center rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-0.5 font-mono text-[11px] font-bold text-slate-700">
           #{member.display_order ?? 0}
         </span>
       </td>

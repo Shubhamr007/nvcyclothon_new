@@ -19,8 +19,5 @@ QuickPromptsCarousel.propTypes = {
   disabled: PropTypes.bool,
 };
 
-QuickPromptsCarousel.defaultProps = {
-  disabled: false,
-};
-
 export default QuickPromptsCarousel;
+

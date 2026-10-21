@@ -28,19 +28,19 @@ export function CodeBlock({ code, language }) {
   };
 
   return (
-    <div className="my-2.5 rounded-xl border border-slate-700 bg-slate-900 text-slate-100 overflow-hidden shadow-xs">
-      <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/80 px-3 py-1.5 text-[11px] font-mono text-slate-400">
+    <div className="my-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 overflow-hidden shadow-xs">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/90 px-3 py-1.5 text-[11px] font-mono text-slate-600">
         <span>{language || "code"}</span>
         <button
           type="button"
           onClick={handleCopy}
           aria-label="Copy code to clipboard"
-          className="flex items-center gap-1 rounded hover:bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300 transition"
+          className="flex items-center gap-1 rounded hover:bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-600 transition"
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3 text-emerald-400" />
-              <span className="text-emerald-400">Copied</span>
+              <Check className="h-3 w-3 text-emerald-600" />
+              <span className="text-emerald-600 font-semibold">Copied</span>
             </>
           ) : (
             <>
@@ -50,7 +50,7 @@ export function CodeBlock({ code, language }) {
           )}
         </button>
       </div>
-      <pre className="p-3 overflow-x-auto text-[11px] font-mono leading-relaxed text-slate-200">
+      <pre className="p-3 overflow-x-auto text-[11px] font-mono leading-relaxed text-slate-800">
         <code>{code}</code>
       </pre>
     </div>
@@ -81,7 +81,7 @@ export function parseInline(text) {
       tokens.push(
         <code
           key={key}
-          className="rounded-sm bg-slate-100 dark:bg-slate-800 px-1 py-0.5 font-mono text-[11px] text-blue-700 dark:text-blue-300 border border-slate-200 dark:border-slate-700 break-words"
+          className="rounded-sm bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-[#005a9e] border border-slate-200 break-words"
         >
           {token.slice(1, -1)}
         </code>
@@ -91,13 +91,13 @@ export function parseInline(text) {
       (token.startsWith("__") && token.endsWith("__"))
     ) {
       tokens.push(
-        <strong key={key} className="font-bold text-slate-950 dark:text-white">
+        <strong key={key} className="font-bold text-slate-900">
           {parseInline(token.slice(2, -2))}
         </strong>
       );
     } else if (token.startsWith("*") && token.endsWith("*")) {
       tokens.push(
-        <em key={key} className="italic text-slate-800 dark:text-slate-200">
+        <em key={key} className="italic text-slate-800">
           {parseInline(token.slice(1, -1))}
         </em>
       );
@@ -110,7 +110,7 @@ export function parseInline(text) {
             href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 dark:text-blue-400 font-medium underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300 break-all transition-colors"
+            className="text-[#0078d4] font-medium underline underline-offset-2 hover:text-[#005a9e] break-all transition-colors"
           >
             {linkMatch[1]}
           </a>

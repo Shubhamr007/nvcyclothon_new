@@ -7,7 +7,7 @@ const {
   summarizeAnalytics,
 } = require("../services/ollama");
 const { runAdminCoPilot } = require("../services/coPilot");
-const { getRagStatus, searchKnowledgeBase } = require("../services/rag");
+const { getRagStatus, searchKnowledgeBase, refreshKnowledgeBase } = require("../services/rag");
 const { ValidationError, NotFoundError } = require("../errors");
 const {
   aiFeedbackSchema,
@@ -227,6 +227,19 @@ function createAiRouter({ config, repository }) {
 
   router.get("/rag/status", (_req, res) => {
     res.json(getRagStatus());
+  });
+
+  router.post("/rag/refresh", async (_req, res, next) => {
+    try {
+      const status = await refreshKnowledgeBase(config, repository);
+      res.json({
+        success: true,
+        message: "RAG knowledge base successfully refreshed and persisted",
+        status,
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 
   router.post("/rag/search", async (req, res, next) => {

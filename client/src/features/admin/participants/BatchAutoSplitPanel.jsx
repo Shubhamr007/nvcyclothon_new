@@ -22,7 +22,7 @@ export const BatchAutoSplitPanel = memo(function BatchAutoSplitPanel({
             max="1000"
             value={batchSize}
             onChange={(e) => setBatchSize(e.target.value)}
-            className="h-9 w-full rounded-xl border border-slate-300 px-3 text-xs font-semibold text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             required
           />
         </div>
@@ -35,7 +35,7 @@ export const BatchAutoSplitPanel = memo(function BatchAutoSplitPanel({
             value={batchPrefix}
             onChange={(e) => setBatchPrefix(e.target.value)}
             placeholder="Batch, Wave, Corral"
-            className="h-9 w-full rounded-xl border border-slate-300 px-3 text-xs font-semibold text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             required
           />
         </div>
@@ -49,7 +49,7 @@ export const BatchAutoSplitPanel = memo(function BatchAutoSplitPanel({
             max="100"
             value={startNumber}
             onChange={(e) => setStartNumber(e.target.value)}
-            className="h-9 w-full rounded-xl border border-slate-300 px-3 text-xs font-semibold text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             required
           />
         </div>
@@ -67,7 +67,7 @@ export const BatchAutoSplitPanel = memo(function BatchAutoSplitPanel({
               key={idx}
               className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-800"
             >
-              <span className="text-blue-700 font-bold">{b.name}</span>
+              <span className="text-[#0078d4] font-bold">{b.name}</span>
               <span className="text-slate-500 font-mono">({b.count} riders)</span>
             </span>
           ))}

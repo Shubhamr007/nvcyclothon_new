@@ -25,8 +25,8 @@ const StatusFilterButton = React.memo(function StatusFilterButton({
       onClick={handleClick}
       className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
         isSelected
-          ? "bg-slate-200 text-slate-900 font-bold"
-          : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+          ? "bg-[#deecf9] text-[#005a9e] font-bold"
+          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
       }`}
     >
       {status.label}
@@ -60,14 +60,14 @@ export function DelegationToolbar({
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Search by VIP name, organization, ceremony role, notes…"
-            className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 shadow-xs transition"
+            className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4] shadow-xs transition"
           />
           {searchQuery && (
             <button
               type="button"
-              onClick={() => onSearchChange("")}
+              onClick={() => onSearchChange?.("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
             >
               <X className="h-3.5 w-3.5" />
@@ -84,9 +84,9 @@ export function DelegationToolbar({
                   type="button"
                   variant="outline"
                   onClick={onEditSelected}
-                  className="flex items-center gap-1.5 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition h-10"
+                  className="flex items-center gap-1.5 border-slate-300 bg-white text-slate-800 hover:bg-slate-50 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition h-10"
                 >
-                  <Edit2 className="h-3.5 w-3.5 text-blue-600" />
+                  <Edit2 className="h-3.5 w-3.5 text-[#0078d4]" />
                   <span>Edit</span>
                 </Button>
               )}
@@ -113,7 +113,7 @@ export function DelegationToolbar({
             <Button
               type="button"
               onClick={onAddClick}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition h-10"
+              className="flex items-center gap-2 bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition h-10"
             >
               <Plus className="h-4 w-4" />
               <span>Add VIP / Delegation</span>
@@ -123,7 +123,7 @@ export function DelegationToolbar({
       </div>
 
       {/* Filter Row: Type Filters & Status Filters */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-200/60 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-200 text-xs">
         {/* Entity Type Filter Tabs */}
         <div className="flex items-center gap-1.5">
           <button
@@ -131,7 +131,7 @@ export function DelegationToolbar({
             onClick={() => onFilterTypeChange("all")}
             className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
               filterType === "all"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-[#0078d4] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
@@ -142,7 +142,7 @@ export function DelegationToolbar({
             onClick={() => onFilterTypeChange("chief_guests")}
             className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
               filterType === "chief_guests"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-[#0078d4] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
@@ -153,7 +153,7 @@ export function DelegationToolbar({
             onClick={() => onFilterTypeChange("delegations")}
             className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
               filterType === "delegations"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-[#0078d4] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >

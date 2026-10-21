@@ -23,8 +23,8 @@ const STATUS_CONFIG = {
   },
   attended: {
     label: "Attended",
-    badge: "bg-blue-50 text-blue-700 border-blue-200",
-    dot: "bg-blue-500",
+    badge: "bg-[#deecf9] text-[#005a9e] border-[#c7e0f4]",
+    dot: "bg-[#0078d4]",
   },
   declined: {
     label: "Declined",
@@ -53,7 +53,7 @@ export const DelegationRow = React.memo(function DelegationRow({
     <tr
       onClick={handleToggle}
       className={`cursor-pointer transition-colors ${
-        isSelected ? "bg-slate-100/90 font-medium" : "hover:bg-slate-50/70"
+        isSelected ? "bg-[#deecf9]/40 font-medium" : "hover:bg-slate-50/70"
       }`}
     >
       {/* Row Checkbox */}
@@ -63,7 +63,7 @@ export const DelegationRow = React.memo(function DelegationRow({
           aria-label={`Select ${item.organization || item.contact_name}`}
           checked={isSelected}
           onChange={handleToggle}
-          className="accent-slate-900 rounded cursor-pointer"
+          className="accent-[#0078d4] rounded cursor-pointer"
         />
       </td>
 
@@ -89,7 +89,7 @@ export const DelegationRow = React.memo(function DelegationRow({
               className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs ${
                 guestInfo.is_chief_guest
                   ? "bg-amber-500 text-white"
-                  : "bg-slate-800 text-white"
+                  : "bg-[#deecf9] text-[#005a9e] border border-[#c7e0f4]"
               } ${guestInfo.image_url ? "hidden" : "flex"}`}
             >
               {guestInfo.is_chief_guest ? (
@@ -106,7 +106,7 @@ export const DelegationRow = React.memo(function DelegationRow({
                 {item.contact_name || item.organization}
               </p>
               {guestInfo.is_chief_guest && (
-                <span className="inline-flex items-center rounded-md bg-amber-50 border border-amber-200/80 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-amber-800">
+                <span className="inline-flex items-center rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider text-amber-800">
                   VIP
                 </span>
               )}
@@ -130,7 +130,7 @@ export const DelegationRow = React.memo(function DelegationRow({
             {guestInfo.ceremony_role || "Official Invitee"}
           </span>
           {guestInfo.protocol_time && (
-            <div className="flex items-center gap-1 text-[11px] font-mono text-amber-800 bg-amber-50/80 border border-amber-200/60 px-2 py-0.5 rounded-md w-fit">
+            <div className="flex items-center gap-1 text-[11px] font-mono text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md w-fit">
               <Clock className="h-3 w-3 text-amber-600" />
               <span>{guestInfo.protocol_time}</span>
             </div>
@@ -142,7 +142,7 @@ export const DelegationRow = React.memo(function DelegationRow({
       <td className="p-3.5 whitespace-nowrap">
         <div className="space-y-1 text-[11px]">
           {guestInfo.vehicle_pass ? (
-            <div className="flex items-center gap-1 font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 w-fit">
+            <div className="flex items-center gap-1 font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 w-fit">
               <Car className="h-3 w-3 text-emerald-600" />
               <span>{guestInfo.vehicle_pass}</span>
             </div>
@@ -160,7 +160,7 @@ export const DelegationRow = React.memo(function DelegationRow({
 
       {/* Member Count */}
       <td className="p-3.5 text-center whitespace-nowrap">
-        <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 border border-slate-200/80 px-2.5 py-1 font-mono text-xs font-bold text-slate-700">
+        <span className="inline-flex items-center gap-1 rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1 font-mono text-xs font-bold text-slate-700">
           <Users className="h-3 w-3 text-slate-500" />
           <span>{item.member_count || 1}</span>
         </span>

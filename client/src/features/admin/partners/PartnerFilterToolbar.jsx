@@ -24,8 +24,8 @@ export const FilterPill = memo(function FilterPill({ status, active, onSelect })
       onClick={() => onSelect(status)}
       className={`rounded-full px-3 py-1 text-[11px] font-medium uppercase transition whitespace-nowrap ${
         active
-          ? "bg-slate-900 text-white shadow-xs"
-          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          ? "bg-[#0078d4] text-white shadow-xs"
+          : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
       }`}
     >
       {status.replace(/_/g, " ")}
@@ -41,7 +41,7 @@ export const PartnerFilterToolbar = memo(function PartnerFilterToolbar({
   statuses = PARTNER_STATUSES,
 }) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-200 pb-4">
       <div className="relative min-w-[280px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <input
@@ -49,7 +49,7 @@ export const PartnerFilterToolbar = memo(function PartnerFilterToolbar({
           value={search}
           onChange={(e) => onSearchChange?.(e.target.value)}
           placeholder="Search by company, brand, contact, email..."
-          className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-4 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
         />
       </div>
 

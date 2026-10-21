@@ -120,8 +120,15 @@ function requireAdmin(config) {
   return (req, _res, next) => {
     try {
       const authorization = req.header("authorization") || "";
-      const [scheme, token] = authorization.split(" ");
-      if ((scheme || "").toLowerCase() !== "bearer" || !token) {
+      const [scheme, bearerToken] = authorization.split(" ");
+      const token =
+        (scheme || "").toLowerCase() === "bearer" && bearerToken
+          ? bearerToken
+          : req.query?.token
+          ? String(req.query.token).trim()
+          : null;
+
+      if (!token) {
         throw new UnauthorizedError("Admin authentication is required");
       }
       req.adminSession = verifyAdminToken(token, config);

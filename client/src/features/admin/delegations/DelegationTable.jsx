@@ -78,11 +78,11 @@ export function DelegationTable({
 
   if (delegations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-200">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+      <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#deecf9] text-[#005a9e]">
           <Flag className="h-6 w-6" />
         </div>
-        <h3 className="mt-4 font-bold text-sm text-slate-800">
+        <h3 className="mt-4 font-bold text-sm text-slate-900">
           No VIPs or Delegations Found
         </h3>
         <p className="mt-1 text-xs text-slate-500 max-w-sm">
@@ -92,7 +92,7 @@ export function DelegationTable({
           <Button
             type="button"
             onClick={onAddClick}
-            className="mt-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl"
+            className="mt-4 bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add First Record
@@ -107,7 +107,7 @@ export function DelegationTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80 font-bold uppercase tracking-wider text-slate-600 text-[11px]">
+            <tr className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-700 text-[11px]">
               <th className="p-3.5 w-10 text-center">
                 <input
                   type="checkbox"
@@ -117,7 +117,7 @@ export function DelegationTable({
                     if (input) input.indeterminate = someSelected;
                   }}
                   onChange={onSelectAll}
-                  className="accent-slate-900 rounded cursor-pointer"
+                  className="accent-[#0078d4] rounded cursor-pointer"
                 />
               </th>
               <th className="p-3.5 min-w-[240px]">Dignitary / Organization</th>

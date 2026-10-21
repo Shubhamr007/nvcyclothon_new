@@ -28,7 +28,7 @@ export const DelegationProtocolFields = memo(function DelegationProtocolFields({
             value={formData.designation}
             onChange={(e) => setFormData((prev) => ({ ...prev, designation: e.target.value }))}
             placeholder="e.g. District Collector / SP / Managing Director"
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           />
         </div>
 
@@ -39,7 +39,7 @@ export const DelegationProtocolFields = memo(function DelegationProtocolFields({
           <select
             value={formData.ceremony_role}
             onChange={(e) => setFormData((prev) => ({ ...prev, ceremony_role: e.target.value }))}
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           >
             {ceremonyRoles.map((role) => (
               <option key={role} value={role}>{role}</option>
@@ -59,7 +59,7 @@ export const DelegationProtocolFields = memo(function DelegationProtocolFields({
             value={formData.protocol_time}
             onChange={(e) => setFormData((prev) => ({ ...prev, protocol_time: e.target.value }))}
             placeholder="e.g. 05:45 AM"
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           />
         </div>
 
@@ -72,7 +72,7 @@ export const DelegationProtocolFields = memo(function DelegationProtocolFields({
             value={formData.vehicle_pass}
             onChange={(e) => setFormData((prev) => ({ ...prev, vehicle_pass: e.target.value }))}
             placeholder="e.g. MP-VIP-01"
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           />
         </div>
 
@@ -85,7 +85,7 @@ export const DelegationProtocolFields = memo(function DelegationProtocolFields({
             value={formData.liaison_officer}
             onChange={(e) => setFormData((prev) => ({ ...prev, liaison_officer: e.target.value }))}
             placeholder="e.g. Inspector Amit"
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           />
         </div>
       </div>

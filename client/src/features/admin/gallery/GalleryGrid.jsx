@@ -12,9 +12,9 @@ export const GalleryGrid = memo(function GalleryGrid({
 }) {
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/60 p-12 text-center">
+      <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-12 text-center shadow-xs">
         <Camera className="mx-auto h-10 w-10 text-slate-400" />
-        <h3 className="mt-3 text-sm font-bold text-slate-800">
+        <h3 className="mt-3 text-sm font-bold text-slate-900">
           No photographs in “{activeTab}”
         </h3>
         <p className="mt-1 text-xs text-slate-500">

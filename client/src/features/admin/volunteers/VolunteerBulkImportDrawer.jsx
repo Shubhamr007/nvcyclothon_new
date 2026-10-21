@@ -38,16 +38,16 @@ export function VolunteerBulkImportDrawer({
       <form onSubmit={handleSubmit} className="flex flex-col h-full justify-between">
         <div className="space-y-6 p-6">
           {/* Instructions & Template Download Card */}
-          <div className="rounded-2xl border border-blue-200/80 bg-blue-50/60 p-4 space-y-2.5">
+          <div className="rounded-2xl border border-[#c7e0f4] bg-[#deecf9]/40 p-4 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-xs uppercase tracking-wider text-blue-900">
+              <span className="font-bold text-xs uppercase tracking-wider text-[#005a9e]">
                 Official CSV Format
               </span>
               <button
                 type="button"
                 onClick={onDownloadTemplate}
                 disabled={downloadingTemplate}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 underline"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0078d4] hover:text-[#005a9e] underline"
               >
                 {downloadingTemplate ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -57,8 +57,8 @@ export function VolunteerBulkImportDrawer({
                 Download Template (.csv)
               </button>
             </div>
-            <p className="text-xs text-blue-800 leading-relaxed">
-              Include columns: <code className="font-mono bg-blue-100/80 px-1 py-0.5 rounded text-[11px]">name</code>, <code className="font-mono bg-blue-100/80 px-1 py-0.5 rounded text-[11px]">email</code>, <code className="font-mono bg-blue-100/80 px-1 py-0.5 rounded text-[11px]">phone</code>, <code className="font-mono bg-blue-100/80 px-1 py-0.5 rounded text-[11px]">role</code>, <code className="font-mono bg-blue-100/80 px-1 py-0.5 rounded text-[11px]">organization</code>.
+            <p className="text-xs text-[#005a9e] leading-relaxed">
+              Include columns: <code className="font-mono bg-[#deecf9] text-[#005a9e] px-1 py-0.5 rounded text-[11px]">name</code>, <code className="font-mono bg-[#deecf9] text-[#005a9e] px-1 py-0.5 rounded text-[11px]">email</code>, <code className="font-mono bg-[#deecf9] text-[#005a9e] px-1 py-0.5 rounded text-[11px]">phone</code>, <code className="font-mono bg-[#deecf9] text-[#005a9e] px-1 py-0.5 rounded text-[11px]">role</code>, <code className="font-mono bg-[#deecf9] text-[#005a9e] px-1 py-0.5 rounded text-[11px]">organization</code>.
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export function VolunteerBulkImportDrawer({
               type="checkbox"
               checked={sendEmail}
               onChange={(e) => setSendEmail(e.target.checked)}
-              className="accent-slate-900 rounded cursor-pointer"
+              className="accent-[#0078d4] rounded cursor-pointer"
             />
             <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
               <Send className="h-4 w-4 text-slate-500" />
@@ -136,7 +136,7 @@ export function VolunteerBulkImportDrawer({
           <Button
             type="submit"
             disabled={busy || !file}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
           >
             {busy ? (
               <span className="flex items-center gap-2">

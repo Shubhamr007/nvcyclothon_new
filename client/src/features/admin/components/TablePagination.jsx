@@ -16,7 +16,7 @@ export function TablePagination({
   const endIdx = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 bg-[#faf9f6] px-4 py-3 text-xs">
       <div className="flex items-center gap-2 text-slate-600">
         <span>
           Showing {startIdx} to {endIdx} of {totalItems} {itemLabel}
@@ -27,7 +27,7 @@ export function TablePagination({
             onPageSizeChange(Number(e.target.value));
             onPageChange(1);
           }}
-          className="h-7 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 focus:border-slate-500 focus:outline-none shadow-xs"
+          className="h-7 rounded-lg border border-slate-300 bg-white px-2 text-xs text-slate-800 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none shadow-xs"
         >
           {pageSizeOptions.map((opt) => (
             <option key={opt} value={opt}>
@@ -43,7 +43,7 @@ export function TablePagination({
           variant="outline"
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
-          className="h-7 px-2.5 text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+          className="h-7 px-2.5 text-xs border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-[#0078d4]"
         >
           <ChevronLeft className="h-4 w-4 mr-0.5" /> Prev
         </Button>
@@ -55,7 +55,7 @@ export function TablePagination({
           variant="outline"
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
-          className="h-7 px-2.5 text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+          className="h-7 px-2.5 text-xs border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-[#0078d4]"
         >
           Next <ChevronRight className="h-4 w-4 ml-0.5" />
         </Button>

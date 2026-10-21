@@ -1,11 +1,20 @@
 /**
- * High-Performance In-Memory Vector Database for NV Cyclothon Operations.
- * Supports Ollama dense embeddings (nomic-embed-text) with graceful local semantic fallback.
+ * High-Performance Shared & Versioned Vector Database for NV Cyclothon.
+ * Supports Ollama dense embeddings with local fallback and PostgreSQL persistence
+ * so all horizontal Node instances share embeddings without cold-start delay.
  */
 
-const { KNOWLEDGE_CHUNKS } = require("./ragKnowledge");
+const {
+  KNOWLEDGE_CHUNKS,
+  KNOWLEDGE_BASE_VERSION,
+  getKnowledgeFingerprint,
+} = require("./ragKnowledge");
+const {
+  loadCachedEmbeddings,
+  saveCachedEmbeddings,
+} = require("../db/ragRepository");
+const { adminEvents } = require("./adminEvents");
 
-// Calculate Cosine Similarity between two L2-normalized float vectors
 function cosineSimilarity(vecA, vecB) {
   if (!Array.isArray(vecA) || !Array.isArray(vecB) || vecA.length !== vecB.length) {
     return 0;
@@ -22,7 +31,6 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// Deterministic semantic fallback vector generator (384 dimensions)
 function generateLocalFallbackEmbedding(text, dimensions = 384) {
   const vector = new Array(dimensions).fill(0);
   const words = String(text || "")
@@ -43,7 +51,6 @@ function generateLocalFallbackEmbedding(text, dimensions = 384) {
     const idx = Math.abs(hash) % dimensions;
     vector[idx] += 1;
 
-    // Character bigrams for morphological similarity
     for (let i = 0; i < word.length - 1; i++) {
       const bgHash = (word.charCodeAt(i) << 8) + word.charCodeAt(i + 1);
       const bgIdx = Math.abs(bgHash) % dimensions;
@@ -51,7 +58,6 @@ function generateLocalFallbackEmbedding(text, dimensions = 384) {
     }
   }
 
-  // L2 Normalize the vector
   let sumSq = 0;
   for (let i = 0; i < dimensions; i++) sumSq += vector[i] * vector[i];
   const norm = Math.sqrt(sumSq) || 1;
@@ -60,7 +66,6 @@ function generateLocalFallbackEmbedding(text, dimensions = 384) {
   return vector;
 }
 
-// Generate embedding using Ollama API with graceful local fallback
 async function getEmbedding(text, config) {
   const embedModel = config?.ollamaEmbedModel || "nomic-embed-text:latest";
   const url = config?.ollamaUrl || "http://127.0.0.1:11434";
@@ -89,7 +94,7 @@ async function getEmbedding(text, config) {
         }
       }
     } catch {
-      // Fallback seamlessly if model is not pulled or Ollama is offline
+      // Graceful fallback to deterministic local semantic vector
     }
   }
 
@@ -105,29 +110,72 @@ class VectorDatabase {
     this.indexedChunks = [];
     this.initialized = false;
     this.engineUsed = "pending";
+    this.isShared = false;
+    this.version = KNOWLEDGE_BASE_VERSION;
+    this.fingerprint = getKnowledgeFingerprint();
+    this.lastRefreshedAt = null;
   }
 
-  async init(config) {
-    if (this.initialized) return;
+  async init(config, repository, { force = false } = {}) {
+    if (this.initialized && !force) return;
 
+    this.fingerprint = getKnowledgeFingerprint();
+
+    // 1. Attempt loading precomputed embeddings from shared database storage
+    if (repository && !force) {
+      const cached = await loadCachedEmbeddings(repository, this.version, this.fingerprint);
+      if (cached && cached.length === KNOWLEDGE_CHUNKS.length) {
+        this.indexedChunks = cached;
+        this.engineUsed = cached[0]?.engine || "cached-shared";
+        this.isShared = true;
+        this.initialized = true;
+        this.lastRefreshedAt = new Date().toISOString();
+        return;
+      }
+    }
+
+    // 2. Generate embeddings if cache miss or force refreshed
     this.indexedChunks = [];
     for (const chunk of KNOWLEDGE_CHUNKS) {
-      // Include title, keywords, and content for rich vector representations
       const fullText = `${chunk.title}\nKeywords: ${chunk.keywords.join(", ")}\n${chunk.content}`;
-      const { vector, engine } = await getEmbedding(fullText, config);
+      const { vector, engine, model } = await getEmbedding(fullText, config);
       this.engineUsed = engine;
       this.indexedChunks.push({
         ...chunk,
         vector,
+        engine,
+        model,
       });
     }
 
+    // 3. Persist to shared database storage for all other instances
+    if (repository) {
+      await saveCachedEmbeddings(repository, this.indexedChunks, this.version, this.fingerprint);
+      this.isShared = true;
+    }
+
     this.initialized = true;
+    this.lastRefreshedAt = new Date().toISOString();
   }
 
-  async search(queryText, config, { topK = 3, threshold = 0.2 } = {}) {
+  async refresh(config, repository) {
+    await this.init(config, repository, { force: true });
+    adminEvents.publish({
+      type: "rag",
+      action: "refreshed",
+      data: {
+        version: this.version,
+        fingerprint: this.fingerprint,
+        chunks: this.indexedChunks.length,
+        engine: this.engineUsed,
+      },
+    });
+    return this.getStatus();
+  }
+
+  async search(queryText, config, { topK = 3, threshold = 0.2, repository } = {}) {
     if (!this.initialized) {
-      await this.init(config);
+      await this.init(config, repository);
     }
 
     const { vector: queryVector } = await getEmbedding(queryText, config);
@@ -136,7 +184,6 @@ class VectorDatabase {
     const scored = this.indexedChunks.map((chunk) => {
       const denseScore = cosineSimilarity(queryVector, chunk.vector);
 
-      // Sparse keyword bonus (hybrid retrieval boost)
       let keywordHits = 0;
       for (const token of queryTokens) {
         if (chunk.keywords.some((kw) => kw.includes(token))) keywordHits += 0.08;
@@ -163,15 +210,18 @@ class VectorDatabase {
   getStatus() {
     return {
       initialized: this.initialized,
+      version: this.version,
+      fingerprint: this.fingerprint,
       totalChunks: this.indexedChunks.length,
       categories: [...new Set(this.indexedChunks.map((c) => c.category))],
       engine: this.engineUsed,
       dimensions: this.indexedChunks[0]?.vector?.length || 384,
+      sharedStorage: this.isShared,
+      lastRefreshedAt: this.lastRefreshedAt,
     };
   }
 }
 
-// Global Singleton Vector Store for the application
 const globalVectorDb = new VectorDatabase();
 
 module.exports = {

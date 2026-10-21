@@ -34,7 +34,7 @@ export const AgeBracketPill = memo(function AgeBracketPill({
       onClick={handleClick}
       className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
         isSelected
-          ? "bg-slate-900 text-white shadow-xs"
+          ? "bg-[#0078d4] text-white shadow-xs"
           : "bg-slate-100 text-slate-700 hover:bg-slate-200"
       }`}
     >
@@ -78,7 +78,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-blue-600" />
+            <Award className="h-5 w-5 text-[#0078d4]" />
             <h2 className="text-lg font-bold text-slate-900">Race Category & Age Roster</h2>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -93,7 +93,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
             variant="default"
             size="sm"
             onClick={onOpenBatchModal}
-            className="font-medium flex items-center gap-1.5 bg-slate-900 text-white hover:bg-slate-800 h-8"
+            className="font-medium flex items-center gap-1.5 bg-[#0078d4] hover:bg-[#005a9e] text-white h-8 shadow-xs"
           >
             <Layers className="h-3.5 w-3.5" />
             Create / Assign Batches
@@ -131,14 +131,14 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
             <input
               type="text"
               value={searchText}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e) => onSearchChange?.(e.target.value)}
               placeholder="Search name, ID, phone..."
-              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-8 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-8 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
             {searchText && (
               <button
                 type="button"
-                onClick={() => onSearchChange("")}
+                onClick={() => onSearchChange?.("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <X className="h-3.5 w-3.5" />
@@ -150,7 +150,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
           <select
             value={route}
             onChange={(e) => onRouteChange(e.target.value)}
-            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           >
             <option value="all">All Ride Categories</option>
             {routes.map((r) => (
@@ -164,7 +164,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
           <select
             value={batch}
             onChange={(e) => onBatchChange(e.target.value)}
-            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           >
             <option value="all">All Batches / Waves</option>
             <option value="unassigned">Unassigned (No Batch)</option>
@@ -179,7 +179,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
           <select
             value={gender}
             onChange={(e) => onGenderChange(e.target.value)}
-            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           >
             <option value="all">All Genders</option>
             <option value="male">Male Only</option>
@@ -191,7 +191,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
           <select
             value={status}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           >
             <option value="all">All Attendance</option>
             <option value="checked_in">Checked In Only</option>
@@ -226,7 +226,7 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
                 value={minAge}
                 onChange={(e) => onMinAgeChange(e.target.value)}
                 placeholder="Min (e.g. 18)"
-                className="h-7 w-20 rounded border border-slate-300 bg-white px-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="h-7 w-20 rounded border border-slate-300 bg-white px-2 text-xs text-slate-900 focus:border-[#0078d4] focus:outline-none"
               />
               <span className="text-xs font-medium text-slate-700">To:</span>
               <input
@@ -236,13 +236,13 @@ export const RosterFilterToolbar = memo(function RosterFilterToolbar({
                 value={maxAge}
                 onChange={(e) => onMaxAgeChange(e.target.value)}
                 placeholder="Max (e.g. 35)"
-                className="h-7 w-20 rounded border border-slate-300 bg-white px-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="h-7 w-20 rounded border border-slate-300 bg-white px-2 text-xs text-slate-900 focus:border-[#0078d4] focus:outline-none"
               />
               {(minAge || maxAge) && (
                 <button
                   type="button"
                   onClick={handleClearAge}
-                  className="text-xs text-red-600 font-medium hover:underline ml-1"
+                  className="text-xs text-rose-600 font-medium hover:underline ml-1"
                 >
                   Clear
                 </button>

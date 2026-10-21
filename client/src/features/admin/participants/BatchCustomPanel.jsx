@@ -36,7 +36,7 @@ export const BatchCustomPanel = memo(function BatchCustomPanel({
           onChange={(e) => setCustomName?.(e.target.value)}
           placeholder="e.g. Wave 1 - 06:00 AM, Elite Corral, etc."
           maxLength={64}
-          className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs font-semibold text-slate-900 focus:border-slate-900 focus:outline-none"
+          className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-900 focus:border-[#0078d4] focus:outline-none"
           required
         />
       </div>

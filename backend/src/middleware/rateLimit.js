@@ -1,28 +1,43 @@
 const { ApiError } = require("../errors");
+const { createRateLimitStore, MemoryRateLimitStore } = require("../services/rateLimitStore");
 
-function createRateLimiter() {
-  const attempts = new Map();
+function createRateLimiter(options = {}) {
+  const store =
+    options.store ||
+    createRateLimitStore({
+      repository: options.repository,
+      config: options.config,
+    }) ||
+    new MemoryRateLimitStore();
 
   function check({ scope, key, maximum, seconds, message }) {
-    const now = Date.now();
-    const cutoff = now - seconds * 1000;
-    const mapKey = `${scope}:${key}`;
-    const window = attempts.get(mapKey) || [];
-    const active = window.filter((entry) => entry > cutoff);
-
-    if (active.length >= maximum) {
-      throw new ApiError(429, message, "RATE_LIMIT_EXCEEDED", { "Retry-After": String(seconds) });
+    if (typeof store.incrementSync === "function") {
+      const { count } = store.incrementSync(scope, key, seconds);
+      if (count > maximum) {
+        throw new ApiError(429, message, "RATE_LIMIT_EXCEEDED", {
+          "Retry-After": String(seconds),
+        });
+      }
+    } else {
+      // Async fire-and-forget record if sync increment isn't directly exposed
+      void store.increment(scope, key, seconds);
     }
+  }
 
-    active.push(now);
-    attempts.set(mapKey, active);
+  async function checkAsync({ scope, key, maximum, seconds, message }) {
+    const { count } = await store.increment(scope, key, seconds);
+    if (count > maximum) {
+      throw new ApiError(429, message, "RATE_LIMIT_EXCEEDED", {
+        "Retry-After": String(seconds),
+      });
+    }
   }
 
   function middleware(scope, maximum, seconds, message) {
-    return (req, _res, next) => {
+    return async (req, _res, next) => {
       try {
         const key = req.ip || req.connection?.remoteAddress || "unknown";
-        check({ scope, key, maximum, seconds, message });
+        await checkAsync({ scope, key, maximum, seconds, message });
         next();
       } catch (error) {
         next(error);
@@ -32,9 +47,13 @@ function createRateLimiter() {
 
   return {
     check,
+    checkAsync,
     middleware,
     reset() {
-      attempts.clear();
+      store.reset();
+    },
+    getStore() {
+      return store;
     },
   };
 }

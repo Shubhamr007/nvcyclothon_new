@@ -14,11 +14,11 @@ export const AiAccuracyDisclaimer = memo(function AiAccuracyDisclaimer({
     <aside
       role="note"
       aria-label="AI response accuracy disclaimer"
-      className={`flex items-center justify-center gap-1.5 text-center text-slate-500 dark:text-slate-400 select-none transition-colors ${
+      className={`flex items-center justify-center gap-1.5 text-center text-slate-500 select-none transition-colors ${
         compact ? "py-1 px-2 text-[10px]" : "py-1.5 px-3 text-[11px]"
       } ${className}`}
     >
-      <Info className="h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+      <Info className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
       <span className="leading-tight">
         AI-generated responses may contain mistakes. Please verify important information before relying on it.
       </span>

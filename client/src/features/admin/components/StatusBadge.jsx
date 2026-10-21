@@ -15,10 +15,10 @@ const STATUS_COLOR_MAP = {
   failed: "bg-rose-100 text-rose-950 border-rose-400 font-bold",
   inactive: "bg-rose-100 text-rose-950 border-rose-400 font-bold",
 
-  // Info / Progress
-  payment_verified: "bg-blue-100 text-blue-950 border-blue-400 font-bold",
+  // Info / Progress (Microsoft Blue style)
+  payment_verified: "bg-[#deecf9] text-[#005a9e] border-[#c7e0f4] font-bold",
   under_review: "bg-sky-100 text-sky-950 border-sky-400 font-bold",
-  sent: "bg-indigo-100 text-indigo-950 border-indigo-400 font-bold",
+  sent: "bg-[#deecf9] text-[#005a9e] border-[#c7e0f4] font-bold",
   invited: "bg-purple-100 text-purple-950 border-purple-400 font-bold",
 
   // Warning / Pending

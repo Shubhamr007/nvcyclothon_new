@@ -10,7 +10,7 @@ export function PartnerReviewModal({
   if (!reviewModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-xs">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
         <h4 className="text-lg font-bold text-slate-900">
           Update Application Status
@@ -23,7 +23,7 @@ export function PartnerReviewModal({
             <select
               value={reviewModal.status}
               onChange={(e) => onChangeStatusNotes("status", e.target.value)}
-              className="mt-1.5 h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs font-medium text-slate-800 focus:border-blue-500 focus:outline-none"
+              className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-800 focus:border-[#0078d4] focus:outline-none"
             >
               <option value="SUBMITTED">SUBMITTED</option>
               <option value="UNDER_REVIEW">UNDER REVIEW</option>
@@ -49,12 +49,12 @@ export function PartnerReviewModal({
               value={reviewModal.notes}
               onChange={(e) => onChangeStatusNotes("notes", e.target.value)}
               placeholder="Record commercial discussion terms or feedback..."
-              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none"
             />
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+        <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4">
           <Button
             variant="outline"
             size="sm"
@@ -66,7 +66,7 @@ export function PartnerReviewModal({
           <Button
             size="sm"
             onClick={() => onSave(reviewModal.id, reviewModal.status, reviewModal.notes)}
-            className="bg-slate-900 text-white hover:bg-slate-800 font-medium"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-medium"
           >
             Save Status
           </Button>

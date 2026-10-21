@@ -36,7 +36,7 @@ export const VolunteerTableRow = memo(function VolunteerTableRow({
     <tr
       onClick={() => onToggleSelect(volunteer.id)}
       className={`cursor-pointer transition-colors ${
-        isSelected ? "bg-slate-100/90 font-medium" : "hover:bg-slate-50/70"
+        isSelected ? "bg-[#deecf9]/40 font-medium" : "hover:bg-slate-50/70"
       }`}
     >
       {/* Checkbox */}
@@ -46,14 +46,14 @@ export const VolunteerTableRow = memo(function VolunteerTableRow({
           aria-label={`Select ${volunteer.display_name}`}
           checked={isSelected}
           onChange={() => onToggleSelect(volunteer.id)}
-          className="accent-slate-900 rounded cursor-pointer"
+          className="accent-[#0078d4] rounded cursor-pointer"
         />
       </td>
 
       {/* Volunteer Details */}
       <td className="p-3.5">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+          <div className="h-9 w-9 rounded-xl bg-[#deecf9] border border-[#c7e0f4] text-[#005a9e] font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
             {(volunteer.display_name || "V").slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0 max-w-[200px]">
@@ -72,7 +72,7 @@ export const VolunteerTableRow = memo(function VolunteerTableRow({
 
       {/* Role & Station */}
       <td className="p-3.5 whitespace-nowrap">
-        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 text-[11px] font-bold text-blue-800">
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#deecf9] border border-[#c7e0f4] px-2.5 py-0.5 text-[11px] font-bold text-[#005a9e]">
           <UserCheck className="h-3 w-3" />
           {volunteer.role || "General Crew"}
         </span>
@@ -87,7 +87,7 @@ export const VolunteerTableRow = memo(function VolunteerTableRow({
       {/* Credentials & Copy */}
       <td className="p-3.5" onClick={(e) => e.stopPropagation()}>
         {volunteer.plain_password ? (
-          <div className="inline-flex items-center gap-2 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg">
+          <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
             <Lock className="h-3 w-3 text-slate-500" />
             <span className="font-mono text-xs font-bold text-slate-800">
               {volunteer.plain_password}
@@ -119,7 +119,7 @@ export const VolunteerTableRow = memo(function VolunteerTableRow({
           className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition ${
             volunteer.active
               ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-              : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
+              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
           }`}
         >
           {volunteer.active ? (
@@ -206,11 +206,11 @@ export function VolunteerTable({
 
   if (volunteers.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-200">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+      <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#deecf9] text-[#005a9e]">
           <UserCheck className="h-6 w-6" />
         </div>
-        <h3 className="mt-4 font-bold text-sm text-slate-800">
+        <h3 className="mt-4 font-bold text-sm text-slate-900">
           No Volunteers Found
         </h3>
         <p className="mt-1 text-xs text-slate-500 max-w-sm">
@@ -220,7 +220,7 @@ export function VolunteerTable({
           <Button
             type="button"
             onClick={onAddClick}
-            className="mt-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl"
+            className="mt-4 bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add First Volunteer
@@ -235,7 +235,7 @@ export function VolunteerTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80 font-bold uppercase tracking-wider text-slate-600 text-[11px]">
+            <tr className="border-b border-slate-200 bg-slate-50 font-bold uppercase tracking-wider text-slate-700 text-[11px]">
               <th className="p-3.5 w-10 text-center">
                 <input
                   type="checkbox"
@@ -245,7 +245,7 @@ export function VolunteerTable({
                     if (input) input.indeterminate = someSelected;
                   }}
                   onChange={onSelectAll}
-                  className="accent-slate-900 rounded cursor-pointer"
+                  className="accent-[#0078d4] rounded cursor-pointer"
                 />
               </th>
               <th className="p-3.5 min-w-[220px]">Volunteer Info</th>

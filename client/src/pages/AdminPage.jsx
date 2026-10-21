@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback, Suspense, lazy } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { AlertCircle, RefreshCw } from "lucide-react";
 import { adminRequest, createAdminSession, refreshAdminSession } from "../api/http";
 import { LoadingScreen } from "../components/LoadingIndicator";
 import {
   AdminHeader, AdminSidebar, AdminFooter, AdminLogin,
   TabErrorBoundary, TabLoadingFallback, NAVIGATION_GROUPS,
   LayoutResizeDivider, useAdminLayout, LAYOUT_CONSTRAINTS,
+  useAdminSync, WorkspaceUnavailable, JobProgressCenter,
 } from "../features/admin";
 import { AdminAiCoPilotDrawer } from "../features/admin/ai";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
@@ -63,6 +63,12 @@ export function AdminPage() {
     }
   }, [accessToken, dispatch]);
 
+  const { syncStatus, triggerRefresh } = useAdminSync({
+    accessToken,
+    onSync: load,
+    enabled: Boolean(accessToken),
+  });
+
   useEffect(() => {
     if (accessToken) {
       void load();
@@ -104,29 +110,6 @@ export function AdminPage() {
     return <LoadingScreen label="Loading admin workspace…" />;
   }
 
-  if (!data.analytics) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-slate-950 px-5 text-slate-100">
-        <section className="max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center shadow-2xl">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-rose-500/10 text-rose-400">
-            <AlertCircle className="h-6 w-6" />
-          </div>
-          <h1 className="mt-4 text-lg font-bold text-white">Workspace Unavailable</h1>
-          <p className="mt-2 text-xs leading-5 text-slate-400">
-            {message || "The dashboard data could not be loaded from the backend."}
-          </p>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white hover:bg-slate-100 px-5 py-2.5 text-xs font-semibold text-slate-900 transition shadow-sm"
-          >
-            <RefreshCw className="h-4 w-4" /> Retry Connection
-          </button>
-        </section>
-      </main>
-    );
-  }
-
   const activeTabLabel =
     NAVIGATION_GROUPS.flatMap((g) => g.items).find((i) => i.id === tab)?.label || "Overview";
 
@@ -137,8 +120,12 @@ export function AdminPage() {
   );
   const badges = { riders: pendingRidersCount };
 
+  if (!data.analytics) {
+    return <WorkspaceUnavailable message={message} onRetry={() => void load()} />;
+  }
+
   return (
-    <div className="admin-workspace h-screen h-[100dvh] w-screen overflow-hidden flex flex-col bg-[#f5f5f5] dark:bg-[#0f1115] text-slate-900 dark:text-[#E8E8E8] selection:bg-[#0078d4] selection:text-white transition-colors">
+    <div className="admin-workspace h-screen h-[100dvh] w-screen overflow-hidden flex flex-col bg-[#f8fafc] text-slate-900 selection:bg-[#0078d4] selection:text-white transition-colors">
       {/* 1. FIXED TOP HEADER */}
       <AdminHeader
         onSignOut={() => {
@@ -150,6 +137,8 @@ export function AdminPage() {
         activeTabLabel={activeTabLabel}
         onOpenAiCoPilot={() => setCoPilotOpen(true)}
         onResetLayout={resetLayout}
+        syncStatus={syncStatus}
+        onRefresh={triggerRefresh}
       />
 
       {/* 2. BODY ROW */}
@@ -181,12 +170,12 @@ export function AdminPage() {
         <div id="admin-slideover-root" className="absolute inset-0 z-40 pointer-events-none" />
 
         {/* SCROLLABLE WORKSPACE */}
-        <main className="flex-1 min-w-0 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f5f5f5] dark:bg-[#0f1115] transition-colors">
+        <main className="flex-1 min-w-0 h-full overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f4f6f8] transition-colors">
           <div className="mx-auto max-w-[1520px] w-full space-y-6 pb-6">
             {message && (
-              <div className="flex items-center justify-between rounded-xl border border-slate-200/90 dark:border-[#2A2D35] bg-white dark:bg-[#18191E] p-4 shadow-xs text-xs font-semibold text-slate-800 dark:text-[#E8E8E8]">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-xs text-xs font-semibold text-slate-800">
                 <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-slate-900 shrink-0" />
+                  <span className="h-2 w-2 rounded-full bg-[#0078d4] shrink-0" />
                   <span>{message}</span>
                 </div>
                 <button
@@ -291,6 +280,8 @@ export function AdminPage() {
       {/* 3. ENTERPRISE FOOTER */}
       <AdminFooter />
 
+      {/* 4. DURABLE BACKGROUND JOB CENTER */}
+      <JobProgressCenter accessToken={accessToken} />
     </div>
   );
 }

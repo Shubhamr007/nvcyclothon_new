@@ -5,7 +5,7 @@ import { DEFAULT_SOCIAL_LINKS } from "../../../features/cyclothon/constants";
 
 export function SocialLinksSection({ settings, updateSocialLink }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
       <div className="border-b border-slate-200 pb-4">
         <h3 className="text-base font-bold text-slate-900">
           Official Social Media Channels
@@ -17,7 +17,7 @@ export function SocialLinksSection({ settings, updateSocialLink }) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         {/* Instagram */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+        <div className="rounded-2xl border border-slate-200 bg-[#faf9f6] p-4 space-y-2">
           <div className="flex items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-pink-500/10 text-pink-600">
               <FaInstagram className="h-5 w-5" />
@@ -32,12 +32,12 @@ export function SocialLinksSection({ settings, updateSocialLink }) {
             value={settings.social_links?.instagram || ""}
             onChange={(e) => updateSocialLink("instagram", e.target.value)}
             placeholder="https://www.instagram.com/nvcyclothon"
-            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           />
         </div>
 
         {/* YouTube */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+        <div className="rounded-2xl border border-slate-200 bg-[#faf9f6] p-4 space-y-2">
           <div className="flex items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-rose-500/10 text-rose-600">
               <FaYoutube className="h-5 w-5" />
@@ -52,14 +52,14 @@ export function SocialLinksSection({ settings, updateSocialLink }) {
             value={settings.social_links?.youtube || ""}
             onChange={(e) => updateSocialLink("youtube", e.target.value)}
             placeholder="https://www.youtube.com/@nvcyclothon"
-            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           />
         </div>
 
         {/* Facebook */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+        <div className="rounded-2xl border border-slate-200 bg-[#faf9f6] p-4 space-y-2">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-500/10 text-blue-600">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-500/10 text-[#0078d4]">
               <FaFacebook className="h-5 w-5" />
             </div>
             <div>
@@ -72,12 +72,12 @@ export function SocialLinksSection({ settings, updateSocialLink }) {
             value={settings.social_links?.facebook || ""}
             onChange={(e) => updateSocialLink("facebook", e.target.value)}
             placeholder="https://www.facebook.com/nvcyclothon"
-            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           />
         </div>
 
         {/* LinkedIn */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-2">
+        <div className="rounded-2xl border border-slate-200 bg-[#faf9f6] p-4 space-y-2">
           <div className="flex items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-sky-500/10 text-sky-700">
               <FaLinkedin className="h-5 w-5" />
@@ -92,7 +92,7 @@ export function SocialLinksSection({ settings, updateSocialLink }) {
             value={settings.social_links?.linkedin || ""}
             onChange={(e) => updateSocialLink("linkedin", e.target.value)}
             placeholder="https://www.linkedin.com/company/nvcyclothon"
-            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+            className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           />
         </div>
       </div>

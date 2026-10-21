@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { AlertTriangle, X } from 'lucide-react';
 
-export function ClearChatConfirmModal({ isOpen, mode, title, onConfirm, onCancel }) {
+export function ClearChatConfirmModal({ isOpen, mode, title = '', onConfirm, onCancel }) {
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
@@ -25,32 +26,32 @@ export function ClearChatConfirmModal({ isOpen, mode, title, onConfirm, onCancel
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 backdrop-blur-xs"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl p-5 text-left"
+        className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl shadow-2xl p-5 text-left"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2.5 text-amber-400">
-            <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-2.5 text-amber-600">
+            <div className="p-1.5 rounded-lg bg-amber-50 border border-amber-200">
               <AlertTriangle className="w-5 h-5" />
             </div>
-            <h3 id="confirm-modal-title" className="text-sm font-semibold text-zinc-100">
+            <h3 id="confirm-modal-title" className="text-sm font-semibold text-slate-900">
               {heading}
             </h3>
           </div>
           <button
             type="button"
             onClick={onCancel}
-            className="text-zinc-400 hover:text-zinc-200 p-1 rounded-md transition-colors"
+            className="text-slate-400 hover:text-slate-700 p-1 rounded-md transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-400 mb-5 leading-relaxed">
+        <p className="text-xs text-slate-500 mb-5 leading-relaxed">
           {description}
         </p>
 
@@ -58,14 +59,14 @@ export function ClearChatConfirmModal({ isOpen, mode, title, onConfirm, onCancel
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700/80 transition-colors"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-500 rounded-lg shadow transition-colors"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-sm transition-colors"
           >
             {isDelete ? 'Delete' : 'Clear Chat'}
           </button>
@@ -83,6 +84,3 @@ ClearChatConfirmModal.propTypes = {
   onCancel: PropTypes.func.isRequired,
 };
 
-ClearChatConfirmModal.defaultProps = {
-  title: '',
-};

@@ -173,16 +173,28 @@ export function ParticipantDirectoryView({
       {/* 2. FILTER & SEARCH TOOLBAR CARD */}
       <ParticipantDirectoryToolbar
         searchText={searchText}
+        onSearchTextChange={(val) => dispatch(setDirectorySearchText(val))}
         onSearchChange={(val) => dispatch(setDirectorySearchText(val))}
         certificateFilter={certificateFilter}
+        onCertificateChange={(val) => dispatch(setDirectoryCertificateFilter(val))}
         onCertificateFilterChange={(val) => dispatch(setDirectoryCertificateFilter(val))}
         certificateCounts={certificateCounts}
         routeFilter={routeFilter}
         onRouteChange={(val) => dispatch(setDirectoryRouteFilter(val))}
         routes={uniqueRoutes}
+        uniqueRoutes={uniqueRoutes}
         statusFilter={statusFilter}
         onStatusChange={(val) => dispatch(setDirectoryStatusFilter(val))}
-        totalCount={filteredRiders.length}
+        totalCount={riders.length}
+        approvedCount={riders.filter((r) => r.status === "approved").length}
+        checkedInCount={riders.filter((r) => r.status === "checked_in").length}
+        selectedCount={selectedIds.length}
+        busy={busy}
+        onDeleteSelected={deleteSelected}
+        onExpandAll={expandAllVisible}
+        onCollapseAll={collapseAll}
+        expandedCount={expandedIds.length}
+        visibleCount={paginatedRiders.length}
       />
 
       {/* BULK ACTION BAR */}

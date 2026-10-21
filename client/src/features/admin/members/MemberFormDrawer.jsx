@@ -92,7 +92,7 @@ export function MemberFormDrawer({
                 value={formData.name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="e.g. Rajesh Sharma"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
 
@@ -106,7 +106,7 @@ export function MemberFormDrawer({
                 value={formData.role}
                 onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
                 placeholder="e.g. Event Director / Patron"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
           </div>
@@ -128,7 +128,7 @@ export function MemberFormDrawer({
                     display_order: Number(e.target.value) || 0,
                   }))
                 }
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
               <p className="text-[10px] text-slate-400 mt-1">Lower numbers appear first on the website.</p>
             </div>
@@ -137,14 +137,14 @@ export function MemberFormDrawer({
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Website Visibility
               </label>
-              <label className="flex items-center gap-3 h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50/60 cursor-pointer hover:bg-slate-100 transition">
+              <label className="flex items-center gap-3 h-10 px-3.5 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100 transition">
                 <input
                   type="checkbox"
                   checked={formData.visible}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, visible: e.target.checked }))
                   }
-                  className="accent-slate-900 rounded cursor-pointer"
+                  className="accent-[#0078d4] rounded cursor-pointer"
                 />
                 <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
                   {formData.visible ? (
@@ -173,7 +173,7 @@ export function MemberFormDrawer({
               value={formData.message}
               onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
               placeholder="A brief motivational message, vision, or welcoming note from this committee member…"
-              className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 leading-relaxed resize-none"
+              className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4] leading-relaxed resize-none"
             />
           </div>
         </div>
@@ -192,7 +192,7 @@ export function MemberFormDrawer({
           <Button
             type="submit"
             disabled={isSaving || isUploadingPhoto}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
           >
             {isSaving ? (
               <span className="flex items-center gap-2">

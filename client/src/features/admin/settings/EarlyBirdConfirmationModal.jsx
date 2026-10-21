@@ -15,12 +15,12 @@ export function EarlyBirdConfirmationModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-labelledby="early-bird-modal-title"
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -40,7 +40,7 @@ export function EarlyBirdConfirmationModal({
             <div>
               <h3
                 id="early-bird-modal-title"
-                className="text-base font-bold text-slate-950"
+                className="text-base font-bold text-slate-900"
               >
                 {isDisabling
                   ? "Disable Early Bird Pricing?"
@@ -93,7 +93,7 @@ export function EarlyBirdConfirmationModal({
             type="button"
             variant="outline"
             onClick={onClose}
-            className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold h-9"
+            className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold h-9"
           >
             Cancel
           </Button>

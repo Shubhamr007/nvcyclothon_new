@@ -4,6 +4,7 @@ const multer = require('multer');
 const { ApiError, NotFoundError, ValidationError } = require('../errors');
 const { parseSchema, vendorApplicationSchema, paymentVerifySchema, normalizeVendorApplicationInput, VENDOR_CATEGORIES } = require('../services/validation');
 const { createPartnerVendorMediaService } = require('../services/partnerVendorMedia');
+const { adminEvents } = require('../services/adminEvents');
 
 function createVendorsRouter({ config, repository, emailService, cashfreeService, rateLimiter }) {
   const router = express.Router();
@@ -66,6 +67,8 @@ function createVendorsRouter({ config, repository, emailService, cashfreeService
         payload.stall_fee_paise = 0;
 
         const application = await repository.createVendorApplication(payload);
+        adminEvents.publish({ type: 'vendors', action: 'created', id: application.id });
+        adminEvents.publish({ type: 'analytics', action: 'updated' });
 
         // Send confirmation email
         void emailService.sendVendorApplicationConfirmation(application).catch((err) => {
@@ -134,6 +137,9 @@ function createVendorsRouter({ config, repository, emailService, cashfreeService
         paymentId: payment.paymentId,
         signature: "cashfree-server-verified",
       });
+
+      adminEvents.publish({ type: 'vendors', action: 'payment_verified', id: application.id });
+      adminEvents.publish({ type: 'analytics', action: 'updated' });
 
       res.json(application);
     } catch (error) {

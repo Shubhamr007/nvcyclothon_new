@@ -12,10 +12,10 @@ export const BatchClearPanel = memo(function BatchClearPanel({
         <AlertCircle className="h-4 w-4 text-rose-600" />
         Reset Batch Assignment
       </div>
-      <p className="text-rose-700/90 leading-relaxed">
+      <p className="text-rose-700 leading-relaxed">
         This will remove the assigned batch from all <span className="font-bold text-rose-950">{count}</span> target riders. Their batch status will become "Unassigned".
       </p>
-      <label className="flex items-center gap-2 font-medium text-rose-900 cursor-pointer pt-2 border-t border-rose-200/80">
+      <label className="flex items-center gap-2 font-medium text-rose-900 cursor-pointer pt-2 border-t border-rose-200">
         <input
           type="checkbox"
           checked={confirmClear}

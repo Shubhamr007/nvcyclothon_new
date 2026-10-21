@@ -34,7 +34,7 @@ export function MemberTable({
           <Button
             type="button"
             onClick={onAddClick}
-            className="mt-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl"
+            className="mt-4 bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 py-2 rounded-xl"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Add First Member
@@ -60,7 +60,7 @@ export function MemberTable({
                     if (input) input.indeterminate = someSelected;
                   }}
                   onChange={onSelectAll}
-                  className="accent-slate-900 rounded cursor-pointer"
+                  className="accent-[#0078d4] rounded cursor-pointer"
                 />
               </th>
               <th className="p-3.5 min-w-[220px]">Member Details</th>

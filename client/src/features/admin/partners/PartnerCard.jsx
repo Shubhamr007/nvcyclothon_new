@@ -7,12 +7,12 @@ export const PartnerCard = memo(function PartnerCard({
   onOpenDeliverables,
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
       <div className="flex items-center justify-between">
         <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-[10px] font-medium uppercase">
           {partner.status}
         </span>
-        <span className="text-xs font-semibold text-blue-600">
+        <span className="text-xs font-semibold text-[#005a9e]">
           {partner.package_name || partner.tier_name || "Partner"}
         </span>
       </div>
@@ -28,7 +28,7 @@ export const PartnerCard = memo(function PartnerCard({
             size="sm"
             variant="outline"
             onClick={() => onPreviewLogo(partner.id)}
-            className="h-7 text-xs border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="h-7 text-xs border-slate-300 text-slate-700 hover:bg-slate-50"
           >
             Logo
           </Button>
@@ -36,7 +36,7 @@ export const PartnerCard = memo(function PartnerCard({
         <Button
           size="sm"
           onClick={() => onOpenDeliverables(partner)}
-          className="h-7 text-xs bg-slate-900 text-white hover:bg-slate-800 font-medium"
+          className="h-7 text-xs bg-[#0078d4] hover:bg-[#005a9e] text-white font-medium"
         >
           Deliverables
         </Button>

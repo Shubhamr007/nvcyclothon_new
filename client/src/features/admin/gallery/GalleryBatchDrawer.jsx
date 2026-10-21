@@ -40,7 +40,7 @@ export function GalleryBatchDrawer({
             type="button"
             disabled={batchUploading || batchFiles.length === 0}
             onClick={onSubmit}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 shadow-xs"
           >
             {batchUploading
               ? `Uploading (${batchProgress.current}/${batchProgress.total})…`
@@ -58,7 +58,7 @@ export function GalleryBatchDrawer({
             value={batchCategory}
             onChange={(e) => setBatchCategory(e.target.value)}
             disabled={batchUploading}
-            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
           >
             <option value="Organizers">Organizers & Race Directors</option>
             <option value="Partners">Official Partners & Sponsors</option>
@@ -78,7 +78,7 @@ export function GalleryBatchDrawer({
             value={batchBaseTitle}
             onChange={(e) => setBatchBaseTitle(e.target.value)}
             disabled={batchUploading}
-            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
           />
           <p className="text-[10px] text-slate-500 mt-1">
             Leave blank to auto-generate titles from each photo's file name.
@@ -89,7 +89,7 @@ export function GalleryBatchDrawer({
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Select Photos (Multiple Files Allowed):
           </label>
-          <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/80 p-6 text-center cursor-pointer hover:border-slate-400 hover:bg-slate-100/80 transition-colors">
+          <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/80 p-6 text-center cursor-pointer hover:border-[#0078d4] hover:bg-slate-100/80 transition-colors">
             <ImageIcon className="h-8 w-8 text-slate-500" />
             <span className="text-xs font-semibold text-slate-800">
               {batchFiles.length > 0

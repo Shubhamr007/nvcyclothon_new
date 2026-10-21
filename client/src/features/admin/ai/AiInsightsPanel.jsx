@@ -46,16 +46,16 @@ export const AiInsightsPanel = memo(function AiInsightsPanel() {
   }, [summaryData]);
 
   return (
-    <div className="rounded-2xl border border-indigo-100 bg-linear-to-br from-indigo-50/40 via-white to-purple-50/30 p-5 shadow-xs transition-all">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-indigo-100/70 pb-4">
+    <div className="rounded-2xl border border-blue-100 bg-linear-to-br from-[#deecf9]/30 via-white to-blue-50/20 p-5 shadow-xs transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-blue-100/70 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0078d4] text-white shadow-xs">
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-slate-900">AI Intelligence Brief</h3>
-              <span className="rounded-md bg-indigo-100 border border-indigo-200/60 px-1.5 py-0.5 text-[10px] font-sans font-bold text-indigo-800">
+              <span className="rounded-md bg-[#deecf9] border border-[#c7e0f4] px-1.5 py-0.5 text-[10px] font-sans font-bold text-[#005a9e]">
                 EXECUTIVE BRIEF
               </span>
             </div>
@@ -91,7 +91,7 @@ export const AiInsightsPanel = memo(function AiInsightsPanel() {
             size="sm"
             onClick={handleGenerate}
             disabled={loading}
-            className="h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+            className="h-8 text-xs font-semibold bg-[#0078d4] hover:bg-[#005a9e] text-white shadow-xs"
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} />
             <span>{loading ? "Synthesizing…" : summaryData ? "Regenerate" : "Generate Brief"}</span>
@@ -108,14 +108,14 @@ export const AiInsightsPanel = memo(function AiInsightsPanel() {
 
       {loading && !summaryData && (
         <div className="mt-4 flex flex-col items-center justify-center py-8 text-center">
-          <div className="h-8 w-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mb-2" />
+          <div className="h-8 w-8 rounded-full border-2 border-[#0078d4] border-t-transparent animate-spin mb-2" />
           <p className="text-xs font-semibold text-slate-700">Synthesizing race telemetry…</p>
           <p className="text-[11px] text-slate-400 mt-0.5">Evaluating category demand, capacity quotas, and payment velocity</p>
         </div>
       )}
 
       {!loading && !summaryData && !error && (
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-dashed border-indigo-200/80 bg-white/60 px-4 py-3 text-xs text-slate-600">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-dashed border-blue-200/80 bg-white/60 px-4 py-3 text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
             <span>Click <strong>Generate Brief</strong> to analyze capacity quotas, route distribution, and revenue pace.</span>
@@ -126,8 +126,8 @@ export const AiInsightsPanel = memo(function AiInsightsPanel() {
       {summaryData && (
         <div className="mt-4 space-y-4">
           {/* Executive Headline */}
-          <div className="rounded-xl border border-indigo-200/70 bg-white p-3.5 shadow-2xs">
-            <p className="text-[10px] font-bold tracking-wider uppercase text-indigo-600 font-mono">
+          <div className="rounded-xl border border-blue-200/70 bg-white p-3.5 shadow-2xs">
+            <p className="text-[10px] font-bold tracking-wider uppercase text-[#0078d4] font-mono">
               EXECUTIVE VERDICT
             </p>
             <p className="mt-1 text-sm font-semibold text-slate-900 leading-snug">
@@ -145,7 +145,7 @@ export const AiInsightsPanel = memo(function AiInsightsPanel() {
               <ul className="space-y-1.5 text-xs text-slate-600">
                 {(summaryData.highlights || []).map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2">
-                    <span className="text-indigo-500 font-bold">•</span>
+                    <span className="text-[#0078d4] font-bold">•</span>
                     <span>{item}</span>
                   </li>
                 ))}

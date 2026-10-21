@@ -50,34 +50,34 @@ export const ParticipantDirectoryTable = memo(function ParticipantDirectoryTable
   }, [selectedSet]);
 
   return (
-    <div className="overflow-hidden rounded-xl border-2 border-slate-300 bg-white shadow-xs">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="border-b-2 border-slate-300 bg-slate-100 text-slate-950 font-bold">
+          <thead className="border-b border-slate-200 bg-slate-50 text-slate-900 font-bold">
             <tr>
               <th className="p-3.5 w-10 text-center">
                 <input
                   type="checkbox"
                   checked={allVisibleSelected}
                   onChange={onToggleSelectPage}
-                  className="accent-slate-950 h-4 w-4 rounded cursor-pointer"
+                  className="accent-[#0078d4] h-4 w-4 rounded cursor-pointer"
                   aria-label="Select all on this page"
                 />
               </th>
               <th className="p-3.5 w-10 text-center">
                 <span className="sr-only">Expand</span>
               </th>
-              <th className="p-3.5 font-bold text-slate-950 text-xs">Rider ID & Name</th>
-              <th className="p-3.5 font-bold text-slate-950 text-xs">Contact</th>
-              <th className="p-3.5 font-bold text-slate-950 text-xs">Route & Payment</th>
-              <th className="p-3.5 font-bold text-slate-950 text-xs">Status / Check-in</th>
-              <th className="p-3.5 font-bold text-slate-950 text-xs text-right">Actions</th>
+              <th className="p-3.5 font-bold text-slate-900 text-xs">Rider ID & Name</th>
+              <th className="p-3.5 font-bold text-slate-900 text-xs">Contact</th>
+              <th className="p-3.5 font-bold text-slate-900 text-xs">Route & Payment</th>
+              <th className="p-3.5 font-bold text-slate-900 text-xs">Status / Check-in</th>
+              <th className="p-3.5 font-bold text-slate-900 text-xs text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {paginatedRiders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-12 text-center text-xs text-black/50">
+                <td colSpan={7} className="p-12 text-center text-xs text-slate-500">
                   No participants matched the active search or filters.
                 </td>
               </tr>

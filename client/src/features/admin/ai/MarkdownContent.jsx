@@ -59,10 +59,10 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
       blocks.push(
         <div
           key={`table_${i}`}
-          className="my-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs"
+          className="my-3 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs"
         >
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+          <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+            <thead className="bg-slate-50 text-slate-700 font-bold">
               <tr>
                 {headers.map((h, hIdx) => (
                   <th key={hIdx} className="px-3 py-2 font-semibold">
@@ -71,9 +71,9 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+            <tbody className="divide-y divide-slate-100 text-slate-800">
               {rows.map((row, rIdx) => (
-                <tr key={rIdx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                <tr key={rIdx} className="hover:bg-slate-50/80">
                   {row.map((cell, cIdx) => (
                     <td key={cIdx} className="px-3 py-2">
                       {parseInline(cell)}
@@ -96,19 +96,19 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
         const content = parseInline(match[2]);
         if (level === 1) {
           blocks.push(
-            <h1 key={`h1_${i}`} className="text-sm sm:text-base font-extrabold text-slate-950 dark:text-white mt-3 mb-1.5 border-b border-slate-200 dark:border-slate-700 pb-1">
+            <h1 key={`h1_${i}`} className="text-sm sm:text-base font-extrabold text-slate-900 mt-3 mb-1.5 border-b border-slate-200 pb-1">
               {content}
             </h1>
           );
         } else if (level === 2) {
           blocks.push(
-            <h2 key={`h2_${i}`} className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mt-2.5 mb-1">
+            <h2 key={`h2_${i}`} className="text-xs sm:text-sm font-bold text-slate-900 mt-2.5 mb-1">
               {content}
             </h2>
           );
         } else {
           blocks.push(
-            <h3 key={`h3_${i}`} className="text-xs font-bold text-slate-900 dark:text-slate-200 mt-2 mb-0.5">
+            <h3 key={`h3_${i}`} className="text-xs font-bold text-slate-900 mt-2 mb-0.5">
               {content}
             </h3>
           );
@@ -128,7 +128,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
       blocks.push(
         <blockquote
           key={`quote_${i}`}
-          className="my-2 border-l-2 border-blue-600 dark:border-blue-400 pl-3 italic text-slate-600 dark:text-slate-400 text-xs"
+          className="my-2 border-l-2 border-[#0078d4] pl-3 italic text-slate-600 text-xs"
         >
           {parseInline(quoteLines.join(" "))}
         </blockquote>
@@ -144,7 +144,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
         i++;
       }
       blocks.push(
-        <ul key={`ul_${i}`} className="my-2 ml-4 list-disc space-y-1 text-xs text-slate-800 dark:text-slate-200">
+        <ul key={`ul_${i}`} className="my-2 ml-4 list-disc space-y-1 text-xs text-slate-800">
           {listItems.map((item, idx) => (
             <li key={idx} className="leading-relaxed">
               {parseInline(item)}
@@ -163,7 +163,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
         i++;
       }
       blocks.push(
-        <ol key={`ol_${i}`} className="my-2 ml-4 list-decimal space-y-1 text-xs text-slate-800 dark:text-slate-200">
+        <ol key={`ol_${i}`} className="my-2 ml-4 list-decimal space-y-1 text-xs text-slate-800">
           {listItems.map((item, idx) => (
             <li key={idx} className="leading-relaxed">
               {parseInline(item)}
@@ -197,7 +197,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text = "", classN
     }
 
     blocks.push(
-      <p key={`p_${i}`} className="my-1.5 text-xs leading-relaxed text-slate-800 dark:text-slate-200">
+      <p key={`p_${i}`} className="my-1.5 text-xs leading-relaxed text-slate-800">
         {parseInline(paraLines.join(" "))}
       </p>
     );

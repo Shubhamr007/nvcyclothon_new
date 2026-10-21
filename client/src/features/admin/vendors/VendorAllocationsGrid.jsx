@@ -5,7 +5,7 @@ export const VendorAllocationsGrid = memo(function VendorAllocationsGrid({
   approvedVendors = [],
 }) {
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white p-6 shadow-xs">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
       <h4 className="text-base font-bold text-slate-900 mb-4">
         Stall & Operational Allocations
       </h4>

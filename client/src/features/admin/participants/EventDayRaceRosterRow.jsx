@@ -26,7 +26,7 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
       }}
       className={`transition cursor-pointer hover:bg-slate-50/80 ${
         isSelected
-          ? "bg-blue-50/60"
+          ? "bg-[#deecf9]/40"
           : index % 2 === 1
           ? "bg-slate-50/40"
           : ""
@@ -37,7 +37,7 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
           type="checkbox"
           checked={isSelected}
           onChange={() => onToggleSelect(rider.id)}
-          className="accent-slate-900 h-4 w-4 rounded cursor-pointer"
+          className="accent-[#0078d4] h-4 w-4 rounded cursor-pointer"
         />
       </td>
       <td className="py-3 px-3 text-center font-mono font-medium text-slate-600">
@@ -60,7 +60,7 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
       </td>
       <td className="py-3 px-3 text-center">
         {rider.batch_name ? (
-          <span className="inline-block rounded-md bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 font-medium text-[11px] tracking-tight">
+          <span className="inline-block rounded-md bg-[#deecf9] text-[#005a9e] border border-[#c7e0f4] px-2 py-0.5 font-medium text-[11px] tracking-tight">
             {rider.batch_name}
           </span>
         ) : (
@@ -75,7 +75,7 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
       <td className="py-3 px-3">
         <a
           href={`tel:${rider.phone}`}
-          className="font-mono font-medium text-blue-600 hover:underline flex items-center gap-1"
+          className="font-mono font-medium text-[#0078d4] hover:underline flex items-center gap-1"
         >
           <Phone className="h-3 w-3" />
           {rider.phone}
@@ -90,7 +90,7 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
             {rider.emergency_contact}
           </a>
         ) : (
-          <span className="text-slate-400">—</span>
+          <span className="text-slate-400 font-medium">—</span>
         )}
       </td>
       <td className="py-3 px-3">

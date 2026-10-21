@@ -21,6 +21,29 @@ function loadCheckout() {
   return checkoutScript;
 }
 
+async function verifyWithRetry(verifyPayment, maxAttempts = 4, delayMs = 1500) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await verifyPayment();
+    } catch (err) {
+      lastError = err;
+      const msg = String(err?.message || "").toLowerCase();
+      const isPending =
+        msg.includes("still being confirmed") ||
+        msg.includes("wait a moment") ||
+        msg.includes("pending");
+
+      if (attempt < maxAttempts && isPending) {
+        await new Promise((r) => setTimeout(r, delayMs * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 export async function openCashfreeCheckout({ checkout, verifyPayment }) {
   await loadCheckout();
   const cashfree = window.Cashfree({ mode: checkout.mode || "sandbox" });
@@ -30,14 +53,14 @@ export async function openCashfreeCheckout({ checkout, verifyPayment }) {
   });
 
   if (result?.error) {
-    // If the modal was dismissed or errored out, check with backend first
-    // in case the transaction was actually debited and verified by Cashfree.
+    // If modal was dismissed or errored, verify with backend first in case payment completed
     try {
-      return await verifyPayment();
+      return await verifyWithRetry(verifyPayment, 3, 1000);
     } catch {
       throw new Error("Payment was not completed. No registration has been confirmed.");
     }
   }
 
-  return verifyPayment();
+  return verifyWithRetry(verifyPayment, 4, 1500);
 }
+

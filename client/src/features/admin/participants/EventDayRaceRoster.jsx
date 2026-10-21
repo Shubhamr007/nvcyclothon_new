@@ -47,7 +47,7 @@ export const EventDayRaceRoster = memo(function EventDayRaceRoster({
   return (
     <div className="space-y-6">
       {/* ROSTER CONFIGURATION & FILTER CONTROL PANEL */}
-      <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4 print:hidden">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 print:hidden">
         <RosterFilterToolbar
           routes={routes}
           batches={batches}

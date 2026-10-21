@@ -11,11 +11,11 @@ export function PartnerDetailModal({
   if (!selectedApp) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-xs">
       <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
-            <span className="text-xs font-mono font-medium text-blue-600">
+            <span className="text-xs font-mono font-medium text-[#005a9e]">
               {selectedApp.application_number || `NV-26-P-${selectedApp.id}`}
             </span>
             <h4 className="text-lg font-bold text-slate-900">
@@ -32,7 +32,7 @@ export function PartnerDetailModal({
         </div>
 
         <div className="mt-5 space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 border border-slate-200/80 p-4">
+          <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 border border-slate-200 p-4">
             <div>
               <span className="text-slate-400 font-semibold uppercase text-[10px]">Contact Person</span>
               <p className="font-semibold text-slate-900 text-sm mt-0.5">{selectedApp.contact_name}</p>
@@ -65,9 +65,9 @@ export function PartnerDetailModal({
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 p-4">
+          <div className="rounded-xl border border-slate-200 p-4 bg-white">
             <span className="text-slate-400 font-semibold uppercase text-[10px]">Partnership Proposal</span>
-            <p className="font-semibold text-sm text-blue-600 mt-1">
+            <p className="font-semibold text-sm text-[#005a9e] mt-1">
               {selectedApp.package_name || selectedApp.tier_name || "Custom"} ({selectedApp.partnership_type})
             </p>
             {selectedApp.proposed_value && (
@@ -79,7 +79,7 @@ export function PartnerDetailModal({
           </div>
 
           {selectedApp.activation_description && (
-            <div className="rounded-xl border border-slate-200 p-4">
+            <div className="rounded-xl border border-slate-200 p-4 bg-white">
               <span className="text-slate-400 font-semibold uppercase text-[10px]">Activation Intent</span>
               <p className="mt-1 text-slate-700">{selectedApp.activation_description}</p>
             </div>
@@ -107,7 +107,7 @@ export function PartnerDetailModal({
           <Button
             size="sm"
             onClick={() => onOpenReview(selectedApp)}
-            className="bg-slate-900 text-white hover:bg-slate-800 font-medium"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-medium"
           >
             Change Status / Notes
           </Button>

@@ -3,21 +3,27 @@ import PropTypes from 'prop-types';
 import { History, Plus, Trash2, RotateCcw } from 'lucide-react';
 
 export function AdminAiCoPilotHeader({
-  liveMetrics,
+  liveMetrics = null,
   onOpenHistory,
   onNewChat,
   onClearChat,
-  onResetWidth,
+  onResetWidth = null,
   isCustomWidth = false,
 }) {
   return (
-    <div className="shrink-0 border-b border-[#E5E2DB] dark:border-[#2A2D35] bg-[#F3F1EC] dark:bg-[#18191E] px-3.5 py-2 flex items-center justify-between gap-2 text-xs">
+    <div className="shrink-0 border-b border-slate-200 bg-[#F4F6F8] px-3.5 py-2 flex items-center justify-between gap-2 text-xs">
       <div className="flex items-center gap-1.5 truncate">
         <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-        <span className="font-semibold text-[#252525] dark:text-[#E4E4E4] truncate text-[11px]">
+        <span className="font-semibold text-slate-800 truncate text-[11px]">
           {liveMetrics
             ? `${liveMetrics.totalRiders} Riders • ₹${Number(liveMetrics.revenueInr).toLocaleString('en-IN')}`
             : 'Verified Event Context'}
+        </span>
+        <span
+          className="hidden sm:inline-block px-1.5 py-0.2 text-[10px] font-medium bg-white text-slate-600 rounded border border-slate-200 shrink-0"
+          title="RAG Knowledge Base & Shared Semantic Vectors v2026.2.0"
+        >
+          KB v2026.2
         </span>
       </div>
       <div className="flex items-center gap-1">
@@ -27,7 +33,7 @@ export function AdminAiCoPilotHeader({
             onClick={onResetWidth}
             title="Reset assistant width to default (480px)"
             aria-label="Reset assistant width to default"
-            className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[#6B6B6B] dark:text-[#9A9A9A] hover:bg-[#E5E2DB]/50 dark:hover:bg-[#252830] hover:text-[#252525] dark:hover:text-white transition text-[11px]"
+            className="flex items-center gap-1 rounded-md px-1.5 py-1 text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 transition text-[11px]"
           >
             <RotateCcw className="h-3 w-3" />
             <span className="hidden sm:inline">Width</span>
@@ -37,7 +43,7 @@ export function AdminAiCoPilotHeader({
           type="button"
           onClick={onOpenHistory}
           title="View Past Conversations"
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-[#6B6B6B] dark:text-[#9A9A9A] hover:bg-[#E5E2DB]/50 dark:hover:bg-[#252830] hover:text-[#252525] dark:hover:text-white transition text-[11px]"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-slate-600 hover:bg-slate-200/60 hover:text-slate-900 transition text-[11px]"
         >
           <History className="h-3.5 w-3.5" />
           <span>History</span>
@@ -46,7 +52,7 @@ export function AdminAiCoPilotHeader({
           type="button"
           onClick={onNewChat}
           title="Start New Thread"
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 transition text-[11px] font-semibold"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-[#0078d4] hover:bg-[#deecf9] transition text-[11px] font-semibold"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>New</span>
@@ -55,7 +61,7 @@ export function AdminAiCoPilotHeader({
           type="button"
           onClick={onClearChat}
           title="Clear Current Chat"
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-[#6B6B6B] dark:text-[#9A9A9A] hover:bg-red-500/10 hover:text-red-600 transition text-[11px]"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-slate-600 hover:bg-rose-50 hover:text-rose-600 transition text-[11px]"
         >
           <Trash2 className="h-3.5 w-3.5" />
           <span>Clear</span>
@@ -74,8 +80,3 @@ AdminAiCoPilotHeader.propTypes = {
   isCustomWidth: PropTypes.bool,
 };
 
-AdminAiCoPilotHeader.defaultProps = {
-  liveMetrics: null,
-  onResetWidth: null,
-  isCustomWidth: false,
-};

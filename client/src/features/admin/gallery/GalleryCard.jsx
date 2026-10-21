@@ -3,10 +3,10 @@ import { Edit2, Trash2 } from "lucide-react";
 import { resolveApiAssetUrl } from "../../../api/http";
 
 export const CATEGORY_STYLES = {
-  Organizers: "bg-amber-50 text-amber-800 border-amber-200/80",
-  Partners: "bg-sky-50 text-sky-800 border-sky-200/80",
-  Riders: "bg-emerald-50 text-emerald-800 border-emerald-200/80",
-  Highlights: "bg-indigo-50 text-indigo-800 border-indigo-200/80",
+  Organizers: "bg-amber-50 text-amber-800 border-amber-200",
+  Partners: "bg-[#deecf9] text-[#005a9e] border-[#c7e0f4]",
+  Riders: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  Highlights: "bg-indigo-50 text-indigo-800 border-indigo-200",
   Event: "bg-slate-100 text-slate-800 border-slate-200",
 };
 
@@ -22,9 +22,9 @@ export const GalleryCard = memo(function GalleryCard({
 
   return (
     <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white shadow-sm transition-all hover:shadow-md ${
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white shadow-xs transition-all hover:shadow-md ${
         isSelected
-          ? "border-blue-600 ring-2 ring-blue-600/30"
+          ? "border-[#0078d4] ring-2 ring-[#0078d4]/30"
           : "border-slate-200 hover:border-slate-300"
       }`}
     >
@@ -40,14 +40,14 @@ export const GalleryCard = memo(function GalleryCard({
 
         {/* CHECKBOX */}
         <label
-          className="absolute left-2.5 top-2.5 z-10 grid h-6 w-6 place-items-center rounded-md bg-white/90 shadow-sm cursor-pointer hover:bg-white"
+          className="absolute left-2.5 top-2.5 z-10 grid h-6 w-6 place-items-center rounded-md bg-white/95 shadow-xs cursor-pointer hover:bg-white"
           onClick={(e) => e.stopPropagation()}
         >
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelect(item.id)}
-            className="h-3.5 w-3.5 rounded accent-slate-900 cursor-pointer"
+            className="h-3.5 w-3.5 rounded accent-[#0078d4] cursor-pointer"
           />
         </label>
 

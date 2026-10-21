@@ -4,14 +4,7 @@ import PropTypes from 'prop-types';
 export const THEME_STORAGE_KEY = 'nv-theme';
 
 export function getSystemTheme() {
-  if (typeof window === 'undefined') return 'light';
-  try {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-  } catch {
-    return 'light';
-  }
+  return 'light';
 }
 
 export function getStoredTheme() {
@@ -22,7 +15,7 @@ export function getStoredTheme() {
   } catch {
     // LocalStorage might be disabled or restricted in private mode
   }
-  return getSystemTheme();
+  return 'light';
 }
 
 export function applyThemeToDOM(theme) {

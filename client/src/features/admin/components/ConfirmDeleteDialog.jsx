@@ -20,13 +20,13 @@ export function ConfirmDeleteDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 backdrop-blur-xs animate-in fade-in duration-150"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-delete-title"
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-200 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
@@ -60,7 +60,7 @@ export function ConfirmDeleteDialog({
           </p>
 
           {itemNames && itemNames.length > 0 && (
-            <div className="mt-3 max-h-28 overflow-y-auto rounded-xl bg-slate-50 p-2.5 border border-slate-100 text-xs text-slate-700 space-y-1">
+            <div className="mt-3 max-h-28 overflow-y-auto rounded-xl bg-[#faf9f6] p-2.5 border border-slate-200 text-xs text-slate-700 space-y-1">
               {itemNames.slice(0, 5).map((name, idx) => (
                 <div key={idx} className="flex items-center gap-1.5 truncate">
                   <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
@@ -82,7 +82,7 @@ export function ConfirmDeleteDialog({
             variant="outline"
             onClick={onClose}
             disabled={isDeleting}
-            className="border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold rounded-xl h-10 px-4"
+            className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-xl h-10 px-4"
           >
             Cancel
           </Button>

@@ -1,52 +1,86 @@
 import { adminRequest, adminDownload } from "../../../api/http";
+import { fetchAdminJob } from "../../../api/jobs";
+
+async function pollJobProgress(jobId, adminKey, totalCount, labelPrefix, onProgress) {
+  let job = null;
+  for (let attempt = 0; attempt < 120; attempt++) {
+    await new Promise((r) => setTimeout(r, 600));
+    try {
+      job = await fetchAdminJob(adminKey, jobId);
+    } catch (err) {
+      console.warn("Poll job error:", err);
+      break;
+    }
+    if (!job) break;
+
+    const percent = job.progress || 0;
+    const current = Math.round((percent / 100) * totalCount);
+    onProgress?.({
+      current,
+      total: totalCount,
+      percent,
+      label:
+        job.status === "completed"
+          ? `${labelPrefix} completed successfully!`
+          : `${labelPrefix} in background: ${percent}%...`,
+    });
+
+    if (["completed", "failed", "cancelled"].includes(job.status)) {
+      break;
+    }
+  }
+  return job;
+}
 
 /**
- * Executes chunked generation & dispatch of rider passes.
+ * Executes durable background generation & dispatch of rider passes.
  */
 export async function executeBatchRiderPasses({
   targetIds,
   adminKey,
   onProgress,
-  batchSize = 10,
 }) {
   try {
     const totalCount = targetIds.length;
-    let totalQueued = 0;
-    let totalSent = 0;
-    let totalFailed = 0;
-    let totalSkipped = 0;
+    onProgress?.({
+      current: 0,
+      total: totalCount,
+      percent: 5,
+      label: `Queuing durable rider pass job for ${totalCount} rider${totalCount === 1 ? "" : "es"}...`,
+    });
 
-    const totalBatches = Math.ceil(totalCount / batchSize);
-    for (let i = 0; i < totalCount; i += batchSize) {
-      const batchIds = targetIds.slice(i, i + batchSize);
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const currentProcessed = Math.min(i + batchSize, totalCount);
-      const percent = Math.round((currentProcessed / totalCount) * 100);
+    const result = await adminRequest("/registrations/rider-passes/generate", adminKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(targetIds),
+    });
 
-      onProgress?.({
-        current: currentProcessed,
-        total: totalCount,
-        percent,
-        label:
-          totalBatches > 1
-            ? `Generating passes: batch ${batchNumber}/${totalBatches} (${currentProcessed}/${totalCount})...`
-            : `Generating & emailing ${totalCount} rider pass${totalCount === 1 ? "" : "es"}...`,
-      });
+    if (result.job_id) {
+      const finalJob = await pollJobProgress(
+        result.job_id,
+        adminKey,
+        totalCount,
+        "Generating rider passes",
+        onProgress
+      );
 
-      const result = await adminRequest("/registrations/rider-passes/generate", adminKey, {
-        method: "POST",
-        timeoutMs: 120000,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(batchIds),
-      });
-
-      totalQueued += result.queued || 0;
-      totalSent += result.sent_ids?.length || 0;
-      totalFailed += result.failed_ids?.length || 0;
-      totalSkipped += (result.skipped || 0) + (result.missing_ids?.length || 0);
+      const jobResult = finalJob?.result || {};
+      return {
+        totalQueued: jobResult.queued ?? result.queued ?? totalCount,
+        totalSent: jobResult.sent_ids?.length ?? result.queued ?? totalCount,
+        totalFailed: jobResult.failed_ids?.length ?? 0,
+        totalSkipped: (jobResult.skipped ?? result.skipped ?? 0) + (jobResult.missing_ids?.length ?? result.missing_ids?.length ?? 0),
+        totalCount,
+      };
     }
 
-    return { totalQueued, totalSent, totalFailed, totalSkipped, totalCount };
+    return {
+      totalQueued: result.queued || 0,
+      totalSent: result.sent_ids?.length || 0,
+      totalFailed: result.failed_ids?.length || 0,
+      totalSkipped: (result.skipped || 0) + (result.missing_ids?.length || 0),
+      totalCount,
+    };
   } catch (error) {
     console.error("executeBatchRiderPasses error:", error);
     throw error;
@@ -54,52 +88,54 @@ export async function executeBatchRiderPasses({
 }
 
 /**
- * Executes chunked generation & dispatch of certificates.
+ * Executes durable background generation & dispatch of certificates.
  */
 export async function executeBatchCertificates({
   targetIds,
   adminKey,
   onProgress,
-  batchSize = 10,
 }) {
   try {
     const totalCount = targetIds.length;
-    let totalQueued = 0;
-    let totalSent = 0;
-    let totalFailed = 0;
-    let totalSkipped = 0;
+    onProgress?.({
+      current: 0,
+      total: totalCount,
+      percent: 5,
+      label: `Queuing durable certificate job for ${totalCount} participant${totalCount === 1 ? "" : "s"}...`,
+    });
 
-    const totalBatches = Math.ceil(totalCount / batchSize);
-    for (let i = 0; i < totalCount; i += batchSize) {
-      const batchIds = targetIds.slice(i, i + batchSize);
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const currentProcessed = Math.min(i + batchSize, totalCount);
-      const percent = Math.round((currentProcessed / totalCount) * 100);
+    const result = await adminRequest("/registrations/certificates/generate", adminKey, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(targetIds),
+    });
 
-      onProgress?.({
-        current: currentProcessed,
-        total: totalCount,
-        percent,
-        label:
-          totalBatches > 1
-            ? `Generating certificates: batch ${batchNumber}/${totalBatches} (${currentProcessed}/${totalCount})...`
-            : `Generating & emailing ${totalCount} certificate${totalCount === 1 ? "" : "s"}...`,
-      });
+    if (result.job_id) {
+      const finalJob = await pollJobProgress(
+        result.job_id,
+        adminKey,
+        totalCount,
+        "Generating certificates",
+        onProgress
+      );
 
-      const result = await adminRequest("/registrations/certificates/generate", adminKey, {
-        method: "POST",
-        timeoutMs: 120000,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(batchIds),
-      });
-
-      totalQueued += result.queued || 0;
-      totalSent += result.sent_ids?.length || 0;
-      totalFailed += result.failed_ids?.length || 0;
-      totalSkipped += (result.skipped || 0) + (result.missing_ids?.length || 0);
+      const jobResult = finalJob?.result || {};
+      return {
+        totalQueued: jobResult.queued ?? result.queued ?? totalCount,
+        totalSent: jobResult.sent_ids?.length ?? result.queued ?? totalCount,
+        totalFailed: jobResult.failed_ids?.length ?? 0,
+        totalSkipped: (jobResult.skipped ?? result.skipped ?? 0) + (jobResult.missing_ids?.length ?? result.missing_ids?.length ?? 0),
+        totalCount,
+      };
     }
 
-    return { totalQueued, totalSent, totalFailed, totalSkipped, totalCount };
+    return {
+      totalQueued: result.queued || 0,
+      totalSent: result.sent_ids?.length || 0,
+      totalFailed: result.failed_ids?.length || 0,
+      totalSkipped: (result.skipped || 0) + (result.missing_ids?.length || 0),
+      totalCount,
+    };
   } catch (error) {
     console.error("executeBatchCertificates error:", error);
     throw error;

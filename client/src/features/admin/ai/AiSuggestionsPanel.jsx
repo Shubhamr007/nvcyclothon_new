@@ -61,7 +61,7 @@ export const AiSuggestionsPanel = memo(function AiSuggestionsPanel({
   };
 
   return (
-    <div className="shrink-0 border-t border-[#E5E2DB] dark:border-[#2A2D35] bg-[#F3F1EC]/80 dark:bg-[#18191E]/90 transition-colors">
+    <div className="shrink-0 border-t border-slate-200 bg-[#FAF9F6] transition-colors">
       {/* Header bar with hide/show toggle */}
       <div className="flex items-center justify-between px-3.5 py-1.5 select-none">
         <button
@@ -69,11 +69,11 @@ export const AiSuggestionsPanel = memo(function AiSuggestionsPanel({
           onClick={toggleExpand}
           aria-expanded={isExpanded}
           aria-controls="copilot-suggestions-body"
-          className="flex items-center gap-1.5 text-left text-[11px] font-semibold text-[#252525] dark:text-[#D4D4D4] hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500/40 rounded px-1 -ml-1"
+          className="flex items-center gap-1.5 text-left text-[11px] font-semibold text-slate-800 hover:text-[#0078d4] transition-colors focus:outline-none focus:ring-1 focus:ring-[#0078d4]/40 rounded px-1 -ml-1"
         >
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <Sparkles className="w-3.5 h-3.5 text-[#0078d4] shrink-0" />
           <span>Suggested Inquiries</span>
-          <span className="text-[10px] text-[#6B6B6B] dark:text-[#8C8C8C] font-normal">
+          <span className="text-[10px] text-slate-500 font-normal">
             ({CURATED_SUGGESTIONS.length})
           </span>
         </button>
@@ -82,7 +82,7 @@ export const AiSuggestionsPanel = memo(function AiSuggestionsPanel({
           type="button"
           onClick={toggleExpand}
           aria-label={isExpanded ? 'Hide suggestions' : 'Show suggestions'}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-[#6B6B6B] dark:text-[#9A9A9A] hover:bg-[#E5E2DB]/60 dark:hover:bg-[#252830] transition-colors"
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-slate-500 hover:bg-slate-200/60 transition-colors"
         >
           <span>{isExpanded ? 'Hide' : 'Show'}</span>
           {isExpanded ? (
@@ -107,17 +107,17 @@ export const AiSuggestionsPanel = memo(function AiSuggestionsPanel({
               onClick={() => onInsertPrompt(item.prompt)}
               title="Click to insert into prompt composer"
               aria-label={`Insert prompt: ${item.title}`}
-              className="group text-left p-2 rounded-lg bg-[#FAF9F6] dark:bg-[#1E2026] border border-[#E5E2DB] dark:border-[#2C2F38] hover:bg-[#F0EEE8] dark:hover:bg-[#262830] hover:border-[#D5D1C7] dark:hover:border-[#383C46] transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shadow-2xs"
+              className="group text-left p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus:ring-2 focus:ring-[#0078d4]/40 shadow-2xs"
             >
               <div className="flex items-center justify-between gap-1 mb-0.5">
-                <span className="text-[11px] font-semibold text-[#252525] dark:text-[#E4E4E4] group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors truncate">
+                <span className="text-[11px] font-semibold text-slate-900 group-hover:text-[#0078d4] transition-colors truncate">
                   {item.title}
                 </span>
-                <span className="shrink-0 text-[9px] font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 px-1 rounded">
+                <span className="shrink-0 text-[9px] font-medium text-[#005a9e] bg-[#deecf9] px-1.5 py-0.5 rounded">
                   {item.category}
                 </span>
               </div>
-              <p className="text-[10px] text-[#6B6B6B] dark:text-[#9A9A9A] line-clamp-1 leading-tight">
+              <p className="text-[10px] text-slate-500 line-clamp-1 leading-tight">
                 {item.desc}
               </p>
             </button>
@@ -133,6 +133,3 @@ AiSuggestionsPanel.propTypes = {
   disabled: PropTypes.bool,
 };
 
-AiSuggestionsPanel.defaultProps = {
-  disabled: false,
-};

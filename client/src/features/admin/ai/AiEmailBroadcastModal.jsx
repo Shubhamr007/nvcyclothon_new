@@ -71,18 +71,18 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 backdrop-blur-xs overflow-y-auto">
       <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl my-8">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0078d4] text-white shadow-xs">
               <Mail className="h-4 w-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-slate-900">Broadcast Participant Update</h3>
-                <span className="rounded-md bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                <span className="rounded-md bg-[#deecf9] border border-[#c7e0f4] px-2 py-0.5 text-[10px] font-bold text-[#005a9e]">
                   AI ASSISTED
                 </span>
               </div>
@@ -116,7 +116,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 focus:border-indigo-500 focus:outline-none"
+              className="h-9 w-full rounded-xl border border-slate-300 bg-[#faf9f6] px-3 text-xs text-slate-800 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             >
               <option value="all">All Registered Riders (Broadcast)</option>
               {CATEGORIES.filter((c) => c !== "all").map((cat) => (
@@ -128,9 +128,9 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
           </div>
 
           {/* AI Drafting Prompt Box */}
-          <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/40 p-4 space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+          <div className="rounded-xl border border-[#c7e0f4] bg-[#deecf9]/30 p-4 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#005a9e]">
+              <Sparkles className="h-3.5 w-3.5 text-[#0078d4]" />
               <span>Draft with AI Assistant</span>
             </div>
             <textarea
@@ -138,14 +138,14 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="e.g. Tell riders bib collection is on Saturday 10am at Rewa Stadium. Helmets mandatory."
-              className="w-full rounded-lg border border-indigo-200/80 bg-white p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
             <div className="flex justify-end">
               <Button
                 size="sm"
                 onClick={handleDraft}
                 disabled={drafting || !prompt.trim()}
-                className="h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                className="h-8 text-xs font-semibold bg-[#0078d4] hover:bg-[#005a9e] text-white shadow-xs"
               >
                 {drafting ? (
                   <>
@@ -172,7 +172,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="NV Cyclothon 2026: Official Announcement…"
-              className="h-9 w-full rounded-xl border border-slate-200 px-3 text-xs text-slate-900 font-semibold focus:border-indigo-500 focus:outline-none"
+              className="h-9 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 font-semibold focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
 
@@ -186,7 +186,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="Dear Cyclists,&#10;&#10;Write your official announcement here…"
-              className="w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-800 leading-relaxed focus:border-indigo-500 focus:outline-none font-mono"
+              className="w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-800 leading-relaxed focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none font-mono"
             />
           </div>
         </div>
@@ -226,7 +226,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
               size="sm"
               onClick={handleSend}
               disabled={sending || !subject.trim() || !body.trim()}
-              className="h-9 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
+              className="h-9 text-xs font-bold bg-[#0078d4] hover:bg-[#005a9e] text-white shadow-xs"
             >
               {sending ? (
                 <>
@@ -235,7 +235,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
                 </>
               ) : (
                 <>
-                  <Send className="h-3.5 w-3.5 mr-1.5 text-indigo-300" />
+                  <Send className="h-3.5 w-3.5 mr-1.5 text-blue-100" />
                   <span>Send Broadcast</span>
                 </>
               )}

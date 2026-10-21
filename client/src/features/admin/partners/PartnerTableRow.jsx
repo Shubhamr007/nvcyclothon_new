@@ -14,7 +14,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
   return (
     <tr
       className={`border-b border-slate-100 transition-colors ${
-        selected ? "bg-slate-50/80" : "hover:bg-slate-50/50"
+        selected ? "bg-[#deecf9]/40" : "hover:bg-slate-50/70"
       }`}
     >
       <td className="p-3.5">
@@ -23,7 +23,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
           checked={selected}
           onChange={() => onToggleSelect(app.id)}
           aria-label={`Select ${app.company_name}`}
-          className="accent-slate-900 rounded cursor-pointer"
+          className="accent-[#0078d4] rounded cursor-pointer"
         />
       </td>
       <td className="p-3.5 whitespace-nowrap">
@@ -47,7 +47,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
         <div className="text-[11px] text-slate-500">{app.phone} • {app.email}</div>
       </td>
       <td className="p-3.5">
-        <div className="font-medium text-blue-600">
+        <div className="font-medium text-[#005a9e]">
           {app.package_name || app.tier_name || "Custom Tier"}
         </div>
         <div className="text-[10px] text-slate-400">{app.partnership_type}</div>
@@ -61,7 +61,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
             size="sm"
             variant="outline"
             onClick={() => onViewDetails(app)}
-            className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-50"
           >
             Details
           </Button>
@@ -70,7 +70,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
               size="sm"
               variant="outline"
               onClick={() => onPreviewLogo(app.id)}
-              className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-100"
+              className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-50"
             >
               Logo
             </Button>
@@ -79,7 +79,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
             size="sm"
             variant="outline"
             onClick={() => onOpenDeliverables(app)}
-            className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-50"
           >
             Deliverables
           </Button>
@@ -87,7 +87,7 @@ export const PartnerTableRow = React.memo(function PartnerTableRow({
             size="sm"
             variant="default"
             onClick={() => onOpenReview(app)}
-            className="h-7 px-2 text-[11px] bg-slate-900 text-white hover:bg-slate-800 font-medium"
+            className="h-7 px-2 text-[11px] bg-[#0078d4] hover:bg-[#005a9e] text-white font-medium"
           >
             Status
           </Button>

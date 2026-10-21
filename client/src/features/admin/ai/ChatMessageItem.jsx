@@ -10,9 +10,9 @@ export function ChatMessageItem({
   idx,
   isCopied,
   onCopy,
-  onEdit,
-  activeConversationId,
-  accessToken,
+  onEdit = null,
+  activeConversationId = null,
+  accessToken = null,
 }) {
   const isUser = msg.role === 'user';
 
@@ -20,7 +20,7 @@ export function ChatMessageItem({
     <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
         <div
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs mt-0.5"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0078d4] text-white shadow-xs mt-0.5"
           aria-hidden="true"
         >
           <Sparkles className="h-4 w-4" />
@@ -30,8 +30,8 @@ export function ChatMessageItem({
       <div
         className={`group relative max-w-[88%] rounded-2xl px-4 py-3 text-xs leading-relaxed transition-colors shadow-2xs ${
           isUser
-            ? 'bg-[#2B2D31] text-white dark:bg-[#252830] border border-[#3E424B]/50 dark:border-[#323640] rounded-br-xs'
-            : 'bg-white dark:bg-[#1C1E24] text-[#252525] dark:text-[#E4E4E4] border border-[#E5E2DB] dark:border-[#2C2F38] rounded-bl-xs'
+            ? 'bg-[#0078d4] text-white border border-[#005a9e] rounded-br-xs'
+            : 'bg-white text-slate-900 border border-slate-200/90 rounded-bl-xs'
         }`}
       >
         <div className="font-sans">
@@ -48,8 +48,8 @@ export function ChatMessageItem({
         <div
           className={`mt-2.5 pt-1.5 flex items-center justify-between gap-2 text-[10px] ${
             isUser
-              ? 'border-t border-white/10 text-zinc-400'
-              : 'border-t border-[#EFECE6] dark:border-[#2A2D35] text-[#6B6B6B] dark:text-[#9A9A9A]'
+              ? 'border-t border-white/20 text-blue-100'
+              : 'border-t border-slate-100 text-slate-500'
           }`}
         >
           <span>{msg.timestamp || ''}</span>
@@ -58,7 +58,7 @@ export function ChatMessageItem({
               <button
                 type="button"
                 onClick={() => onEdit(msg.content, msg.id || `msg_${idx}`)}
-                className="inline-flex items-center gap-1 text-zinc-300 hover:text-white transition-colors"
+                className="inline-flex items-center gap-1 text-blue-100 hover:text-white transition-colors"
                 title="Edit and revise this prompt"
                 aria-label="Edit this message in composer"
               >
@@ -72,14 +72,14 @@ export function ChatMessageItem({
               onClick={() => onCopy(msg.content, idx)}
               className={`inline-flex items-center gap-1 transition-colors ${
                 isUser
-                  ? 'text-zinc-300 hover:text-white'
-                  : 'text-[#6B6B6B] dark:text-[#9A9A9A] hover:text-[#252525] dark:hover:text-white'
+                  ? 'text-blue-100 hover:text-white'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
               title="Copy message text"
               aria-label="Copy message text to clipboard"
             >
               {isCopied ? (
-                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                <span className={`flex items-center gap-1 font-semibold ${isUser ? 'text-emerald-200' : 'text-emerald-600'}`}>
                   <Check className="h-3 w-3" /> Copied
                 </span>
               ) : (
@@ -102,7 +102,7 @@ export function ChatMessageItem({
 
       {isUser && (
         <div
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E5E2DB] dark:bg-[#2A2D35] text-[#252525] dark:text-[#D4D4D4] font-semibold text-xs shadow-2xs mt-0.5"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#faf9f6] border border-slate-200 text-slate-700 font-semibold text-xs shadow-2xs mt-0.5"
           aria-hidden="true"
         >
           <User className="h-4 w-4" />
@@ -128,8 +128,3 @@ ChatMessageItem.propTypes = {
   accessToken: PropTypes.string,
 };
 
-ChatMessageItem.defaultProps = {
-  onEdit: null,
-  activeConversationId: null,
-  accessToken: null,
-};

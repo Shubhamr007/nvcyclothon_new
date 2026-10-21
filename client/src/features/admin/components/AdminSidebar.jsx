@@ -79,8 +79,8 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
       onClick={handleClick}
       className={`group relative flex w-full items-center justify-between rounded-md px-3 py-2.5 transition-colors ${
         isActive
-          ? "bg-transparent text-slate-950 dark:text-white text-sm font-semibold"
-          : "text-slate-600 dark:text-slate-400 text-xs font-medium hover:bg-slate-100 dark:hover:bg-[#1C1E24] hover:text-slate-950 dark:hover:text-white"
+          ? "bg-white text-slate-950 text-sm font-semibold shadow-2xs border border-slate-200/80"
+          : "text-slate-700 text-xs font-medium hover:bg-white/70 hover:text-slate-950"
       }`}
     >
       {isActive && <span className="absolute inset-y-1.5 left-0 w-1 rounded-full bg-[#0078d4]" aria-hidden="true" />}
@@ -89,7 +89,7 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
           className={`h-4 w-4 shrink-0 transition-colors ${
             isActive
               ? "text-[#0078d4]"
-              : "text-slate-500 dark:text-slate-400 group-hover:text-[#0078d4]"
+              : "text-slate-500 group-hover:text-[#0078d4]"
           }`}
         />
         <span>{item.label}</span>
@@ -100,8 +100,8 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-black ${
               isActive
-                ? "bg-[#deecf9] dark:bg-[#004578]/50 text-[#005a9e] dark:text-[#50e6ff]"
-                : "bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300"
+                ? "bg-[#deecf9] text-[#005a9e]"
+                : "bg-amber-100 text-amber-800"
             }`}
           >
             {badgeCount}
@@ -111,7 +111,7 @@ const SidebarNavItem = React.memo(function SidebarNavItem({
           className={`h-3.5 w-3.5 transition-opacity ${
             isActive
               ? "opacity-0"
-              : "opacity-0 group-hover:opacity-75 text-slate-400 dark:text-slate-500"
+              : "opacity-0 group-hover:opacity-75 text-slate-400"
           }`}
         />
       </div>
@@ -133,7 +133,7 @@ export function AdminSidebar({
       {mobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/25 backdrop-blur-xs lg:hidden"
           aria-hidden="true"
         />
       )}
@@ -141,7 +141,7 @@ export function AdminSidebar({
       {/* Sidebar navigation */}
       <aside
         style={typeof width === "number" ? { width: `${width}px` } : undefined}
-        className={`fixed top-[4.25rem] bottom-0 left-0 z-40 w-72 flex-col justify-between overflow-y-auto border-r border-slate-200 dark:border-[#2A2D35] bg-[#faf9f7] dark:bg-[#121316] p-3.5 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:h-full ${
+        className={`fixed top-[4.25rem] bottom-0 left-0 z-40 w-72 flex-col justify-between overflow-y-auto border-r border-slate-200 bg-[#faf9f6] p-3.5 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:h-full ${
           typeof width === "number" ? "" : "lg:w-64"
         } lg:shrink-0 lg:shadow-none lg:translate-x-0 lg:flex ${
           mobileOpen ? "translate-x-0 flex" : "-translate-x-full lg:flex"
@@ -151,7 +151,7 @@ export function AdminSidebar({
         <div className="space-y-5">
           {NAVIGATION_GROUPS.map((group) => (
             <div key={group.title}>
-              <p className="px-2.5 text-[11px] font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase font-mono">
+              <p className="px-2.5 text-[11px] font-semibold tracking-wider text-slate-500 uppercase font-mono">
                 {group.title}
               </p>
               <nav className="mt-1.5 space-y-0.5">
@@ -171,17 +171,17 @@ export function AdminSidebar({
         </div>
 
         {/* Bottom Sidebar Info Card */}
-        <div className="mt-6 rounded-md border border-slate-200 dark:border-[#2A2D35] bg-white dark:bg-[#18191E] p-3.5 text-xs text-slate-600 dark:text-slate-400 shadow-xs">
-          <div className="flex items-center gap-2 text-slate-900 dark:text-[#E8E8E8] font-semibold">
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-3.5 text-xs text-slate-600 shadow-2xs">
+          <div className="flex items-center gap-2 text-slate-900 font-semibold">
             <Calendar className="h-4 w-4 text-[#0078d4]" />
             <span>NV Cyclothon 2026</span>
           </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-[#9A9A9A] font-medium">
+          <p className="mt-1 text-xs text-slate-500 font-medium">
             Sunday, 22 Nov 2026 • Rewa, M.P.
           </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-[#2A2D35] flex items-center justify-between text-xs font-medium">
-            <span className="text-slate-500 dark:text-slate-400 font-mono font-bold">EDITION 3.0</span>
-            <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-semibold">
+          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-medium">
+            <span className="text-slate-500 font-mono font-bold">EDITION 3.0</span>
+            <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />

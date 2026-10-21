@@ -5,6 +5,7 @@ const multer = require('multer');
 const { ApiError, NotFoundError, ValidationError } = require('../errors');
 const { parseSchema, partnerApplicationSchema, paymentVerifySchema, normalizePartnerApplicationInput } = require('../services/validation');
 const { createPartnerVendorMediaService } = require('../services/partnerVendorMedia');
+const { adminEvents } = require('../services/adminEvents');
 
 function createPartnersRouter({ config, repository, emailService, cashfreeService, rateLimiter }) {
   const router = express.Router();
@@ -115,6 +116,8 @@ function createPartnersRouter({ config, repository, emailService, cashfreeServic
         }
 
         const application = await repository.createPartnerApplication(payload);
+        adminEvents.publish({ type: 'partners', action: 'created', id: application.id });
+        adminEvents.publish({ type: 'analytics', action: 'updated' });
 
         // Send confirmation email with reference number
         void emailService.sendPartnerApplicationConfirmation(application).catch((err) => {
@@ -184,6 +187,9 @@ function createPartnersRouter({ config, repository, emailService, cashfreeServic
         paymentId: payment.paymentId,
         signature: "cashfree-server-verified",
       });
+
+      adminEvents.publish({ type: 'partners', action: 'payment_verified', id: application.id });
+      adminEvents.publish({ type: 'analytics', action: 'updated' });
 
       res.json(application);
     } catch (error) {

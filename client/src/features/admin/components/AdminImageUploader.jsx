@@ -67,7 +67,7 @@ export function AdminImageUploader({
       </div>
 
       {/* Prominent Large Photo Preview Area */}
-      <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-4 transition-colors hover:border-slate-300">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-[#faf9f6] p-4 transition-colors hover:border-[#0078d4]/40">
         <div className="flex flex-col sm:flex-row items-center gap-4">
           {/* Large Image Frame */}
           <div className="relative shrink-0 flex items-center justify-center">
@@ -75,7 +75,7 @@ export function AdminImageUploader({
               <img
                 src={resolveApiAssetUrl(imageUrl)}
                 alt="Photo preview"
-                className="h-28 w-28 sm:h-32 sm:w-32 rounded-2xl object-cover border border-slate-200 shadow-md ring-2 ring-white"
+                className="h-28 w-28 sm:h-32 sm:w-32 rounded-2xl object-cover border border-slate-200 shadow-sm ring-2 ring-white"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                   if (e.currentTarget.nextSibling) {
@@ -85,7 +85,7 @@ export function AdminImageUploader({
               />
             ) : null}
             <div
-              className={`h-28 w-28 sm:h-32 sm:w-32 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold text-2xl shadow-md ring-2 ring-white items-center justify-center ${
+              className={`h-28 w-28 sm:h-32 sm:w-32 rounded-2xl bg-linear-to-br from-[#0078d4] to-[#005a9e] text-white font-bold text-2xl shadow-sm ring-2 ring-white items-center justify-center ${
                 imageUrl ? "hidden" : "flex"
               }`}
             >
@@ -94,8 +94,8 @@ export function AdminImageUploader({
 
             {/* Uploading Spinner Overlay */}
             {isUploading && (
-              <div className="absolute inset-0 rounded-2xl bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-semibold gap-1.5 animate-in fade-in">
-                <Loader2 className="h-6 w-6 animate-spin text-[#d9ff38]" />
+              <div className="absolute inset-0 rounded-2xl bg-slate-900/30 backdrop-blur-xs flex flex-col items-center justify-center text-white text-xs font-semibold gap-1.5 animate-in fade-in">
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
                 <span>Uploading…</span>
               </div>
             )}
@@ -124,7 +124,7 @@ export function AdminImageUploader({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-3.5 py-2 shadow-xs transition cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#0078d4] hover:bg-[#005a9e] text-white text-xs font-semibold px-3.5 py-2 shadow-xs transition cursor-pointer disabled:opacity-50"
               >
                 {isUploading ? (
                   <>

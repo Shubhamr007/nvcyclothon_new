@@ -28,7 +28,7 @@ export const RosterStatsSummary = memo(function RosterStatsSummary({
         {stats.batched !== undefined && (
           <>
             <span className="text-slate-300">•</span>
-            <span className="text-blue-700 font-semibold">
+            <span className="text-[#0078d4] font-semibold">
               Batched: {stats.batched} | Unassigned: {stats.unbatched}
             </span>
           </>
@@ -36,7 +36,7 @@ export const RosterStatsSummary = memo(function RosterStatsSummary({
         {selectedCount > 0 && (
           <>
             <span className="text-slate-300">•</span>
-            <span className="rounded-md bg-blue-100 text-blue-900 border border-blue-200 px-2 py-0.5 font-bold">
+            <span className="rounded-md bg-[#deecf9] text-[#005a9e] border border-[#c7e0f4] px-2 py-0.5 font-bold">
               {selectedCount} Selected
             </span>
           </>
@@ -52,7 +52,7 @@ export const RosterStatsSummary = memo(function RosterStatsSummary({
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="h-7 rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-800 focus:border-slate-900 focus:outline-none"
+          className="h-7 rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-800 focus:border-[#0078d4] focus:outline-none"
         >
           <option value="25">25 per page</option>
           <option value="50">50 per page</option>

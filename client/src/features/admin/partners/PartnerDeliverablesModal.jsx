@@ -12,7 +12,7 @@ const PartnerDeliverableRow = React.memo(function PartnerDeliverableRow({
   }, [item.id, item.status, onToggle]);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 p-3.5">
+    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3.5">
       <div>
         <p className="font-semibold text-xs text-slate-900">{item.deliverable_type}</p>
         {item.completed_at && (
@@ -28,7 +28,7 @@ const PartnerDeliverableRow = React.memo(function PartnerDeliverableRow({
         onClick={handleClick}
         className={`h-7 text-xs font-medium ${
           item.status === "COMPLETED"
-            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+            ? "bg-emerald-600 hover:bg-emerald-700 text-white"
             : "border-slate-300 text-slate-700 hover:bg-slate-50"
         }`}
       >
@@ -48,11 +48,11 @@ export function PartnerDeliverablesModal({
   if (!deliverablesApp) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-xs">
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div>
-            <span className="text-xs font-semibold text-blue-600">Deliverable Tracking</span>
+            <span className="text-xs font-semibold text-[#005a9e]">Deliverable Tracking</span>
             <h4 className="text-lg font-bold text-slate-900">
               {deliverablesApp.company_name}
             </h4>

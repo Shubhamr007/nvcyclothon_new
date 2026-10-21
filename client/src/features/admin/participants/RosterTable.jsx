@@ -31,7 +31,7 @@ export const RosterTable = memo(function RosterTable({
     paginatedRiders.every((r) => selectedRosterIds.includes(r.id));
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs print:border-none print:shadow-none">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs print:border-none print:shadow-none">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
@@ -41,7 +41,7 @@ export const RosterTable = memo(function RosterTable({
                   type="checkbox"
                   checked={isAllSelected}
                   onChange={onToggleSelectAll}
-                  className="accent-slate-900 h-4 w-4 rounded cursor-pointer"
+                  className="accent-[#0078d4] h-4 w-4 rounded cursor-pointer"
                   aria-label="Select all on this page"
                 />
               </th>

@@ -11,8 +11,8 @@ export function SelectedDeleteAction({ count, label = "item", busy = false, onDe
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3">
-        <span className="text-xs font-bold text-red-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50/70 p-3">
+        <span className="text-xs font-bold text-rose-900">
           {count} {label}{count === 1 ? "" : "s"} selected
         </span>
         <Button
@@ -21,7 +21,7 @@ export function SelectedDeleteAction({ count, label = "item", busy = false, onDe
           variant="destructive"
           disabled={busy}
           onClick={() => setConfirmOpen(true)}
-          className="h-8 bg-red-700 px-3 text-xs font-bold text-white hover:bg-red-800"
+          className="h-8 bg-rose-600 hover:bg-rose-700 px-3 text-xs font-bold text-white shadow-xs"
         >
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
           Delete selected

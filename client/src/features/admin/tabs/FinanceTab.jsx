@@ -189,7 +189,7 @@ export function FinanceTab({ riders: propRiders, onTriggerAiPrompt }) {
             <Check className="h-4 w-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{feedback}</span>
           </div>
-          <button type="button" onClick={() => setFeedback("")} className="text-emerald-600 hover:text-emerald-800 font-bold">
+          <button type="button" onClick={() => setFeedback("")} className="text-emerald-700 hover:text-emerald-900 font-bold">
             Dismiss
           </button>
         </div>
@@ -249,7 +249,7 @@ export function FinanceTab({ riders: propRiders, onTriggerAiPrompt }) {
       </div>
 
       {/* 4. REAL-TIME DATABASE SYNC STATUS BAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-slate-200/90 bg-slate-50/90 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-xl border border-slate-200 bg-[#faf9f6] shadow-2xs">
         <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-800 font-semibold">
           {saveStatus === "saving" ? (
             <span className="inline-flex items-center gap-1.5 text-amber-800 bg-amber-100/90 border border-amber-200 px-3 py-1 rounded-full text-xs font-bold">
@@ -275,7 +275,7 @@ export function FinanceTab({ riders: propRiders, onTriggerAiPrompt }) {
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition disabled:opacity-50"
           title="Force immediate database checkpoint"
         >
-          {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin text-blue-600" /> : <Save className="h-3.5 w-3.5 text-slate-500" />}
+          {saving ? <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#0078d4]" /> : <Save className="h-3.5 w-3.5 text-slate-500" />}
           <span>{saving ? "Syncing…" : "Sync Now"}</span>
         </button>
       </div>

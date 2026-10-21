@@ -74,21 +74,21 @@ export function FinanceAiAuditModal({ open, onClose, summary }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-2xl border-2 border-slate-400 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-indigo-900/60 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 px-6 py-4 text-white">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-[#F4F6F8] px-6 py-4 text-slate-900">
           <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-indigo-400" />
+            <Sparkles className="h-5 w-5 text-[#0078d4]" />
             <div>
               <h3 className="font-bold text-sm sm:text-base">AI Budget Health Check & Risk Radar</h3>
-              <p className="text-xs text-slate-300 font-medium">Heuristic audit of expense ratios, safety margins, and cashflow liquidity.</p>
+              <p className="text-xs text-slate-500 font-medium">Heuristic audit of expense ratios, safety margins, and cashflow liquidity.</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-300 hover:text-white transition p-1"
+            className="text-slate-400 hover:text-slate-700 transition p-1"
             aria-label="Close modal"
           >
             <X className="h-5 w-5" />
@@ -99,28 +99,28 @@ export function FinanceAiAuditModal({ open, onClose, summary }) {
         <div className="p-6 space-y-5">
           {/* FINDINGS LIST */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-950 uppercase tracking-wider font-mono">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
               Operational Ratios Evaluation
             </h4>
             {audit.findings.map((item, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border-2 border-slate-300 bg-white p-4 shadow-2xs space-y-1.5"
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-1.5"
               >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-slate-950 flex items-center gap-2">
+                  <span className="font-bold text-slate-900 flex items-center gap-2">
                     {item.status === "pass" ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                     ) : (
                       <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                     )}
                     {item.title}
                   </span>
-                  <span className="font-mono text-xs font-bold text-slate-950 bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded">
+                  <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded">
                     {item.metric}
                   </span>
                 </div>
-                <p className="text-xs text-slate-800 font-medium leading-relaxed pl-6">
+                <p className="text-xs text-slate-600 font-medium leading-relaxed pl-6">
                   {item.verdict}
                 </p>
               </div>
@@ -128,15 +128,15 @@ export function FinanceAiAuditModal({ open, onClose, summary }) {
           </div>
 
           {/* ACTION RECOMMENDATIONS */}
-          <div className="rounded-xl border-2 border-indigo-300 bg-indigo-100/90 p-4 space-y-2">
-            <h4 className="text-xs font-black text-indigo-950 flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-indigo-700" />
+          <div className="rounded-xl border border-blue-200 bg-[#deecf9]/40 p-4 space-y-2">
+            <h4 className="text-xs font-bold text-[#005a9e] flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-[#0078d4]" />
               AI Recommendations for Race Director:
             </h4>
-            <ul className="space-y-1.5 text-xs text-indigo-950 font-semibold">
+            <ul className="space-y-1.5 text-xs text-[#004578] font-medium">
               {audit.actionItems.map((act, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="font-bold text-indigo-700 shrink-0">•</span>
+                  <span className="font-bold text-[#0078d4] shrink-0">•</span>
                   <span>{act}</span>
                 </li>
               ))}
@@ -145,19 +145,19 @@ export function FinanceAiAuditModal({ open, onClose, summary }) {
         </div>
 
         {/* FOOTER */}
-        <div className="flex items-center justify-between border-t-2 border-slate-200 bg-slate-100 px-6 py-3.5">
+        <div className="flex items-center justify-between border-t border-slate-200 bg-[#FAF9F6] px-6 py-3.5">
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-950 transition"
           >
-            {copied ? <Check className="h-4 w-4 text-emerald-700" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
             <span>{copied ? "Copied Audit!" : "Copy Executive Summary"}</span>
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-slate-950 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition shadow-xs"
+            className="rounded-xl bg-[#0078d4] hover:bg-[#005a9e] px-5 py-2 text-xs font-bold text-white transition shadow-xs"
           >
             Close
           </button>

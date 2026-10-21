@@ -120,14 +120,14 @@ export const LayoutResizeDivider = memo(function LayoutResizeDivider({
         className={`h-full w-px transition-colors ${
           isDragging
             ? 'bg-[#0078d4] w-0.5'
-            : 'bg-slate-200 dark:bg-[#2A2D35] group-hover:bg-[#0078d4] group-focus-visible:bg-[#0078d4]'
+            : 'bg-slate-200 group-hover:bg-[#0078d4] group-focus-visible:bg-[#0078d4]'
         }`}
         aria-hidden="true"
       />
 
       {/* Floating Grip indicator on hover/drag */}
       <div
-        className={`absolute pointer-events-none flex items-center justify-center h-7 w-3.5 rounded bg-white dark:bg-[#1C1E24] border border-slate-300 dark:border-[#383C46] shadow-xs text-slate-400 dark:text-slate-400 group-hover:text-[#0078d4] dark:group-hover:text-[#50e6ff] transition-opacity duration-150 ${
+        className={`absolute pointer-events-none flex items-center justify-center h-7 w-3.5 rounded bg-white border border-slate-300 shadow-xs text-slate-400 group-hover:text-[#0078d4] transition-opacity duration-150 ${
           isDragging ? 'opacity-100 scale-105 border-[#0078d4]' : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
         }`}
         aria-hidden="true"
@@ -151,9 +151,5 @@ LayoutResizeDivider.propTypes = {
   disabled: PropTypes.bool,
 };
 
-LayoutResizeDivider.defaultProps = {
-  className: '',
-  disabled: false,
-};
-
 export default LayoutResizeDivider;
+

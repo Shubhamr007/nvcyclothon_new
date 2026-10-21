@@ -78,12 +78,12 @@ export function RaceCategoriesSection({
     <div className="space-y-6">
       {/* EARLY-BIRD CONFIGURATION & TOGGLE CARD */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div
               className={`grid h-10 w-10 place-items-center rounded-xl ${
                 isEarlyBirdEnabled
-                  ? "bg-amber-500/10 text-amber-600"
+                  ? "bg-amber-50 text-amber-700"
                   : "bg-slate-100 text-slate-500"
               }`}
             >
@@ -160,7 +160,7 @@ export function RaceCategoriesSection({
                     Math.max(0, Number(e.target.value) || 0)
                   )
                 }
-                className="h-10 w-28 rounded-xl border border-slate-300 text-center text-sm font-bold text-slate-900 focus:border-slate-900 focus:outline-none disabled:bg-slate-100"
+                className="h-10 w-28 rounded-xl border border-slate-300 bg-white text-center text-sm font-bold text-slate-900 focus:border-[#0078d4] focus:outline-none disabled:bg-slate-100"
               />
               <button
                 type="button"
@@ -185,7 +185,7 @@ export function RaceCategoriesSection({
           <div
             className={`rounded-xl border p-4 text-xs space-y-1 ${
               isEarlyBirdEnabled
-                ? "border-amber-200/80 bg-amber-50/60 text-amber-900"
+                ? "border-amber-200 bg-amber-50/60 text-amber-900"
                 : "border-slate-200 bg-slate-50 text-slate-700"
             }`}
           >

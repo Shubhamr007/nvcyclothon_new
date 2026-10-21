@@ -36,7 +36,7 @@ export const CategoryPricingTiers = memo(function CategoryPricingTiers({
                   Math.max(0, Number(e.target.value) || 0) * 100
                 )
               }
-              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-6 pr-2 text-xs font-mono font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-6 pr-2 text-xs font-mono font-bold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             />
           </div>
         </div>
@@ -60,7 +60,7 @@ export const CategoryPricingTiers = memo(function CategoryPricingTiers({
                   Math.max(0, Number(e.target.value) || 0) * 100
                 )
               }
-              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-6 pr-2 text-xs font-mono font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-6 pr-2 text-xs font-mono font-bold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             />
           </div>
         </div>
@@ -84,7 +84,7 @@ export const CategoryPricingTiers = memo(function CategoryPricingTiers({
                   Math.max(0, Number(e.target.value) || 0) * 100
                 )
               }
-              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-6 pr-2 text-xs font-mono font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-8 w-full rounded-lg border border-slate-300 bg-white pl-6 pr-2 text-xs font-mono font-bold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             />
           </div>
         </div>

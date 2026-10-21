@@ -81,17 +81,17 @@ export function ManagePanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <Icon className="h-5 w-5 text-slate-700" />
+            <Icon className="h-5 w-5 text-[#0078d4]" />
             <h2 className="text-lg font-bold text-slate-900">{title}</h2>
           </div>
           {description && (
             <p className="text-xs text-slate-500 mt-0.5">{description}</p>
           )}
         </div>
-        <span className="rounded-full bg-slate-100 border border-slate-200/80 px-3 py-1 text-xs font-semibold text-slate-700">
+        <span className="rounded-full bg-[#deecf9] border border-[#c7e0f4] px-3 py-1 text-xs font-semibold text-[#005a9e]">
           {items.length} Record{items.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -120,7 +120,7 @@ export function ManagePanel({
         {/* LIST VIEW */}
         <div className="space-y-3">
           {items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-xs text-slate-400">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-xs text-slate-500">
               No entries recorded in this list yet.
             </div>
           ) : (

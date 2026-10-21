@@ -51,7 +51,7 @@ export const CategoryAgeControls = memo(function CategoryAgeControls({
                 )
               }
               placeholder="None"
-              className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none"
             />
             <button
               type="button"
@@ -109,7 +109,7 @@ export const CategoryAgeControls = memo(function CategoryAgeControls({
                 )
               }
               placeholder="No limit"
-              className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none"
             />
             <button
               type="button"

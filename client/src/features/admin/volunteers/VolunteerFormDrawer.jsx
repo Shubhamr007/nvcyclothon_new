@@ -70,7 +70,7 @@ export function VolunteerFormDrawer({
                 value={form.display_name}
                 onChange={(e) => setForm((prev) => ({ ...prev, display_name: e.target.value }))}
                 placeholder="e.g. Ankit Verma"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
 
@@ -81,7 +81,7 @@ export function VolunteerFormDrawer({
               <select
                 value={form.role}
                 onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               >
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r} value={r}>{r}</option>
@@ -101,7 +101,7 @@ export function VolunteerFormDrawer({
                 value={form.email}
                 onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                 placeholder="volunteer@example.com"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
 
@@ -114,7 +114,7 @@ export function VolunteerFormDrawer({
                 value={form.phone}
                 onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
                 placeholder="+91 98765 43210"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
           </div>
@@ -130,7 +130,7 @@ export function VolunteerFormDrawer({
                 value={form.organization}
                 onChange={(e) => setForm((prev) => ({ ...prev, organization: e.target.value }))}
                 placeholder="e.g. Rewa Engineering College / NCC"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
 
@@ -143,7 +143,7 @@ export function VolunteerFormDrawer({
                 value={form.volunteer_id}
                 onChange={(e) => setForm((prev) => ({ ...prev, volunteer_id: e.target.value }))}
                 placeholder="Auto-generated if empty"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
           </div>
@@ -168,7 +168,7 @@ export function VolunteerFormDrawer({
               required
               value={form.password}
               onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
             />
             <p className="text-[10px] text-slate-500">
               This password will be used by the volunteer to access the /checkin mobile portal.
@@ -181,7 +181,7 @@ export function VolunteerFormDrawer({
               type="checkbox"
               checked={form.send_email}
               onChange={(e) => setForm((prev) => ({ ...prev, send_email: e.target.checked }))}
-              className="accent-slate-900 rounded cursor-pointer"
+              className="accent-[#0078d4] rounded cursor-pointer"
             />
             <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
               <Send className="h-4 w-4 text-slate-500" />
@@ -204,7 +204,7 @@ export function VolunteerFormDrawer({
           <Button
             type="submit"
             disabled={busy}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
           >
             {busy ? (
               <span className="flex items-center gap-2">

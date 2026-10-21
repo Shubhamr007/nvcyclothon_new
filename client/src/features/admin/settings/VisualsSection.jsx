@@ -2,7 +2,7 @@ import React from "react";
 
 export function VisualsSection({ settings, updateField }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
       <div>
         <h3 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-3">
           Hero Carousel Images
@@ -19,7 +19,7 @@ export function VisualsSection({ settings, updateField }) {
               e.target.value.split("\n").map((url) => url.trim()).filter(Boolean)
             )
           }
-          className="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono text-slate-900 focus:border-slate-900 focus:outline-none"
+          className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs font-mono text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
           placeholder="https://..."
         />
       </div>
@@ -37,7 +37,7 @@ export function VisualsSection({ settings, updateField }) {
                   enabled: e.target.checked,
                 })
               }
-              className="h-4 w-4 rounded accent-slate-900"
+              className="h-4 w-4 rounded accent-[#0078d4]"
             />
             <span className="text-xs font-semibold text-slate-800">Enable Spotlight</span>
           </label>
@@ -56,7 +56,7 @@ export function VisualsSection({ settings, updateField }) {
                   eyebrow: e.target.value,
                 })
               }
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div>
@@ -72,7 +72,7 @@ export function VisualsSection({ settings, updateField }) {
                   image_url: e.target.value,
                 })
               }
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div className="sm:col-span-2">
@@ -87,7 +87,7 @@ export function VisualsSection({ settings, updateField }) {
                   title: e.target.value,
                 })
               }
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div className="sm:col-span-2">
@@ -103,7 +103,7 @@ export function VisualsSection({ settings, updateField }) {
                   body: e.target.value,
                 })
               }
-              className="w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
         </div>

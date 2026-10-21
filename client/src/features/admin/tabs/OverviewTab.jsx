@@ -32,12 +32,12 @@ const KpiCard = memo(function KpiCard({ card, idx, onNavigate }) {
         >
           <Icon className="h-5 w-5" />
         </div>
-        <ArrowRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-slate-700" />
+        <ArrowRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-[#0078d4]" />
       </div>
       <p className="mt-4 text-xs font-black tracking-[0.14em] uppercase text-slate-600 font-mono">
         {card.label}
       </p>
-      <p className="mt-1 text-3xl font-black tracking-tight text-slate-950">
+      <p className="mt-1 text-3xl font-black tracking-tight text-slate-900">
         {card.value.toLocaleString()}
       </p>
       <p className="mt-1 text-xs text-slate-600 font-semibold">{card.sub}</p>
@@ -52,11 +52,11 @@ const RouteProgressItem = memo(function RouteProgressItem({ route, count, total 
       <div className="flex items-center justify-between text-xs">
         <span className="font-bold text-slate-900">{route}</span>
         <div className="flex items-center gap-1.5 font-mono text-xs">
-          <span className="font-black text-slate-950">{count}</span>
-          <span className="text-slate-700 font-bold">({percent}%)</span>
+          <span className="font-black text-slate-900">{count}</span>
+          <span className="text-slate-600 font-bold">({percent}%)</span>
         </div>
       </div>
-      <Progress value={percent} className="h-2.5 bg-slate-200 border border-slate-300" />
+      <Progress value={percent} className="h-2.5 bg-slate-100 border border-slate-200" />
     </div>
   );
 });
@@ -65,11 +65,11 @@ const RecentRegistrationRow = memo(function RecentRegistrationRow({ reg }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0">
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-200/80">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#deecf9] text-[#005a9e] font-bold text-xs border border-[#c7e0f4]">
           <Bike className="h-4 w-4" />
         </div>
         <div>
-          <p className="text-xs font-bold text-slate-950">{reg.full_name}</p>
+          <p className="text-xs font-bold text-slate-900">{reg.full_name}</p>
           <p className="text-xs text-slate-600 font-medium">{reg.ride_category}</p>
         </div>
       </div>
@@ -105,8 +105,8 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
       value: totalRiders,
       sub: "All signed up participants",
       icon: Users,
-      color: "border border-blue-200/90 bg-gradient-to-br from-blue-50/70 via-white to-white text-slate-950 hover:border-blue-300 hover:shadow-blue-100/50",
-      iconBg: "bg-blue-600 text-white border-blue-700 shadow-sm shadow-blue-500/20",
+      color: "border border-blue-200 bg-white text-slate-900 hover:border-[#0078d4] hover:shadow-blue-100/50",
+      iconBg: "bg-[#0078d4] text-white border-[#005a9e] shadow-xs shadow-blue-500/20",
       tab: "riders",
     },
     {
@@ -114,8 +114,8 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
       value: approvedRiders,
       sub: "Confirmed & payment verified",
       icon: CheckCircle2,
-      color: "border border-emerald-200/90 bg-gradient-to-br from-emerald-50/70 via-white to-white text-slate-950 hover:border-emerald-300 hover:shadow-emerald-100/50",
-      iconBg: "bg-emerald-600 text-white border-emerald-700 shadow-sm shadow-emerald-500/20",
+      color: "border border-emerald-200 bg-white text-slate-900 hover:border-emerald-400 hover:shadow-emerald-100/50",
+      iconBg: "bg-emerald-600 text-white border-emerald-700 shadow-xs shadow-emerald-500/20",
       tab: "riders",
     },
     {
@@ -123,8 +123,8 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
       value: pendingRiders,
       sub: "Requires staff verification",
       icon: Clock,
-      color: "border border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-white text-slate-950 hover:border-amber-300 hover:shadow-amber-100/50",
-      iconBg: "bg-amber-500 text-white border-amber-600 shadow-sm shadow-amber-500/20",
+      color: "border border-amber-200 bg-white text-slate-900 hover:border-amber-400 hover:shadow-amber-100/50",
+      iconBg: "bg-amber-500 text-white border-amber-600 shadow-xs shadow-amber-500/20",
       tab: "riders",
     },
     {
@@ -132,8 +132,8 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
       value: checkedInRiders,
       sub: "Scanned & bib assigned",
       icon: Award,
-      color: "border border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-white text-slate-950 hover:border-indigo-300 hover:shadow-indigo-100/50",
-      iconBg: "bg-indigo-600 text-white border-indigo-700 shadow-sm shadow-indigo-500/20",
+      color: "border border-indigo-200 bg-white text-slate-900 hover:border-indigo-400 hover:shadow-indigo-100/50",
+      iconBg: "bg-indigo-600 text-white border-indigo-700 shadow-xs shadow-indigo-500/20",
       tab: "riders",
     },
   ];
@@ -161,22 +161,22 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
       {/* FINANCIAL HEALTH QUICK BANNER */}
       <div
         onClick={() => onNavigate("finance")}
-        className="cursor-pointer rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 p-5 text-white shadow-md transition hover:border-emerald-400 group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        className="cursor-pointer rounded-2xl border border-blue-200 bg-linear-to-r from-blue-50 via-[#faf9f6] to-sky-50 p-5 text-slate-900 shadow-xs transition hover:border-[#0078d4]/60 group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
       >
         <div className="flex items-center gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#deecf9] text-[#005a9e] border border-[#c7e0f4]">
             <Coins className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-xs font-black tracking-widest text-emerald-400 uppercase font-mono">
+            <span className="text-xs font-black tracking-widest text-[#0078d4] uppercase font-mono">
               FINANCIAL P&L COMMAND CENTER
             </span>
-            <p className="text-sm font-bold text-white mt-0.5">
+            <p className="text-sm font-bold text-slate-900 mt-0.5">
               View live revenue balance sheet, prize money pools, route clearances, and break-even calculator
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 group-hover:text-emerald-200 shrink-0">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[#0078d4] group-hover:text-[#005a9e] shrink-0">
           <span>Open Calculator</span>
           <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </div>
@@ -185,17 +185,17 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
       {/* CHARTS & RECENT SIGNUPS */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ROUTE BREAKDOWN */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
-          <div className="border-b border-slate-200/80 pb-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+          <div className="border-b border-slate-200 pb-4">
             <p className="text-xs font-black tracking-wider text-slate-600 uppercase font-mono">
               CATEGORY DEMAND
             </p>
-            <h3 className="text-base font-bold text-slate-950">Registrations by Route</h3>
+            <h3 className="text-base font-bold text-slate-900">Registrations by Route</h3>
           </div>
 
           <div className="mt-5 space-y-4">
             {routeEntries.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-600 font-medium">No route data available.</p>
+              <p className="py-6 text-center text-xs text-slate-500 font-medium">No route data available.</p>
             ) : (
               routeEntries.map(([route, count]) => (
                 <RouteProgressItem
@@ -210,18 +210,18 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
         </div>
 
         {/* LATEST REGISTRATIONS */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
             <div>
               <p className="text-xs font-black tracking-wider text-slate-600 uppercase font-mono">
                 ACTIVITY FEED
               </p>
-              <h3 className="text-base font-bold text-slate-950">Latest Registrations</h3>
+              <h3 className="text-base font-bold text-slate-900">Latest Registrations</h3>
             </div>
             <button
               type="button"
               onClick={() => onNavigate("riders")}
-              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
+              className="text-xs font-bold text-[#0078d4] hover:text-[#005a9e] flex items-center gap-1 transition-colors"
             >
               View all <ChevronRight className="h-4 w-4" />
             </button>
@@ -229,7 +229,7 @@ export function OverviewTab({ analytics = {}, registrations: propRegistrations, 
 
           <div className="mt-4 divide-y divide-slate-100">
             {recentRegistrations.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-600 font-medium">No registrations recorded yet.</p>
+              <p className="py-6 text-center text-xs text-slate-500 font-medium">No registrations recorded yet.</p>
             ) : (
               recentRegistrations.slice(0, 6).map((reg) => (
                 <RecentRegistrationRow key={reg.id} reg={reg} />

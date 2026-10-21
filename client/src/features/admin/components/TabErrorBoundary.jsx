@@ -48,7 +48,7 @@ export class TabErrorBoundary extends React.Component {
             <Button
               type="button"
               onClick={this.handleRetry}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl inline-flex items-center gap-2 shadow-sm"
+              className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 py-2 rounded-xl inline-flex items-center gap-2 shadow-xs"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Retry Tab</span>

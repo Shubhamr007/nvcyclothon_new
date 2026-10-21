@@ -322,7 +322,7 @@ function createCrudHandlers({
   };
 }
 
-function createAdminRouter({ config, repository, emailService }) {
+function createAdminRouter({ config, repository, emailService, jobQueue }) {
   const router = express.Router();
 
   router.post("/bulk-delete", async (req, res) => {
@@ -1074,9 +1074,30 @@ function createAdminRouter({ config, repository, emailService }) {
       repository.getRegistrationsByIds(ids),
     ]);
     const eligible = registrations.filter((item) => item.status === "checked_in");
+    const eligibleIds = eligible.map((item) => item.id);
+    const queuedIds = eligibleIds;
+    const skipped = registrations.length - eligible.length;
+    const skippedIds = registrations.filter((item) => !queuedIds.includes(item.id)).map((item) => item.id);
+    const missingIds = ids.filter((id) => !registrations.some((item) => item.id === id));
+
+    if (jobQueue) {
+      const job = await jobQueue.enqueue("certificates_generate", {
+        registration_ids: eligibleIds,
+      });
+      return res.status(202).json({
+        job_id: job.id,
+        status: "queued",
+        queued: eligible.length,
+        queued_ids: queuedIds,
+        skipped,
+        skipped_ids: skippedIds,
+        missing_ids: missingIds,
+        message: "Certificate generation queued as durable background job",
+      });
+    }
+
     const sentIds = [];
     const failedIds = [];
-
     await mapWithConcurrency(eligible, 5, async (registration) => {
       const certificatePdf = await getCachedCertificate(config, repository, registration, settings);
       const sent = await emailService.sendParticipationCertificate({
@@ -1091,15 +1112,12 @@ function createAdminRouter({ config, repository, emailService }) {
       (sent ? sentIds : failedIds).push(registration.id);
     });
 
-    const queuedIds = eligible.map((item) => item.id);
     res.status(202).json({
       queued: eligible.length,
       queued_ids: queuedIds,
-      skipped: registrations.length - eligible.length,
-      skipped_ids: registrations
-        .filter((item) => !queuedIds.includes(item.id))
-        .map((item) => item.id),
-      missing_ids: ids.filter((id) => !registrations.some((item) => item.id === id)),
+      skipped,
+      skipped_ids: skippedIds,
+      missing_ids: missingIds,
       sent_ids: sentIds,
       failed_ids: failedIds,
     });
@@ -1142,6 +1160,28 @@ function createAdminRouter({ config, repository, emailService }) {
       repository.getRegistrationsByIds(ids),
     ]);
     const eligible = registrations.filter((item) => item.payment_status === "paid" && item.status !== "cancelled");
+    const eligibleIds = eligible.map((item) => item.id);
+    const queuedIds = eligibleIds;
+    const skipped = registrations.length - eligible.length;
+    const skippedIds = registrations.filter((item) => !queuedIds.includes(item.id)).map((item) => item.id);
+    const missingIds = ids.filter((id) => !registrations.some((item) => item.id === id));
+
+    if (jobQueue) {
+      const job = await jobQueue.enqueue("passes_generate", {
+        registration_ids: eligibleIds,
+      });
+      return res.status(202).json({
+        job_id: job.id,
+        status: "queued",
+        queued: eligible.length,
+        queued_ids: queuedIds,
+        skipped,
+        skipped_ids: skippedIds,
+        missing_ids: missingIds,
+        message: "Rider pass generation queued as durable background job",
+      });
+    }
+
     const sentIds = [];
     const failedIds = [];
     await mapWithConcurrency(eligible, 5, async (registration) => {
@@ -1154,8 +1194,15 @@ function createAdminRouter({ config, repository, emailService }) {
       await recordDelivery(registration, "rider_pass", "Your official NV Cyclothon 2026 rider pass", sent);
       (sent ? sentIds : failedIds).push(registration.id);
     });
-    const queuedIds = eligible.map((item) => item.id);
-    res.status(202).json({ queued: eligible.length, queued_ids: queuedIds, skipped: registrations.length - eligible.length, skipped_ids: registrations.filter((item) => !queuedIds.includes(item.id)).map((item) => item.id), missing_ids: ids.filter((id) => !registrations.some((item) => item.id === id)), sent_ids: sentIds, failed_ids: failedIds });
+    res.status(202).json({
+      queued: eligible.length,
+      queued_ids: queuedIds,
+      skipped,
+      skipped_ids: skippedIds,
+      missing_ids: missingIds,
+      sent_ids: sentIds,
+      failed_ids: failedIds,
+    });
   });
 
   router.get("/registrations/:registrationId/rider-pass-preview", async (req, res) => {
@@ -1195,6 +1242,21 @@ function createAdminRouter({ config, repository, emailService }) {
   router.post("/event-updates/email", async (req, res) => {
     const payload = parseSchema(eventUpdateEmailSchema, req.body);
     const recipients = await repository.listRegistrationEmails();
+
+    if (jobQueue) {
+      const job = await jobQueue.enqueue("event_update_email", {
+        subject: payload.subject,
+        message: payload.message,
+        filter_category: payload.filter_category,
+      });
+      return res.status(202).json({
+        job_id: job.id,
+        status: "queued",
+        queued_recipients: recipients.length,
+        message: "Broadcast email queued as durable background job",
+      });
+    }
+
     await emailService.sendEventUpdate({
       recipients,
       subject: payload.subject,

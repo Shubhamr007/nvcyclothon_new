@@ -26,14 +26,14 @@ export function MemberToolbar({
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Search by name, role, or statement…"
-            className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 shadow-xs transition"
+            className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4] shadow-xs transition"
           />
           {searchQuery && (
             <button
               type="button"
-              onClick={() => onSearchChange("")}
+              onClick={() => onSearchChange?.("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
             >
               <X className="h-3.5 w-3.5" />
@@ -52,9 +52,9 @@ export function MemberToolbar({
                   type="button"
                   variant="outline"
                   onClick={onEditSelected}
-                  className="flex items-center gap-1.5 border-slate-300 bg-white text-slate-800 hover:bg-slate-100 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition h-10"
+                  className="flex items-center gap-1.5 border-slate-300 bg-white text-slate-800 hover:bg-slate-50 font-semibold text-xs px-3.5 py-2 rounded-xl shadow-xs transition h-10"
                 >
-                  <Edit2 className="h-3.5 w-3.5 text-blue-600" />
+                  <Edit2 className="h-3.5 w-3.5 text-[#0078d4]" />
                   <span>Edit</span>
                 </Button>
               )}
@@ -84,7 +84,7 @@ export function MemberToolbar({
             <Button
               type="button"
               onClick={onAddClick}
-              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition h-10"
+              className="flex items-center gap-2 bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 py-2 rounded-xl shadow-sm transition h-10"
             >
               <Plus className="h-4 w-4" />
               <span>Add Member</span>
@@ -94,14 +94,14 @@ export function MemberToolbar({
       </div>
 
       {/* Filter Tabs & Summary Row */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-200/60 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-slate-200 text-xs">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => onFilterChange("all")}
             className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
               visibilityFilter === "all"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-[#0078d4] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
@@ -112,7 +112,7 @@ export function MemberToolbar({
             onClick={() => onFilterChange("visible")}
             className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
               visibilityFilter === "visible"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-[#0078d4] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
@@ -123,7 +123,7 @@ export function MemberToolbar({
             onClick={() => onFilterChange("hidden")}
             className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors ${
               visibilityFilter === "hidden"
-                ? "bg-slate-900 text-white shadow-xs"
+                ? "bg-[#0078d4] text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
@@ -132,8 +132,8 @@ export function MemberToolbar({
         </div>
 
         {selectedCount > 0 && (
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg">
-            <CheckSquare className="h-3.5 w-3.5 text-slate-900" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+            <CheckSquare className="h-3.5 w-3.5 text-[#0078d4]" />
             <span>{selectedCount} of {totalCount} selected</span>
           </div>
         )}

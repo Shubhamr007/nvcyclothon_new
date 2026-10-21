@@ -2,7 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ArrowUp, Square } from 'lucide-react';
 
-export function UnifiedComposerButton({ isGenerating, disabled, onSend, onStop }) {
+export function UnifiedComposerButton({ isGenerating, disabled = false, onSend, onStop }) {
+
   if (isGenerating) {
     return (
       <button
@@ -38,6 +39,3 @@ UnifiedComposerButton.propTypes = {
   onStop: PropTypes.func.isRequired,
 };
 
-UnifiedComposerButton.defaultProps = {
-  disabled: false,
-};

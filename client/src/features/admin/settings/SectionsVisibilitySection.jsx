@@ -17,7 +17,7 @@ export const SECTION_LABELS = [
 
 export function SectionsVisibilitySection({ settings, toggleSection }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
       <h3 className="text-base font-bold text-slate-900 border-b border-slate-200 pb-3">
         Homepage Module Toggles
       </h3>
@@ -29,13 +29,13 @@ export function SectionsVisibilitySection({ settings, toggleSection }) {
         {SECTION_LABELS.map(([key, label]) => (
           <label
             key={key}
-            className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs font-semibold text-slate-800 cursor-pointer hover:border-slate-300 hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-3 rounded-xl border border-slate-200 bg-[#faf9f6] p-3 text-xs font-semibold text-slate-800 cursor-pointer hover:border-[#0078d4]/40 hover:bg-white transition-colors"
           >
             <input
               type="checkbox"
               checked={settings.sections?.[key] !== false}
               onChange={() => toggleSection(key)}
-              className="h-4 w-4 rounded accent-slate-900"
+              className="h-4 w-4 rounded accent-[#0078d4]"
             />
             <span>{label}</span>
           </label>

@@ -32,7 +32,7 @@ export const CategoryCard = memo(function CategoryCard({
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="rounded-lg bg-slate-900 px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
+            <span className="rounded-lg bg-[#0078d4] px-2 py-0.5 text-[10px] font-black text-white tracking-wider">
               {meta.distanceTag}
             </span>
             <h4 className="text-sm font-bold text-slate-900">{meta.key}</h4>
@@ -83,7 +83,7 @@ export const CategoryCard = memo(function CategoryCard({
           onChange={(e) =>
             onUpdateCategory(meta.key, "capacity", Math.max(1, Number(e.target.value) || 1))
           }
-          className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+          className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-900 focus:border-[#0078d4] focus:outline-none"
         />
       </div>
 

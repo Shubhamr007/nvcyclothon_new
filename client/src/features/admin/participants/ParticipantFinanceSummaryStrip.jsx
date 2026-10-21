@@ -55,58 +55,58 @@ export function ParticipantFinanceSummaryStrip({ riders = [] }) {
   }, [riders]);
 
   return (
-    <div className="rounded-2xl border border-blue-900/60 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 p-5 text-white shadow-md">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xs">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Left: Headline & Total Inflow */}
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-inner">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-inner">
             <Coins className="h-6 w-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black tracking-widest text-emerald-400 uppercase font-mono">
+              <span className="text-xs font-black tracking-widest text-emerald-700 uppercase font-mono">
                 REGISTRATIONS REVENUE INFLOW
               </span>
-              <span className="rounded-md bg-emerald-400 text-slate-950 px-2 py-0.5 text-xs font-mono font-black border border-emerald-300">
+              <span className="rounded-md bg-emerald-100 text-emerald-800 px-2 py-0.5 text-xs font-mono font-bold border border-emerald-200">
                 {metrics.collectionRate}% SETTLED
               </span>
             </div>
-            <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-white font-mono">
+            <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-slate-900 font-mono">
               ₹{metrics.totalCollected.toLocaleString("en-IN")}
             </p>
           </div>
         </div>
 
         {/* Right: 3 Key Financial Stat Badges */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 border-t border-slate-800/80 lg:border-t-0 pt-3 lg:pt-0">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 sm:p-3.5 shadow-2xs backdrop-blur-xs">
-            <div className="flex items-center gap-1.5 text-slate-300 text-xs uppercase font-mono font-bold">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 border-t border-slate-200 lg:border-t-0 pt-3 lg:pt-0">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:p-3.5 shadow-2xs">
+            <div className="flex items-center gap-1.5 text-slate-600 text-xs uppercase font-mono font-bold">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               <span>Paid Riders</span>
             </div>
-            <p className="mt-1 text-sm sm:text-base font-black text-white font-mono">
+            <p className="mt-1 text-sm sm:text-base font-black text-slate-900 font-mono">
               {metrics.paidCount}{" "}
-              <span className="text-xs font-medium text-slate-400">/ {riders.length}</span>
+              <span className="text-xs font-medium text-slate-500">/ {riders.length}</span>
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 sm:p-3.5 shadow-2xs backdrop-blur-xs">
-            <div className="flex items-center gap-1.5 text-slate-300 text-xs uppercase font-mono font-bold">
-              <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:p-3.5 shadow-2xs">
+            <div className="flex items-center gap-1.5 text-slate-600 text-xs uppercase font-mono font-bold">
+              <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
               <span>Pending</span>
             </div>
-            <p className="mt-1 text-sm sm:text-base font-black text-amber-400 font-mono">
+            <p className="mt-1 text-sm sm:text-base font-black text-amber-600 font-mono">
               ₹{metrics.totalPending.toLocaleString("en-IN")}{" "}
-              <span className="text-xs font-medium text-slate-400">({metrics.pendingCount})</span>
+              <span className="text-xs font-medium text-slate-500">({metrics.pendingCount})</span>
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 sm:p-3.5 shadow-2xs backdrop-blur-xs">
-            <div className="flex items-center gap-1.5 text-slate-300 text-xs uppercase font-mono font-bold">
-              <Ticket className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:p-3.5 shadow-2xs">
+            <div className="flex items-center gap-1.5 text-slate-600 text-xs uppercase font-mono font-bold">
+              <Ticket className="h-3.5 w-3.5 text-[#0078d4] shrink-0" />
               <span>Avg Ticket</span>
             </div>
-            <p className="mt-1 text-sm sm:text-base font-black text-blue-400 font-mono">
+            <p className="mt-1 text-sm sm:text-base font-black text-[#0078d4] font-mono">
               ₹{metrics.avgTicket.toLocaleString("en-IN")}
             </p>
           </div>

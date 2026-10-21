@@ -16,6 +16,11 @@ async function buildApplication({ env = process.env, logger = console } = {}) {
   await repository.seedGalleryItems();
   await repository.ensureAdminUser(config.adminUsername, config.adminBootstrapPassword);
 
+  const { initRagTable } = require("./db/ragRepository");
+  const { initKnowledgeBase } = require("./services/rag");
+  await initRagTable(repository);
+  void initKnowledgeBase(config, repository).catch(() => {});
+
   const emailService = createEmailService(config, logger);
   const cashfreeService = createCashfreeService(config);
   const { app, rateLimiter } = createApp({

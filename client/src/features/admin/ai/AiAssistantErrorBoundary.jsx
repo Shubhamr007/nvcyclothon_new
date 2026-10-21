@@ -75,7 +75,3 @@ AiAssistantErrorBoundary.propTypes = {
   onStartNew: PropTypes.func,
 };
 
-AiAssistantErrorBoundary.defaultProps = {
-  onReset: null,
-  onStartNew: null,
-};

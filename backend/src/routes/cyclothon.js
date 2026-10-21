@@ -12,6 +12,7 @@ const {
   toRegistrationRead,
   sendAndRecordRegistrationConfirmation: sendConfirmation,
 } = require("./cyclothonHelpers");
+const { adminEvents } = require("../services/adminEvents");
 
 function createCyclothonRouter({
   config,
@@ -24,6 +25,18 @@ function createCyclothonRouter({
 
   const sendAndRecordRegistrationConfirmation = (registration) =>
     sendConfirmation({ repository, emailService, config, registration });
+
+  const handlePaymentSuccess = (reg, orderId, paymentId) => {
+    void sendAndRecordRegistrationConfirmation(reg);
+    void emailService.sendPaymentReceipt({
+      recipient: reg.email,
+      name: reg.full_name,
+      orderId: reg.id,
+      totalPaise: reg.registration_fee_paise,
+    });
+    adminEvents.publish({ type: "registrations", action: "payment_verified", id: reg.id, data: { orderId, paymentId } });
+    adminEvents.publish({ type: "analytics", action: "updated" });
+  };
 
   router.get("/webhook/cashfree", (_req, res) => {
     res.status(200).json({ status: "ok", service: "cashfree-webhook" });
@@ -83,6 +96,13 @@ function createCyclothonRouter({
           paymentId: String(payment.cf_payment_id),
         });
         if (updated) {
+          adminEvents.publish({
+            type: "registrations",
+            action: "payment_received",
+            id: updated.id,
+            data: { orderId: order.order_id, paymentId: String(payment.cf_payment_id) },
+          });
+          adminEvents.publish({ type: "analytics", action: "updated" });
           void sendAndRecordRegistrationConfirmation(updated);
         }
       } catch (err) {
@@ -144,6 +164,9 @@ function createCyclothonRouter({
         void sendAndRecordRegistrationConfirmation(result.registration);
       }
 
+      adminEvents.publish({ type: "registrations", action: "created", id: result.registration.id });
+      adminEvents.publish({ type: "analytics", action: "updated" });
+
       res.status(201).json({
         ...toRegistrationRead(result.registration),
         checkout: result.checkout,
@@ -186,14 +209,7 @@ function createCyclothonRouter({
       "cashfree-server-verified"
     );
 
-    void sendAndRecordRegistrationConfirmation(registration);
-    void emailService.sendPaymentReceipt({
-      recipient: registration.email,
-      name: registration.full_name,
-      orderId: registration.id,
-      totalPaise: registration.registration_fee_paise,
-    });
-
+    handlePaymentSuccess(registration, payload.order_id, payment.paymentId);
     res.json(toRegistrationRead(registration));
   });
 
@@ -237,14 +253,7 @@ function createCyclothonRouter({
         "cashfree-server-verified"
       );
 
-      void sendAndRecordRegistrationConfirmation(updated);
-      void emailService.sendPaymentReceipt({
-        recipient: updated.email,
-        name: updated.full_name,
-        orderId: updated.id,
-        totalPaise: updated.registration_fee_paise,
-      });
-
+      handlePaymentSuccess(updated, payload.order_id, payment.paymentId);
       res.json(toRegistrationRead(updated));
     }
   );

@@ -46,7 +46,7 @@ export function RevenueChannelTab({
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200/90 bg-white p-3 text-xs shadow-2xs"
+          className="flex items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-2xs"
         >
           <button
             type="button"
@@ -74,7 +74,7 @@ export function RevenueChannelTab({
             value={item.name || ""}
             onChange={(e) => onUpdateItem(item.id, "name", e.target.value)}
             aria-label={`Partner name for ${item.name}`}
-            className={`flex-1 rounded-lg border border-slate-200 hover:border-slate-300 ${ringFocusClass} px-2.5 py-1 text-xs text-slate-950 font-bold focus:outline-none`}
+            className={`flex-1 rounded-lg border border-slate-200 hover:border-slate-300 bg-white ${ringFocusClass} px-2.5 py-1 text-xs text-slate-900 font-bold focus:outline-none`}
           />
           <div className="flex items-center gap-2 font-mono">
             <span className="text-slate-600 font-extrabold text-xs">₹</span>
@@ -89,7 +89,7 @@ export function RevenueChannelTab({
                 )
               }
               aria-label={`Amount in rupees for ${item.name}`}
-              className={`w-28 rounded-lg border border-slate-200 hover:border-slate-300 px-2.5 py-1 text-right text-xs font-black text-slate-950 ${ringFocusClass} focus:outline-none`}
+              className={`w-28 rounded-lg border border-slate-200 hover:border-slate-300 bg-white px-2.5 py-1 text-right text-xs font-black text-slate-900 ${ringFocusClass} focus:outline-none`}
             />
             <button
               type="button"
@@ -111,7 +111,7 @@ export function RevenueChannelTab({
           value={name}
           onChange={(e) => setName(e.target.value)}
           aria-label={placeholder}
-          className={`flex-1 rounded-xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs text-slate-950 font-medium ${ringFocusClass} focus:outline-none`}
+          className={`flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 font-medium ${ringFocusClass} focus:outline-none`}
         />
         <input
           type="number"
@@ -119,7 +119,7 @@ export function RevenueChannelTab({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           aria-label="Amount in rupees"
-          className={`w-28 rounded-xl border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs font-mono font-bold text-slate-950 ${ringFocusClass} focus:outline-none`}
+          className={`w-28 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 ${ringFocusClass} focus:outline-none`}
         />
         <button
           type="submit"

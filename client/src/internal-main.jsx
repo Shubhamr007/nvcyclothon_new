@@ -8,8 +8,22 @@ import InternalApp from "./InternalApp";
 import "./styles.css";
 import "react-toastify/dist/ReactToastify.css";
 
-import { ThemeProvider } from "./state/ThemeContext";
+import { ThemeProvider, useTheme } from "./state/ThemeContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+
+function ThemedToastContainer() {
+  const { theme } = useTheme();
+  return (
+    <ToastContainer
+      position="top-right"
+      theme={theme === "dark" ? "dark" : "light"}
+      closeOnClick
+      pauseOnHover
+      autoClose={4500}
+      className="mt-14 sm:mt-2"
+    />
+  );
+}
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -23,14 +37,7 @@ createRoot(document.getElementById("root")).render(
             }}
           >
             <InternalApp />
-            <ToastContainer
-              position="top-right"
-              theme="dark"
-              closeOnClick
-              pauseOnHover
-              autoClose={4500}
-              className="mt-14 sm:mt-2"
-            />
+            <ThemedToastContainer />
           </HashRouter>
         </ThemeProvider>
       </Provider>

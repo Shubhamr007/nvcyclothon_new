@@ -33,7 +33,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
       {/* COMPACT MAIN ROW */}
       <tr
         className={`transition-colors cursor-pointer hover:bg-slate-50/70 ${
-          isChecked ? "bg-blue-50/60" : isExpanded ? "bg-slate-50/80" : ""
+          isChecked ? "bg-[#deecf9]/40" : isExpanded ? "bg-slate-50/80" : ""
         }`}
         onClick={(e) => {
           if (
@@ -53,7 +53,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
             type="checkbox"
             checked={isChecked}
             onChange={() => onToggleSelect(rider.id)}
-            className="accent-slate-950 h-4 w-4 rounded cursor-pointer"
+            className="accent-[#0078d4] h-4 w-4 rounded cursor-pointer"
             aria-label={`Select rider ${rider.full_name}`}
           />
         </td>
@@ -63,8 +63,8 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
           <button
             type="button"
             onClick={() => onToggleExpand(rider.id)}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg border-2 border-slate-300 bg-white text-slate-800 transition-all hover:bg-slate-100 ${
-              isExpanded ? "rotate-90 bg-slate-200 text-slate-950 border-slate-400" : ""
+            className={`flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 transition-all hover:bg-slate-100 ${
+              isExpanded ? "rotate-90 bg-[#deecf9] text-[#005a9e] border-[#c7e0f4]" : ""
             }`}
             aria-label={isExpanded ? "Collapse row" : "Expand row"}
           >
@@ -95,8 +95,8 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
               )}
             </button>
           </div>
-          <p className="font-bold text-sm text-slate-950">{rider.full_name}</p>
-          <span className="text-xs text-slate-700 font-medium capitalize">
+          <p className="font-bold text-sm text-slate-900">{rider.full_name}</p>
+          <span className="text-xs text-slate-600 font-medium capitalize">
             {rider.gender || "Gender unstated"} • {rider.city || "Rewa"}
           </span>
         </td>
@@ -104,7 +104,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
         {/* 4. Contact */}
         <td className="p-3.5 text-xs font-mono">
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-950 font-bold">{rider.phone || "—"}</span>
+            <span className="text-slate-900 font-bold">{rider.phone || "—"}</span>
             {rider.whatsapp_opt_in && (
               <span
                 className="inline-flex items-center rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1"
@@ -114,28 +114,28 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
               </span>
             )}
           </div>
-          <p className="text-slate-700 text-xs font-medium truncate max-w-[200px]">
+          <p className="text-slate-600 text-xs font-medium truncate max-w-[200px]">
             {rider.email || "—"}
           </p>
         </td>
 
         {/* 5. Route Category & Payment */}
         <td className="p-3.5">
-          <span className="font-bold text-slate-950 block">
+          <span className="font-bold text-slate-900 block">
             {rider.ride_category}
           </span>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
             {rider.payment_status === "paid" ? (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-950 bg-emerald-100 border border-emerald-400 px-2.5 py-0.5 rounded-full font-mono">
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-900 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono">
                 ✓ ₹{Math.round(Number(rider.registration_fee_paise || 0) / 100) || (rider.ride_category?.includes("60") ? 1099 : rider.ride_category?.includes("30") ? 999 : rider.ride_category?.includes("10") ? 499 : 299)} PAID
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-950 bg-amber-100 border border-amber-400 px-2.5 py-0.5 rounded-full font-mono">
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full font-mono">
                 ⏳ ₹{Math.round(Number(rider.registration_fee_paise || 0) / 100) || (rider.ride_category?.includes("60") ? 1099 : rider.ride_category?.includes("30") ? 999 : rider.ride_category?.includes("10") ? 499 : 299)} UNPAID
               </span>
             )}
             {rider.batch_name && (
-              <span className="inline-flex items-center text-xs font-bold text-blue-950 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded-full">
+              <span className="inline-flex items-center text-xs font-bold text-[#005a9e] bg-[#deecf9] border border-[#c7e0f4] px-2.5 py-0.5 rounded-full">
                 {rider.batch_name}
               </span>
             )}
@@ -154,7 +154,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
               value={rider.status}
               onChange={(e) => onChangeStatus(rider.id, e.target.value)}
               aria-label={`Change status for rider ${rider.full_name}`}
-              className="h-8 rounded-lg border-2 border-slate-300 bg-white px-2 text-xs font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-8 rounded-lg border border-slate-300 bg-white px-2 text-xs font-bold text-slate-900 focus:border-[#0078d4] focus:outline-none"
             >
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
@@ -169,7 +169,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
             size="sm"
             variant="outline"
             onClick={() => onToggleExpand(rider.id)}
-            className="h-7 text-xs font-bold px-2.5 gap-1 border-2 border-slate-300 text-slate-900 hover:bg-slate-100"
+            className="h-7 text-xs font-bold px-2.5 gap-1 border border-slate-300 text-slate-800 bg-white hover:bg-slate-100"
           >
             <span>{isExpanded ? "Hide" : "Details"}</span>
             {isExpanded ? (

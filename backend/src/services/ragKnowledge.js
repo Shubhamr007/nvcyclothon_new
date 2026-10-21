@@ -106,6 +106,20 @@ const KNOWLEDGE_CHUNKS = [
   },
 ];
 
+const crypto = require("crypto");
+
+const KNOWLEDGE_BASE_VERSION = "2026.2.0";
+
+function getKnowledgeFingerprint() {
+  const content = KNOWLEDGE_CHUNKS.map(
+    (c) => `${c.id}|${c.title}|${(c.keywords || []).join(",")}|${c.content}`
+  ).join(";;;");
+  return crypto.createHash("sha256").update(content).digest("hex").slice(0, 16);
+}
+
 module.exports = {
   KNOWLEDGE_CHUNKS,
+  KNOWLEDGE_BASE_VERSION,
+  getKnowledgeFingerprint,
 };
+

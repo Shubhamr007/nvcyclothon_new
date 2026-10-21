@@ -121,17 +121,17 @@ export function BatchManagementModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-6 py-4 text-white">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-[#faf9f6] px-6 py-4 text-slate-900">
           <div className="flex items-center gap-2.5">
-            <Layers className="h-5 w-5 text-blue-400" />
+            <Layers className="h-5 w-5 text-[#0078d4]" />
             <div>
               <h3 className="text-base font-bold tracking-wide">
                 Race Batch & Wave Management
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Group & schedule riders by category & age for event-day start waves
               </p>
             </div>
@@ -139,7 +139,7 @@ export function BatchManagementModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -160,7 +160,7 @@ export function BatchManagementModal({
                   value="filtered"
                   checked={scope === "filtered"}
                   onChange={() => setScope("filtered")}
-                  className="accent-slate-900"
+                  className="accent-[#0078d4]"
                 />
                 All {filteredRiders.length} Filtered Riders
               </label>
@@ -172,7 +172,7 @@ export function BatchManagementModal({
                     value="selected"
                     checked={scope === "selected"}
                     onChange={() => setScope("selected")}
-                    className="accent-slate-900"
+                    className="accent-[#0078d4]"
                   />
                   Selected ({selectedRiders.length}) Riders Only
                 </label>
@@ -187,7 +187,7 @@ export function BatchManagementModal({
               onClick={() => setMode("auto_split")}
               className={`flex-1 rounded-lg py-2 transition text-center ${
                 mode === "auto_split"
-                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  ? "bg-white text-[#005a9e] shadow-sm font-bold"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -198,7 +198,7 @@ export function BatchManagementModal({
               onClick={() => setMode("custom")}
               className={`flex-1 rounded-lg py-2 transition text-center ${
                 mode === "custom"
-                  ? "bg-white text-slate-900 shadow-sm font-bold"
+                  ? "bg-white text-[#005a9e] shadow-sm font-bold"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -266,7 +266,7 @@ export function BatchManagementModal({
               size="sm"
               disabled={isSaving || count === 0 || (mode === "clear" && !confirmClear)}
               className={`font-semibold min-w-[120px] ${
-                mode === "clear" ? "" : "bg-slate-900 hover:bg-slate-800 text-white"
+                mode === "clear" ? "" : "bg-[#0078d4] hover:bg-[#005a9e] text-white shadow-xs"
               }`}
             >
               {isSaving ? (

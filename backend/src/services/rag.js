@@ -5,12 +5,20 @@
 
 const { globalVectorDb } = require("./vectorStore");
 
-async function retrieveAugmentedContext(query, config, { topK = 3, threshold = 0.22 } = {}) {
+async function retrieveAugmentedContext(
+  query,
+  config,
+  { topK = 3, threshold = 0.22, repository } = {}
+) {
   if (!query || typeof query !== "string" || !query.trim()) {
     return { contextText: "", citations: [] };
   }
 
-  const results = await globalVectorDb.search(query.trim(), config, { topK, threshold });
+  const results = await globalVectorDb.search(query.trim(), config, {
+    topK,
+    threshold,
+    repository,
+  });
 
   if (results.length === 0) {
     return { contextText: "", citations: [] };
@@ -44,8 +52,18 @@ function getRagStatus() {
   return globalVectorDb.getStatus();
 }
 
+async function refreshKnowledgeBase(config, repository) {
+  return globalVectorDb.refresh(config, repository);
+}
+
+async function initKnowledgeBase(config, repository) {
+  return globalVectorDb.init(config, repository);
+}
+
 module.exports = {
   retrieveAugmentedContext,
   searchKnowledgeBase,
   getRagStatus,
+  refreshKnowledgeBase,
+  initKnowledgeBase,
 };

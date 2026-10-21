@@ -20,7 +20,7 @@ export const ManagePanelForm = memo(function ManagePanelForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-4"
+      className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4"
     >
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 className="text-sm font-bold text-slate-900">
@@ -50,7 +50,7 @@ export const ManagePanelForm = memo(function ManagePanelForm({
                   type="checkbox"
                   checked={value}
                   onChange={(e) => setForm({ ...form, [name]: e.target.checked })}
-                  className="h-4 w-4 rounded accent-slate-900"
+                  className="h-4 w-4 rounded accent-[#0078d4]"
                 />
                 <span className="text-xs font-semibold text-slate-700">
                   Enable / Active on website
@@ -64,12 +64,12 @@ export const ManagePanelForm = memo(function ManagePanelForm({
                 rows={3}
                 value={value}
                 onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none transition-all"
+                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none transition-all"
               />
             ) : name === "image_url" && adminKey ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer w-fit rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
+                  <label className="flex items-center gap-2 cursor-pointer w-fit rounded-lg border border-slate-200 bg-[#faf9f6] px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white hover:border-[#0078d4]/40 transition-colors">
                     <Upload className="h-3.5 w-3.5" />
                     <span>{uploadingPhoto ? "Uploading photo…" : value ? "Replace Photo" : "Upload Photo"}</span>
                     <input
@@ -127,7 +127,7 @@ export const ManagePanelForm = memo(function ManagePanelForm({
               <select
                 value={value || "Event"}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none transition-all"
+                className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none transition-all"
               >
                 <option value="Organizers">Organizers & Race Directors</option>
                 <option value="Partners">Official Partners & Sponsors</option>
@@ -143,7 +143,7 @@ export const ManagePanelForm = memo(function ManagePanelForm({
                 type={typeof value === "number" ? "number" : "text"}
                 value={value}
                 onChange={(e) => setForm({ ...form, [name]: e.target.value })}
-                className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none transition-all"
+                className="h-9 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none transition-all"
               />
             )}
           </div>
@@ -155,7 +155,7 @@ export const ManagePanelForm = memo(function ManagePanelForm({
           type="submit"
           variant="default"
           disabled={uploadingPhoto}
-          className="w-full bg-slate-900 text-white hover:bg-slate-800 rounded-xl font-semibold h-9 text-xs transition-colors"
+          className="w-full bg-[#0078d4] hover:bg-[#005a9e] text-white rounded-xl font-semibold h-9 text-xs transition-colors"
         >
           {editing ? "Save Changes" : `Create ${title}`}
         </Button>

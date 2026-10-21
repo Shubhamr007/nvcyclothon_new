@@ -17,7 +17,7 @@ export const DelegationLogisticsFields = memo(function DelegationLogisticsFields
             value={formData.contact_phone}
             onChange={(e) => setFormData((prev) => ({ ...prev, contact_phone: e.target.value }))}
             placeholder="+91 98765 43210"
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           />
         </div>
 
@@ -30,7 +30,7 @@ export const DelegationLogisticsFields = memo(function DelegationLogisticsFields
             min="1"
             value={formData.member_count}
             onChange={(e) => setFormData((prev) => ({ ...prev, member_count: Number(e.target.value) || 1 }))}
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           />
         </div>
 
@@ -41,7 +41,7 @@ export const DelegationLogisticsFields = memo(function DelegationLogisticsFields
           <select
             value={formData.status}
             onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
           >
             <option value="confirmed">Confirmed</option>
             <option value="invited">Invited</option>
@@ -61,7 +61,7 @@ export const DelegationLogisticsFields = memo(function DelegationLogisticsFields
           value={formData.general_notes}
           onChange={(e) => setFormData((prev) => ({ ...prev, general_notes: e.target.value }))}
           placeholder="Special seating requirements, dais protocol, security escorts, or dietary preferences…"
-          className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 leading-relaxed resize-none"
+          className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4] leading-relaxed resize-none"
         />
       </div>
     </>

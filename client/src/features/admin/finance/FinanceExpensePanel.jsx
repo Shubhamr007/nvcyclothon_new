@@ -25,14 +25,14 @@ function ExpenseAddForm({ catId, catTitle, onAdd }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="pt-2.5 border-t border-slate-200/80 flex gap-2">
+    <form onSubmit={handleSubmit} className="pt-2.5 border-t border-slate-200 flex gap-2">
       <input
         type="text"
         placeholder={`Add new expense to ${catTitle}…`}
         value={name}
         onChange={(e) => setName(e.target.value)}
         aria-label={`Add new expense to ${catTitle}`}
-        className="flex-1 rounded-xl border border-slate-200/90 bg-white px-3 py-1.5 text-xs text-slate-950 font-medium focus:border-rose-600 focus:outline-none"
+        className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 font-medium focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
       />
       <input
         type="number"
@@ -40,7 +40,7 @@ function ExpenseAddForm({ catId, catTitle, onAdd }) {
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         aria-label="Amount in rupees"
-        className="w-28 rounded-xl border border-slate-200/90 bg-white px-2.5 py-1.5 text-xs focus:border-rose-600 focus:outline-none font-mono font-bold text-slate-950"
+        className="w-28 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none font-mono font-bold text-slate-900 placeholder:text-slate-400"
       />
       <button
         type="submit"
@@ -114,13 +114,13 @@ export function FinanceExpensePanel({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
       {/* HEADER & RESET BUTTON */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="h-3 w-3 rounded-full bg-rose-600" />
-            <h3 className="font-bold text-base text-slate-950">Event Expense Breakdown</h3>
+            <h3 className="font-bold text-base text-slate-900">Event Expense Breakdown</h3>
           </div>
           <p className="text-xs text-slate-600 font-medium mt-1">
             Full itemized control: Add, edit, or remove expense items with real-time recalculation.
@@ -131,7 +131,7 @@ export function FinanceExpensePanel({
           <button
             type="button"
             onClick={handleResetDefaults}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-[#faf9f6] hover:bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition"
             title="Reset to standard cyclothon defaults"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Defaults
@@ -153,21 +153,21 @@ export function FinanceExpensePanel({
           return (
             <div
               key={cat.id}
-              className="rounded-xl border border-slate-200/90 overflow-hidden transition shadow-2xs"
+              className="rounded-xl border border-slate-200 overflow-hidden transition shadow-2xs"
             >
               {/* Category Header Row */}
               <button
                 type="button"
                 onClick={() => setExpandedCat(isExpanded ? null : cat.id)}
                 aria-expanded={isExpanded}
-                className="w-full flex items-center justify-between p-4 bg-slate-50/80 hover:bg-slate-100/70 text-left transition"
+                className="w-full flex items-center justify-between p-4 bg-[#faf9f6] hover:bg-slate-100/70 text-left transition"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-800 shadow-2xs">
                     <Icon className="h-4.5 w-4.5" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-950">{cat.title}</p>
+                    <p className="text-sm font-bold text-slate-900">{cat.title}</p>
                     <span className="text-xs text-slate-600 font-bold font-mono">
                       {cat.items.length} line items • {percentOfBudget}% of budget
                     </span>
@@ -175,7 +175,7 @@ export function FinanceExpensePanel({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-black text-slate-950">
+                  <span className="font-mono text-sm font-black text-slate-900">
                     ₹{catTotal.toLocaleString("en-IN")}
                   </span>
                   {isExpanded ? (
@@ -188,7 +188,7 @@ export function FinanceExpensePanel({
 
               {/* Items Table & Add Form */}
               {isExpanded && (
-                <div className="p-4 bg-white border-t-2 border-slate-200 space-y-3">
+                <div className="p-4 bg-white border-t border-slate-200 space-y-3">
                   {cat.items.map((item) => (
                     <div
                       key={item.id}
@@ -199,7 +199,7 @@ export function FinanceExpensePanel({
                         value={item.label || ""}
                         onChange={(e) => handleUpdateItem(cat.id, item.id, "label", e.target.value)}
                         aria-label={`Expense item name for ${item.label}`}
-                        className="flex-1 rounded-lg border border-slate-200 hover:border-slate-300 focus:border-rose-600 px-2.5 py-1 text-xs text-slate-950 font-bold transition focus:outline-none"
+                        className="flex-1 rounded-lg border border-slate-200 hover:border-slate-300 bg-white focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] px-2.5 py-1 text-xs text-slate-900 font-bold transition focus:outline-none"
                       />
                       <div className="flex items-center gap-2 font-mono">
                         <span className="text-slate-600 text-xs font-bold">₹</span>
@@ -208,7 +208,7 @@ export function FinanceExpensePanel({
                           value={item.amount !== undefined && item.amount !== null ? item.amount : ""}
                           onChange={(e) => handleUpdateItem(cat.id, item.id, "amount", e.target.value)}
                           aria-label={`Expense amount in rupees for ${item.label}`}
-                          className="w-28 rounded-lg border border-slate-200 hover:border-slate-300 px-2.5 py-1 text-right text-xs font-black text-slate-950 focus:border-rose-600 focus:outline-none"
+                          className="w-28 rounded-lg border border-slate-200 hover:border-slate-300 bg-white px-2.5 py-1 text-right text-xs font-black text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
                         />
                         <button
                           type="button"

@@ -11,7 +11,7 @@ export const CONTEXT_PILLS = [
 export const ComposerContextPills = memo(function ComposerContextPills({ onAddContext }) {
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar">
-      <span className="text-[10px] font-medium text-[#6B6B6B] dark:text-[#8E8E8E] shrink-0 mr-0.5 select-none">
+      <span className="text-[10px] font-medium text-slate-500 shrink-0 mr-0.5 select-none">
         Context:
       </span>
       {CONTEXT_PILLS.map((pill, idx) => (
@@ -19,7 +19,7 @@ export const ComposerContextPills = memo(function ComposerContextPills({ onAddCo
           key={idx}
           type="button"
           onClick={() => onAddContext(pill.text)}
-          className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-[#FAF9F6] dark:bg-[#1E2026] text-[#6B6B6B] dark:text-[#9A9A9A] hover:text-[#252525] dark:hover:text-white border border-[#E5E2DB] dark:border-[#2C2F38] hover:border-[#CCC7BD] transition-all"
+          className="shrink-0 px-2 py-0.5 rounded text-[10px] font-medium bg-[#faf9f6] text-slate-600 hover:text-[#0078d4] border border-slate-200 hover:border-[#0078d4]/40 transition-all"
         >
           {pill.label}
         </button>

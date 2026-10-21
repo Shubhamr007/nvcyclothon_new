@@ -13,7 +13,7 @@ export const VendorTableRow = React.memo(function VendorTableRow({
   return (
     <tr
       className={`border-b border-slate-100 transition-colors ${
-        selected ? "bg-slate-50/80" : "hover:bg-slate-50/50"
+        selected ? "bg-[#deecf9]/40" : "hover:bg-slate-50/70"
       }`}
     >
       <td className="p-3.5 text-center">
@@ -22,7 +22,7 @@ export const VendorTableRow = React.memo(function VendorTableRow({
           aria-label={`Select vendor application ${vendor.application_number || vendor.id}`}
           checked={selected}
           onChange={() => onToggleSelect(vendor.id)}
-          className="accent-slate-900 rounded cursor-pointer"
+          className="accent-[#0078d4] rounded cursor-pointer"
         />
       </td>
       <td className="p-3.5 whitespace-nowrap">
@@ -42,7 +42,7 @@ export const VendorTableRow = React.memo(function VendorTableRow({
         </span>
       </td>
       <td className="p-3.5">
-        <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 uppercase">
+        <span className="rounded-lg bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700 uppercase">
           {vendor.category}
         </span>
       </td>
@@ -59,7 +59,7 @@ export const VendorTableRow = React.memo(function VendorTableRow({
             size="sm"
             variant="outline"
             onClick={() => onViewDetails(vendor)}
-            className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-50"
           >
             Details
           </Button>
@@ -68,7 +68,7 @@ export const VendorTableRow = React.memo(function VendorTableRow({
               size="sm"
               variant="outline"
               onClick={() => onPreviewDocument(vendor.id)}
-              className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-100"
+              className="h-7 px-2 text-[11px] border-slate-300 text-slate-700 hover:bg-slate-50"
             >
               Document
             </Button>
@@ -77,7 +77,7 @@ export const VendorTableRow = React.memo(function VendorTableRow({
             size="sm"
             variant="default"
             onClick={() => onOpenReview(vendor)}
-            className="h-7 px-2 text-[11px] bg-slate-900 text-white hover:bg-slate-800 font-medium"
+            className="h-7 px-2 text-[11px] bg-[#0078d4] hover:bg-[#005a9e] text-white font-medium"
           >
             Status
           </Button>

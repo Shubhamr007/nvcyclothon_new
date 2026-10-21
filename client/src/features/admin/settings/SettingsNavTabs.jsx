@@ -27,11 +27,11 @@ const SettingsTabButton = React.memo(function SettingsTabButton({
       onClick={handleClick}
       className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-bold whitespace-nowrap transition-all ${
         isActive
-          ? "bg-slate-900 text-white shadow-xs"
+          ? "bg-[#0078d4] text-white shadow-xs"
           : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
       }`}
     >
-      <Icon className={`h-4 w-4 ${isActive ? "text-[#d9ff38]" : "text-slate-400"}`} />
+      <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-400"}`} />
       <span>{tab.label}</span>
     </button>
   );

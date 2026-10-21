@@ -164,7 +164,7 @@ export function DelegationFormDrawer({
                 value={formData.contact_name}
                 onChange={(e) => setFormData((prev) => ({ ...prev, contact_name: e.target.value }))}
                 placeholder="e.g. Hon. Shri Rajesh Singh"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
 
@@ -178,7 +178,7 @@ export function DelegationFormDrawer({
                 value={formData.organization}
                 onChange={(e) => setFormData((prev) => ({ ...prev, organization: e.target.value }))}
                 placeholder="e.g. Government of MP / Rewa Police Dept"
-                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0078d4]/20 focus:border-[#0078d4]"
               />
             </div>
           </div>
@@ -211,7 +211,7 @@ export function DelegationFormDrawer({
           <Button
             type="submit"
             disabled={isSaving || isUploadingPhoto}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs rounded-xl h-10 px-6 shadow-sm transition"
           >
             {isSaving ? (
               <span className="flex items-center gap-2">

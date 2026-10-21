@@ -66,13 +66,13 @@ export function FinanceRevenuePanel({
   const vendorPercent = summary.grossRevenue > 0 ? Math.round(((summary.vendorRevenue + summary.delegationRevenue) / summary.grossRevenue) * 100) : 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-xs space-y-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
       {/* HEADER & COMPOSITION BAR */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div className="h-3 w-3 rounded-full bg-emerald-600" />
-            <h3 className="font-bold text-base text-slate-950">Revenue Inflow Channels</h3>
+            <h3 className="font-bold text-base text-slate-900">Revenue Inflow Channels</h3>
           </div>
           <div className="flex items-center gap-2">
             {summary.pipelineCommercialRevenue > 0 && (
@@ -89,7 +89,7 @@ export function FinanceRevenuePanel({
         {/* Multi-segment revenue composition bar */}
         <div className="mt-3.5 h-3 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200 flex">
           <div style={{ width: `${regPercent}%` }} className="bg-emerald-600 transition-all" title={`Tickets: ${regPercent}%`} />
-          <div style={{ width: `${sponsorPercent}%` }} className="bg-blue-600 transition-all" title={`Sponsors: ${sponsorPercent}%`} />
+          <div style={{ width: `${sponsorPercent}%` }} className="bg-[#0078d4] transition-all" title={`Sponsors: ${sponsorPercent}%`} />
           <div style={{ width: `${vendorPercent}%` }} className="bg-purple-600 transition-all" title={`Expo/Corporate: ${vendorPercent}%`} />
         </div>
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-700 font-bold font-mono">
@@ -98,7 +98,7 @@ export function FinanceRevenuePanel({
             Tickets ({regPercent}%)
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-600 inline-block" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#0078d4] inline-block" />
             Sponsors ({sponsorPercent}%)
           </span>
           <span className="flex items-center gap-1.5">
@@ -109,13 +109,13 @@ export function FinanceRevenuePanel({
       </div>
 
       {/* SECTION 1: PARTICIPANT TICKET REVENUE (LIVE LEDGER) */}
-      <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 space-y-1.5 shadow-2xs">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-950">
+      <div className="rounded-xl border border-slate-200 bg-[#faf9f6] p-4 space-y-1.5 shadow-2xs">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-900">
           <span className="flex items-center gap-2">
             <Users className="h-4 w-4 text-emerald-600 shrink-0" />
             Live Rider Registrations ({summary.paidCount || 0} Paid Riders)
           </span>
-          <span className="font-mono font-extrabold text-sm text-slate-950">
+          <span className="font-mono font-extrabold text-sm text-slate-900">
             ₹{(summary.regRevenue || 0).toLocaleString("en-IN")}
           </span>
         </div>
@@ -125,13 +125,13 @@ export function FinanceRevenuePanel({
       </div>
 
       {/* REVENUE SUB-CHANNEL TABS */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2.5">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2.5">
         <button
           type="button"
           onClick={() => setActiveTab("sponsors")}
           className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition ${
             activeTab === "sponsors"
-              ? "bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs"
+              ? "bg-[#deecf9] text-[#005a9e] border border-[#c7e0f4] shadow-2xs"
               : "text-slate-600 hover:bg-slate-100 border border-transparent"
           }`}
         >

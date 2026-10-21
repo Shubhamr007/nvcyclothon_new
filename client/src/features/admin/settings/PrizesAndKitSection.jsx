@@ -34,31 +34,31 @@ const PrizeItemRow = React.memo(function PrizeItemRow({
   }, [index, onDelete]);
 
   return (
-    <div className="grid gap-2 rounded-xl bg-slate-50 border border-slate-200 p-3 sm:grid-cols-[1.5fr_1fr_1fr_auto]">
+    <div className="grid gap-2 rounded-xl bg-[#faf9f6] border border-slate-200 p-3 sm:grid-cols-[1.5fr_1fr_1fr_auto]">
       <input
         value={prize.label || ""}
         onChange={handleLabelChange}
         placeholder="Category / Rank (e.g. 60KM Winner)"
-        className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+        className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
       />
       <input
         value={prize.amount || ""}
         onChange={handleAmountChange}
         placeholder="Amount (e.g. ₹25,000)"
-        className="rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono font-bold text-slate-900 focus:border-slate-900 focus:outline-none"
+        className="rounded-lg border border-slate-300 bg-white p-2 text-xs font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
       />
       <input
         value={prize.detail || ""}
         onChange={handleDetailChange}
         placeholder="Optional notes"
-        className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+        className="rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
       />
       <Button
         type="button"
         size="sm"
         variant="outline"
         onClick={handleDelete}
-        className="border-slate-300 text-rose-600 hover:bg-rose-50 text-xs px-2.5 h-8"
+        className="border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 text-xs px-2.5 h-8"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
@@ -108,7 +108,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
   return (
     <div className="space-y-6">
       {/* PRIZE POOL CARD */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <h3 className="text-base font-bold text-slate-900">Prize Pool</h3>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -116,7 +116,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
               type="checkbox"
               checked={Boolean(settings.prize_pool?.enabled)}
               onChange={(e) => updatePrizePool("enabled", e.target.checked)}
-              className="h-4 w-4 rounded accent-slate-900"
+              className="h-4 w-4 rounded accent-[#0078d4]"
             />
             <span className="text-xs font-semibold text-slate-800">Show Prize Pool</span>
           </label>
@@ -130,7 +130,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
             <input
               value={settings.prize_pool?.eyebrow || ""}
               onChange={(e) => updatePrizePool("eyebrow", e.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div>
@@ -141,7 +141,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
               value={settings.prize_pool?.total || ""}
               onChange={(e) => updatePrizePool("total", e.target.value)}
               placeholder="₹1,00,000"
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div className="sm:col-span-2">
@@ -151,7 +151,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
             <input
               value={settings.prize_pool?.title || ""}
               onChange={(e) => updatePrizePool("title", e.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div className="sm:col-span-2">
@@ -162,7 +162,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
               rows={2}
               value={settings.prize_pool?.body || ""}
               onChange={(e) => updatePrizePool("body", e.target.value)}
-              className="w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
         </div>
@@ -195,7 +195,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
       </div>
 
       {/* RIDER KIT CARD */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <h3 className="text-base font-bold text-slate-900">Official Rider Kit</h3>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -203,7 +203,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
               type="checkbox"
               checked={Boolean(settings.participant_kit?.enabled)}
               onChange={(e) => updateParticipantKit("enabled", e.target.checked)}
-              className="h-4 w-4 rounded accent-slate-900"
+              className="h-4 w-4 rounded accent-[#0078d4]"
             />
             <span className="text-xs font-semibold text-slate-800">Show Rider Kit</span>
           </label>
@@ -217,7 +217,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
             <input
               value={settings.participant_kit?.eyebrow || ""}
               onChange={(e) => updateParticipantKit("eyebrow", e.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div>
@@ -227,7 +227,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
             <input
               value={settings.participant_kit?.title || ""}
               onChange={(e) => updateParticipantKit("title", e.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-300 px-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
             />
           </div>
           <div className="sm:col-span-2">
@@ -243,7 +243,7 @@ export function PrizesAndKitSection({ settings, updateField }) {
                   e.target.value.split("\n").map((i) => i.trim()).filter(Boolean)
                 )
               }
-              className="w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-900 focus:border-slate-900 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
               placeholder="Dry-fit Athletic Jersey&#10;Finisher Medal&#10;Timing Chip"
             />
           </div>

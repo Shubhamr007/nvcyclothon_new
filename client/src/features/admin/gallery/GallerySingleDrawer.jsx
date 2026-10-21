@@ -44,7 +44,7 @@ export function GallerySingleDrawer({
             type="button"
             disabled={singleUploading || !singleForm.image_url}
             onClick={onSubmit}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs px-4"
+            className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold text-xs px-4 shadow-xs"
           >
             {singleUploading ? (
               <span className="flex items-center gap-1.5">
@@ -91,7 +91,7 @@ export function GallerySingleDrawer({
             onChange={(e) =>
               setSingleForm({ ...singleForm, image_url: e.target.value })
             }
-            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono"
+            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4] font-mono"
           />
         </div>
 
@@ -107,7 +107,7 @@ export function GallerySingleDrawer({
             onChange={(e) =>
               setSingleForm({ ...singleForm, title: e.target.value })
             }
-            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
           />
         </div>
 
@@ -120,7 +120,7 @@ export function GallerySingleDrawer({
             onChange={(e) =>
               setSingleForm({ ...singleForm, category: e.target.value })
             }
-            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-900 focus:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
           >
             <option value="Organizers">Organizers & Race Directors</option>
             <option value="Partners">Official Partners & Sponsors</option>
@@ -141,7 +141,7 @@ export function GallerySingleDrawer({
             onChange={(e) =>
               setSingleForm({ ...singleForm, caption: e.target.value })
             }
-            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+            className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#0078d4] focus:outline-none focus:ring-1 focus:ring-[#0078d4]"
           />
         </div>
       </form>

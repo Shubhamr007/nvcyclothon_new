@@ -121,7 +121,7 @@ export function SettingsTab({ accessToken: propAccessToken, onFeedback }) {
 
   if (loading || !settings) {
     return (
-      <div className="py-20 flex justify-center rounded-2xl bg-white shadow-sm border border-black/10">
+      <div className="py-20 flex justify-center rounded-2xl bg-white shadow-xs border border-slate-200">
         <LoadingIndicator label="Loading site settings…" />
       </div>
     );
@@ -130,7 +130,7 @@ export function SettingsTab({ accessToken: propAccessToken, onFeedback }) {
   return (
     <div className="space-y-6">
       {/* HEADER BAR */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900">Public Site Configuration</h2>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -141,7 +141,7 @@ export function SettingsTab({ accessToken: propAccessToken, onFeedback }) {
         <Button
           onClick={submit}
           disabled={saving}
-          className="bg-slate-900 hover:bg-slate-800 text-white font-semibold h-9 rounded-xl shadow-sm transition"
+          className="bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold h-9 rounded-xl shadow-xs transition"
         >
           <Save className="h-4 w-4 mr-1.5" />
           {saving ? "Saving…" : "Publish Changes"}

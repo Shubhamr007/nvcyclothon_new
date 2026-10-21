@@ -9,13 +9,13 @@ export function ParticipantQrModal({ rider, onClose }) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 backdrop-blur-xs p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl border border-slate-200 text-slate-900"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <span className="text-xs font-mono font-semibold text-slate-500">
             #{rider.id} CHECK-IN PASS
           </span>
@@ -29,7 +29,7 @@ export function ParticipantQrModal({ rider, onClose }) {
         </div>
 
         <div className="my-6 flex justify-center">
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 shadow-xs">
+          <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
             <QRCodeSVG
               value={`nvcyclothon-checkin:${rider.checkin_token || rider.id}`}
               size={190}
@@ -46,7 +46,7 @@ export function ParticipantQrModal({ rider, onClose }) {
 
         <Button
           onClick={onClose}
-          className="mt-6 w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl"
+          className="mt-6 w-full bg-[#0078d4] hover:bg-[#005a9e] text-white font-semibold rounded-xl shadow-xs"
         >
           Close Pass
         </Button>
