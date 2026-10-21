@@ -55,13 +55,14 @@ function isPlaceholderSecret(secret) {
 
 function resolveAssetPath(envPath, candidateRelativePaths) {
   if (envPath) {
+    if (path.isAbsolute(envPath)) return envPath;
     return path.resolve(__dirname, "..", envPath);
   }
   for (const candidate of candidateRelativePaths) {
-    const resolved = path.resolve(__dirname, "..", candidate);
-    if (fs.existsSync(resolved)) {
-      return resolved;
-    }
+    const direct = path.resolve(__dirname, candidate);
+    if (fs.existsSync(direct)) return direct;
+    const parent = path.resolve(__dirname, "..", candidate);
+    if (fs.existsSync(parent)) return parent;
   }
   return path.resolve(__dirname, "..", candidateRelativePaths[0]);
 }

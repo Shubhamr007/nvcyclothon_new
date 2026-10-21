@@ -2,6 +2,10 @@ const { loadConfig } = require("./config");
 const { createRepository } = require("./db");
 const { CATALOGUE } = require("./constants");
 
+const { initRagTable } = require("./db/ragRepository");
+const { initBackgroundJobsTable } = require("./db/jobRepository");
+const { DatabaseRateLimitStore } = require("./services/rateLimitStore");
+
 async function initDb() {
   const config = loadConfig(process.env);
   if (config.dbBackend !== "postgres") {
@@ -11,6 +15,11 @@ async function initDb() {
   const repository = createRepository(config);
   try {
     await repository.init();
+    await initRagTable(repository);
+    await initBackgroundJobsTable(repository);
+    const rateStore = new DatabaseRateLimitStore(repository);
+    await rateStore.init();
+
     await repository.seedProducts(CATALOGUE);
     await repository.seedOrganizingMembers();
     await repository.seedSponsorshipTiers();

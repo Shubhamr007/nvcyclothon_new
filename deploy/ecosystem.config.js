@@ -3,12 +3,20 @@
 // Enables clustering, automatic zero-downtime reloads, and memory guardrails
 // ==============================================================================
 
+const fs = require("fs");
+const path = require("path");
+
+const backendDir = "/var/www/nv_cyclothon/backend";
+const scriptPath = fs.existsSync(path.join(backendDir, "dist", "server.js"))
+  ? "dist/server.js"
+  : "src/server.js";
+
 module.exports = {
   apps: [
     {
       name: "nvcyclothon-api",
-      script: "src/server.js",
-      cwd: "/var/www/nv_cyclothon/backend",
+      script: scriptPath,
+      cwd: backendDir,
       instances: 2, // 2 cluster workers balance CPU cores nicely on VPS without starving Postgres
       exec_mode: "cluster",
       autorestart: true,
