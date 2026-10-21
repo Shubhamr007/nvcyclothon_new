@@ -1,7 +1,38 @@
+# Dependencies and generated application output
 node_modules/
 dist/
+dist-*/
+build/
+coverage/
+.vite/
+.next/
+out/
 uploads/
+
+# Local databases and runtime artefacts
 *.db
+*.sqlite
+*.sqlite3
+*.log
 __pycache__/
 *.py[cod]
+
+# Local configuration and secrets. Keep deliberately sanitised examples versioned.
 .env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+credentials.json
+service-account*.json
+secrets.json
+
+# Documentation is maintained outside this repository.
+*.md
