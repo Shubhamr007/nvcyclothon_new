@@ -1213,6 +1213,7 @@ class PostgresRepository {
             paymentVerifiedAt,
             checkinToken,
             payload.whatsapp_use_primary !== false,
+            payload.whatsapp_number || null,
             payload.preferred_whatsapp_number !== undefined
               ? payload.preferred_whatsapp_number
               : (payload.whatsapp_use_primary !== false ? payload.phone : (payload.whatsapp_number || null)),

@@ -3,6 +3,8 @@
  * Connects to local Ollama daemon for privacy-preserving, zero-cost intelligence.
  */
 
+const { ApiError } = require("../errors");
+
 async function getOllamaStatus(config) {
   if (!config.ollamaEnabled) {
     return {
@@ -86,16 +88,29 @@ async function callOllamaChat(config, {
       ? AbortSignal.any([timeoutSignal, userSignal])
       : userSignal || timeoutSignal;
 
-  const res = await fetch(`${config.ollamaUrl}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: combinedSignal,
-  });
+  let res;
+  try {
+    res = await fetch(`${config.ollamaUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: combinedSignal,
+    });
+  } catch (fetchErr) {
+    throw new ApiError(
+      503,
+      `Local Ollama AI service unavailable at ${config.ollamaUrl}. Ensure Ollama is running ('systemctl status ollama'). (${fetchErr.message})`,
+      "AI_SERVICE_UNAVAILABLE"
+    );
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
-    throw new Error(`Ollama chat failed with status ${res.status}: ${errText.slice(0, 200)}`);
+    throw new ApiError(
+      503,
+      `Ollama returned status ${res.status}: ${errText.slice(0, 150) || "Model error"}`,
+      "AI_MODEL_ERROR"
+    );
   }
 
   const data = await res.json();
