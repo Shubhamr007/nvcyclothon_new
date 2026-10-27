@@ -35,11 +35,11 @@ export function WhatsAppPreferencesSection({
         </div>
         <div>
           <h3 className="text-sm font-black text-slate-950 sm:text-base">
-            WhatsApp Event Updates & Notifications
+            Optional WhatsApp Updates
           </h3>
           <p className="mt-1 text-xs leading-relaxed text-slate-700">
-            NV Cyclothon uses WhatsApp to send real-time race-day schedules,
-            bib allotment details, route advisories, and emergency updates.
+            If you opt in, we will use the selected number for event logistics such as bib details,
+            schedule changes, route advisories, and urgent race-day messages.
           </p>
         </div>
       </div>
@@ -57,9 +57,9 @@ export function WhatsAppPreferencesSection({
             className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-600 cursor-pointer"
           />
           <div>
-            <span>Receive official race-day updates and notifications on WhatsApp</span>
+            <span>Yes, send me event-related updates on WhatsApp</span>
             <span className="block text-[11px] font-normal text-slate-600 mt-0.5">
-              We respect your privacy and only send crucial event notifications.
+              Optional. Leave unchecked to decline. This choice does not affect registration.
             </span>
           </div>
         </label>
@@ -166,7 +166,7 @@ export function WhatsAppPreferencesSection({
 
       <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-800/90 font-medium pt-2 border-t border-emerald-500/15">
         <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
-        <span>Consent is recorded securely and can be managed anytime.</span>
+        <span>Your choice is recorded with your registration. You can change it by contacting nvcyclothon@gmail.com.</span>
       </div>
     </div>
   );

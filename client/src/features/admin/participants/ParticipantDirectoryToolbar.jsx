@@ -3,8 +3,6 @@ import {
   Search,
   CheckCircle2,
   X,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
 
@@ -21,6 +19,8 @@ export function ParticipantDirectoryToolbar({
   uniqueRoutes = [],
   statusFilter = "all",
   onStatusChange,
+  paymentFilter = "all",
+  onPaymentChange,
   certificateFilter = "all",
   onCertificateChange,
   onCertificateFilterChange,
@@ -28,10 +28,6 @@ export function ParticipantDirectoryToolbar({
   selectedCount = 0,
   busy = false,
   onDeleteSelected,
-  onExpandAll,
-  onCollapseAll,
-  expandedCount = 0,
-  visibleCount = 0,
 }) {
   const handleSearch = onSearchTextChange || onSearchChange || (() => {});
   const handleCertificate = onCertificateChange || onCertificateFilterChange || (() => {});
@@ -45,7 +41,7 @@ export function ParticipantDirectoryToolbar({
         <div>
           <h2 className="text-lg font-bold text-slate-900">Participant Directory</h2>
           <p className="text-xs text-slate-500">
-            Compact overview of all riders. Click any row or the chevron to expand full logistics & QR details.
+            Compact overview of all riders. Click a row or Details to open the participant panel.
           </p>
         </div>
 
@@ -66,7 +62,7 @@ export function ParticipantDirectoryToolbar({
       </div>
 
       {/* CONTROLS ROW */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {/* SEARCH INPUT */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -102,6 +98,21 @@ export function ParticipantDirectoryToolbar({
           ))}
         </select>
 
+        {/* PAYMENT FILTER */}
+        <select
+          value={paymentFilter}
+          onChange={(e) => onPaymentChange?.(e.target.value)}
+          aria-label="Filter by payment status"
+          className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900 focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none"
+        >
+          <option value="all">All Payment States</option>
+          <option value="paid">Paid</option>
+          <option value="unpaid">Not paid</option>
+          <option value="pending">Payment pending</option>
+          <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
+        </select>
+
         {/* STATUS FILTER */}
         <select
           value={statusFilter}
@@ -135,29 +146,6 @@ export function ParticipantDirectoryToolbar({
         onDelete={onDeleteSelected}
       />
 
-      {/* EXPAND ALL / COLLAPSE ALL TOGGLES */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onExpandAll}
-            className="font-medium text-slate-700 hover:text-[#0078d4] flex items-center gap-1 transition-colors"
-          >
-            <ChevronDown className="h-3.5 w-3.5" /> Expand All on Page
-          </button>
-          <span>•</span>
-          <button
-            type="button"
-            onClick={onCollapseAll}
-            className="font-medium text-slate-700 hover:text-[#0078d4] flex items-center gap-1 transition-colors"
-          >
-            <ChevronUp className="h-3.5 w-3.5" /> Collapse All
-          </button>
-        </div>
-        <span className="font-mono text-[11px] text-slate-400">
-          {expandedCount} of {visibleCount} expanded
-        </span>
-      </div>
     </div>
   );
 }

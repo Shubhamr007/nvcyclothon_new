@@ -1,11 +1,13 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import {
+  createAdminPartnerApplication,
   getAdminPartnerLogo,
   exportAdminPartnersCsv,
 } from "../../../api/http";
 import { useDebouncedValue } from "../../../components/useDebouncedValue";
 import { downloadBlobFile } from "../../../utils/csv";
 import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
+import { PartnerVendorCreateDrawer } from "../components/PartnerVendorCreateDrawer";
 import {
   PartnerDetailModal,
   PartnerDeliverablesModal,
@@ -39,6 +41,8 @@ import {
 export { PARTNER_STATUSES, FilterPill };
 
 export function PartnersTab({ accessToken: propAccessToken, onFeedback }) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const dispatch = useAppDispatch();
   const authAccessToken = useAppSelector((state) => state.auth?.accessToken);
   const accessToken = propAccessToken || authAccessToken;
@@ -146,6 +150,17 @@ export function PartnersTab({ accessToken: propAccessToken, onFeedback }) {
     }
   }, [accessToken, onFeedback]);
 
+  const handleCreate = useCallback(async (payload) => {
+    setCreating(true);
+    try {
+      await createAdminPartnerApplication(accessToken, payload);
+      await dispatch(fetchPartners({ accessToken, status: filter, search: debouncedSearch }));
+      onFeedback?.("Partner added successfully");
+    } finally {
+      setCreating(false);
+    }
+  }, [accessToken, dispatch, filter, debouncedSearch, onFeedback]);
+
   const handleToggleSelectPartner = useCallback(
     (id) => {
       dispatch(toggleSelectId(id));
@@ -188,6 +203,7 @@ export function PartnersTab({ accessToken: propAccessToken, onFeedback }) {
         approvedCount={approvedList.length}
         onSubTabChange={(tab) => dispatch(setSubTab(tab))}
         onExportCsv={handleExportCsv}
+        onAdd={() => setCreateOpen(true)}
       />
 
       {subTab === "applications" && (
@@ -257,6 +273,7 @@ export function PartnersTab({ accessToken: propAccessToken, onFeedback }) {
         }
         onSave={handleUpdateStatus}
       />
+      <PartnerVendorCreateDrawer kind="partner" isOpen={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreate} busy={creating} />
     </div>
   );
 }

@@ -34,7 +34,17 @@ const initialValues = (route) => ({
   email: "",
   phone_raw: "",
   age: "",
+  guardian_name: "",
+  guardian_relationship: "",
+  guardian_email: "",
+  guardian_phone_raw: "",
+  guardian_consent_accepted: false,
+  media_consent_accepted: false,
   city: "",
+  address_line1: "",
+  address_line2: "",
+  state: "",
+  postal_code: "",
   gender: "",
   ride_category: route,
   organization_type: "Individual",
@@ -43,7 +53,7 @@ const initialValues = (route) => ({
   waiver_accepted: false,
   privacy_accepted: false,
   whatsapp_use_primary: true,
-  whatsapp_opt_in: true,
+  whatsapp_opt_in: false,
   whatsapp_phone_raw: "",
 });
 
@@ -71,6 +81,8 @@ export function RegistrationForm({ initialRoute }) {
   const [pendingRegistration, setPendingRegistration] = useState(null);
   const [policyModal, setPolicyModal] = useState({ isOpen: false, tab: "refund" });
   const selectedRoute = watch("ride_category");
+  const participantAge = Number(watch("age"));
+  const requiresGuardianConsent = Number.isFinite(participantAge) && participantAge > 0 && participantAge < 18;
   const rideOptions = useMemo(
     () => getMergedRideOptions(settings?.race_categories, settings?.early_bird_enabled),
     [settings?.race_categories, settings?.early_bird_enabled]
@@ -119,6 +131,7 @@ export function RegistrationForm({ initialRoute }) {
     const ageNum = Number(form.age);
     const cleanPhone = String(form.phone_raw || "").trim().replace(/\D+/g, "");
     const fullPhone = `${phoneCountryCode}${cleanPhone}`;
+    const guardianPhoneDigits = String(form.guardian_phone_raw || "").trim().replace(/\D+/g, "");
 
     const usePrimaryWhatsapp = Boolean(form.whatsapp_use_primary);
     const cleanWhatsappPhone = String(form.whatsapp_phone_raw || "").trim().replace(/\D+/g, "");
@@ -139,7 +152,18 @@ export function RegistrationForm({ initialRoute }) {
       // A separate emergency number is intentionally no longer required at signup.
       emergency_contact: fullPhone,
       age: ageNum,
+      guardian_name: requiresGuardianConsent ? form.guardian_name : null,
+      guardian_relationship: requiresGuardianConsent ? form.guardian_relationship : null,
+      guardian_email: requiresGuardianConsent ? form.guardian_email : null,
+      guardian_phone: requiresGuardianConsent ? `+91${guardianPhoneDigits}` : null,
+      // The participant supplies guardian contact details; this does not record guardian consent.
+      guardian_consent_accepted: false,
+      media_consent_accepted: Boolean(form.media_consent_accepted),
       city: form.city,
+      address_line1: form.address_line1,
+      address_line2: form.address_line2?.trim() || null,
+      state: form.state,
+      postal_code: form.postal_code,
       gender: form.gender,
       ride_category: form.ride_category,
       organization_type: form.organization_type || "Individual",
@@ -306,6 +330,10 @@ export function RegistrationForm({ initialRoute }) {
 
       {/* Rider Personal Information */}
       <div className="mt-6 grid gap-x-4 gap-y-5 sm:mt-8 sm:grid-cols-2">
+        <div className="col-span-full border-b border-[#071313]/10 pb-2">
+          <h3 className="text-sm font-black uppercase tracking-wider">Rider details</h3>
+          <p className="mt-1 text-xs text-[#071313]/60">Contact and participant information for your event entry.</p>
+        </div>
         <Field
           label="Full name"
           name="full_name"
@@ -404,6 +432,21 @@ export function RegistrationForm({ initialRoute }) {
           placeholder="e.g. 28"
         />
 
+        {requiresGuardianConsent && (
+          <fieldset className="col-span-full rounded-2xl border-2 border-sky-300 bg-sky-50 p-4 text-[#071313] sm:p-5">
+            <legend className="px-2 text-sm font-black">Parent or lawful guardian details</legend>
+            <p className="mb-4 text-xs leading-5 text-[#071313]/75">
+              Enter a parent or lawful guardian’s contact details so the event team can manage the participant’s entry and safety. Entering these details does not confirm guardian consent. A parent or lawful guardian must accompany participants under 18 and confirm consent at check-in.
+            </p>
+            <div className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
+              <Field label="Parent / guardian full name" {...register("guardian_name", { required: "Enter the parent or guardian’s full name", minLength: { value: 2, message: "Enter a valid name" } })} error={errors.guardian_name} maxLength="160" autoComplete="name" />
+              <Field label="Relationship to participant" {...register("guardian_relationship", { required: "Enter the relationship to the participant", minLength: { value: 2, message: "Enter the relationship" } })} error={errors.guardian_relationship} maxLength="80" placeholder="e.g. Mother, father, lawful guardian" />
+              <Field label="Parent / guardian email" type="email" {...register("guardian_email", { required: "Enter the parent or guardian’s email", pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email address" } })} error={errors.guardian_email} maxLength="255" autoComplete="email" />
+              <Field label="Parent / guardian mobile (+91)" type="tel" {...register("guardian_phone_raw", { required: "Enter the parent or guardian’s mobile number", validate: (value) => /^[6-9]\d{9}$/.test(String(value).replace(/\D+/g, "")) || "Enter a valid 10-digit Indian mobile number" })} error={errors.guardian_phone_raw} maxLength="16" inputMode="tel" autoComplete="tel-national" placeholder="98765 43210" />
+            </div>
+          </fieldset>
+        )}
+
         <Field
           label="City"
           {...register("city", {
@@ -415,6 +458,53 @@ export function RegistrationForm({ initialRoute }) {
           maxLength="100"
           autoComplete="address-level2"
           placeholder="e.g. Rewa"
+        />
+
+        <div className="col-span-full mt-2 border-b border-[#071313]/10 pb-2">
+          <h3 className="text-sm font-black uppercase tracking-wider">Postal address</h3>
+          <p className="mt-1 text-xs text-[#071313]/60">Optional. Add it only if event correspondence or logistics require it.</p>
+        </div>
+
+        <Field
+          label="Address line 1"
+          {...register("address_line1", {
+            minLength: { value: 3, message: "Enter at least 3 characters or leave blank" },
+          })}
+          error={errors.address_line1}
+          maxLength="200"
+          autoComplete="address-line1"
+          placeholder="House / flat, building, street"
+        />
+
+        <Field
+          label="Address line 2 (optional)"
+          {...register("address_line2")}
+          error={errors.address_line2}
+          maxLength="200"
+          autoComplete="address-line2"
+          placeholder="Area, landmark"
+        />
+
+        <Field
+          label="State / union territory"
+          {...register("state")}
+          error={errors.state}
+          maxLength="100"
+          autoComplete="address-level1"
+          placeholder="e.g. Madhya Pradesh"
+        />
+
+        <Field
+          label="Postal / PIN code"
+          {...register("postal_code", {
+            minLength: { value: 3, message: "Enter a valid postal or PIN code or leave blank" },
+            maxLength: { value: 16, message: "Enter a valid postal or PIN code" },
+            pattern: { value: /^[A-Za-z0-9 -]+$/, message: "Enter a valid postal or PIN code" },
+          })}
+          error={errors.postal_code}
+          maxLength="16"
+          autoComplete="postal-code"
+          placeholder="e.g. 486001"
         />
 
         <label className="text-xs font-black tracking-[.1em] uppercase">
@@ -645,13 +735,13 @@ export function RegistrationForm({ initialRoute }) {
         and safety rules (helmets compulsory).
       </ConsentCheckbox>
 
-      {/* Strict Cancellation & No-Refund Policy Notice */}
+      {/* Cancellation and refund summary */}
       <div className="rounded-2xl border border-[#ff5f3d]/30 bg-[#ff5f3d]/10 p-3.5 text-xs text-[#071313] shadow-sm dark:text-white/90 sm:p-4">
         <p className="font-bold uppercase tracking-wider text-[#ff5f3d] text-[11px]">
-          ⚠️ Strict Cancellation & Non-Refundable Policy
+          Cancellation and refunds
         </p>
         <p className="mt-1 text-[11px] leading-relaxed text-black/75 dark:text-white/75">
-          Registration fees are <strong>strictly non-refundable and non-transferable</strong> under all circumstances, including absence/no-show on event day or event postponement. Read our{" "}
+          Voluntary cancellations and no-shows are not ordinarily refundable. If the organiser cancels or postpones the event, the available refund or transfer options are described in the policy. Read our{" "}
           <button
             type="button"
             onClick={(e) => {
@@ -676,12 +766,16 @@ export function RegistrationForm({ initialRoute }) {
         </p>
       </div>
 
+      <aside className="mt-5 rounded-xl border border-[#071313]/15 bg-white/70 p-3.5 text-xs leading-5 text-[#071313]/75">
+        <strong className="text-[#071313]">Privacy summary · nvc-2026-1.</strong> RDCA uses the details in this form to manage your entry, eligibility, payment, check-in, event messages, and safety response. Cashfree handles payment; service providers operate email, hosting, and the database. Postal address and promotional photo permission are optional. WhatsApp updates are off unless you opt in. For data requests or privacy concerns, contact nvcyclothon@gmail.com or +91 88395 03099. Read the full privacy notice below.
+      </aside>
+
       <ConsentCheckbox
         name="privacy_accepted"
         {...register("privacy_accepted", { required: "Accept the privacy notice to continue" })}
         error={errors.privacy_accepted}
       >
-        I have read the{" "}
+        I acknowledge that I have read the{" "}
         <button
           type="button"
           onClick={(e) => {
@@ -691,8 +785,14 @@ export function RegistrationForm({ initialRoute }) {
           className="font-bold underline text-[#ff5f3d] hover:text-[#d9492c]"
         >
           privacy notice
-        </button>{" "}
-        and agree that NV Cyclothon may use my information only to manage this event and send essential rider updates.
+        </button>. This notice explains how event registration information is handled. WhatsApp updates are a separate optional choice.
+      </ConsentCheckbox>
+
+      <ConsentCheckbox
+        name="media_consent_accepted"
+        {...register("media_consent_accepted")}
+      >
+        I separately agree that event photographs or video identifying me (or, if I am the parent / lawful guardian, the minor participant) may be used in NV Cyclothon event reports and promotional materials. This is optional and does not affect registration.
       </ConsentCheckbox>
 
       <Button
@@ -881,6 +981,10 @@ function ErrorSummary({ errors }) {
     phone_raw: "Phone number",
     age: "Age",
     city: "City",
+    address_line1: "Address line 1",
+    address_line2: "Address line 2",
+    state: "State / union territory",
+    postal_code: "Postal / PIN code",
     gender: "Gender",
     ride_category: "Bicycle route",
     organization_name: "Organization / Institute name",

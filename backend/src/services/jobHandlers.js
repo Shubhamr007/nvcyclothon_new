@@ -1,5 +1,6 @@
 const { generateParticipationCertificate, generateRiderPassPdf, riderId } = require("./eventDocuments");
 const { getOrCreatePdf } = require("./documentStorage");
+const { sendRegistrationFollowupLink, needsRegistrationFollowup } = require("./registrationFollowup");
 
 const DOCUMENT_VERSION = "v2";
 
@@ -121,6 +122,7 @@ function registerStandardJobHandlers(queue, { config, repository, emailService }
 
     await mapConcurrency(eligible, 3, async (registration) => {
       if (signal.aborted) return;
+      registration.checkin_token = await repository.getOrCreateCheckinToken(registration.id);
       const checkinPayload = registration.checkin_token
         ? `${config.checkinQrPrefix}${registration.checkin_token}`
         : "";
@@ -152,30 +154,66 @@ function registerStandardJobHandlers(queue, { config, repository, emailService }
     };
   });
 
-  queue.registerHandler("event_update_email", async (job, { updateProgress }) => {
-    const { subject, message, filter_category } = job.payload || {};
-    let recipients = await repository.listRegistrationEmails();
-
-    if (filter_category && filter_category !== "all" && repository.listRegistrations) {
-      const allRegs = await repository.listRegistrations();
-      const matchedEmails = new Set(
-        allRegs
-          .filter((r) => r.ride_category === filter_category && r.payment_status === "paid")
-          .map((r) => String(r.email || "").trim().toLowerCase())
-      );
-      recipients = recipients.filter((e) => matchedEmails.has(String(e || "").trim().toLowerCase()));
-    }
+  queue.registerHandler("event_update_email", async (job, { updateProgress, signal }) => {
+    const { subject, message, filter_category = "all", purpose = "event_update" } = job.payload || {};
+    const allRegs = await repository.listRegistrations();
+    const audience = allRegs.filter((registration) =>
+      (filter_category === "all" || registration.ride_category === filter_category) &&
+      (purpose !== "registration_details" || needsRegistrationFollowup(registration))
+    );
 
     await updateProgress(15, { status_text: "Preparing broadcast recipient list..." });
-    await emailService.sendEventUpdate({
+    if (purpose === "registration_details") {
+      let sent = 0;
+      let failed = 0;
+      for (let index = 0; index < audience.length; index += 1) {
+        if (signal.aborted) break;
+        try {
+          const result = await sendRegistrationFollowupLink({ config, repository, emailService, registration: audience[index] });
+          if (result.sent) sent += 1;
+          else failed += 1;
+        } catch {
+          failed += 1;
+        }
+        const progress = 15 + Math.round(((index + 1) / Math.max(audience.length, 1)) * 84);
+        await updateProgress(progress, { status_text: `Sending secure detail forms (${index + 1}/${audience.length})…`, sent, failed });
+      }
+      if (signal.aborted) {
+        return { queued_recipients: audience.length, sent_recipients: sent, failed_recipients: failed, purpose };
+      }
+      await updateProgress(100, { status_text: "Participant detail form broadcast finished", sent, failed });
+      return { queued_recipients: audience.length, sent_recipients: sent, failed_recipients: failed, purpose };
+    }
+
+    const recipients = [...new Set(audience.map((registration) => String(registration.email || "").trim()).filter(Boolean))];
+    const delivery = await emailService.sendEventUpdate({
       recipients,
       subject,
       message,
+      signal,
+      onProgress: async ({ current, total, sent, failed }) => {
+        const progress = 15 + Math.round((current / Math.max(total, 1)) * 84);
+        await updateProgress(progress, {
+          status_text: `Sending participant update (${current}/${total})…`,
+          sent,
+          failed,
+        });
+      },
     });
+    if (signal.aborted) {
+      return {
+        queued_recipients: recipients.length,
+        sent_recipients: delivery.sent_recipients,
+        failed_recipients: delivery.failed_recipients,
+        category: filter_category || "all",
+      };
+    }
     await updateProgress(100, { status_text: "Broadcast email sent successfully" });
 
     return {
       queued_recipients: recipients.length,
+      sent_recipients: delivery.sent_recipients,
+      failed_recipients: delivery.failed_recipients,
       subject,
       category: filter_category || "all",
     };

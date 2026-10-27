@@ -94,17 +94,37 @@ class PostgresRepository {
         phone VARCHAR(32) NOT NULL,
         age INTEGER NOT NULL,
         city VARCHAR(100) NOT NULL,
+        address_line1 VARCHAR(200),
+        address_line2 VARCHAR(200),
+        state VARCHAR(100),
+        postal_code VARCHAR(16),
         gender VARCHAR(32) NOT NULL DEFAULT 'Prefer not to say',
         ride_category VARCHAR(64) NOT NULL,
         emergency_contact VARCHAR(160) NOT NULL,
         t_shirt_size VARCHAR(10) NOT NULL,
         waiver_accepted BOOLEAN NOT NULL DEFAULT FALSE,
         privacy_accepted BOOLEAN NOT NULL DEFAULT FALSE,
+        waiver_accepted_at TIMESTAMPTZ,
+        privacy_accepted_at TIMESTAMPTZ,
+        privacy_notice_version VARCHAR(32) NOT NULL DEFAULT 'legacy-unversioned',
+        registration_details_completed_at TIMESTAMPTZ,
+        guardian_name VARCHAR(160),
+        guardian_relationship VARCHAR(80),
+        guardian_email VARCHAR(255),
+        guardian_phone VARCHAR(32),
+        guardian_consent_accepted BOOLEAN NOT NULL DEFAULT FALSE,
+        guardian_consent_at TIMESTAMPTZ,
+        guardian_consent_source VARCHAR(32) NOT NULL DEFAULT 'legacy-unverified',
+        media_consent_accepted BOOLEAN NOT NULL DEFAULT FALSE,
+        media_consent_at TIMESTAMPTZ,
         status VARCHAR(32) NOT NULL DEFAULT 'pending',
         registration_fee_paise INTEGER NOT NULL DEFAULT 0,
         payment_status VARCHAR(32) NOT NULL DEFAULT 'pending',
         payment_order_id VARCHAR(100),
         payment_id VARCHAR(100),
+        payment_bank_reference VARCHAR(120),
+        payment_method VARCHAR(80),
+        cashfree_payment_time TIMESTAMPTZ,
         payment_signature VARCHAR(128),
         payment_provider VARCHAR(50) DEFAULT 'cashfree',
         payment_verified_at TIMESTAMPTZ,
@@ -342,6 +362,14 @@ class PostgresRepository {
       );
       CREATE INDEX IF NOT EXISTS registration_email_deliveries_registration_idx
         ON registration_email_deliveries (registration_id, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS registration_followup_tokens (
+        registration_id INTEGER PRIMARY KEY REFERENCES cyclothon_registrations(id) ON DELETE CASCADE,
+        token_hash CHAR(64) NOT NULL UNIQUE,
+        expires_at TIMESTAMPTZ NOT NULL,
+        completed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
 
       CREATE TABLE IF NOT EXISTS partner_applications (
         id SERIAL PRIMARY KEY,
@@ -621,6 +649,9 @@ class PostgresRepository {
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_id VARCHAR(100)"
     );
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_bank_reference VARCHAR(120)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_method VARCHAR(80)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS cashfree_payment_time TIMESTAMPTZ");
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS payment_signature VARCHAR(128)"
     );
@@ -663,6 +694,23 @@ class PostgresRepository {
     await this.pool.query(
       "ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS whatsapp_consent_at TIMESTAMPTZ"
     );
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS address_line1 VARCHAR(200)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS address_line2 VARCHAR(200)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS state VARCHAR(100)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS postal_code VARCHAR(16)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS waiver_accepted_at TIMESTAMPTZ");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS privacy_accepted_at TIMESTAMPTZ");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS privacy_notice_version VARCHAR(32) NOT NULL DEFAULT 'legacy-unversioned'");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS registration_details_completed_at TIMESTAMPTZ");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_name VARCHAR(160)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_relationship VARCHAR(80)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_email VARCHAR(255)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_phone VARCHAR(32)");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_consent_accepted BOOLEAN NOT NULL DEFAULT FALSE");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_consent_at TIMESTAMPTZ");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS guardian_consent_source VARCHAR(32) NOT NULL DEFAULT 'legacy-unverified'");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS media_consent_accepted BOOLEAN NOT NULL DEFAULT FALSE");
+    await this.pool.query("ALTER TABLE cyclothon_registrations ADD COLUMN IF NOT EXISTS media_consent_at TIMESTAMPTZ");
     await this.pool.query(
       "ALTER TABLE volunteer_accounts ADD COLUMN IF NOT EXISTS email VARCHAR(150)"
     );
@@ -771,7 +819,6 @@ class PostgresRepository {
       )`
     );
 
-    await this.backfillMissingCheckinTokens();
   }
 
   async ensureAdminUser(username, bootstrapPassword) {
@@ -801,34 +848,22 @@ class PostgresRepository {
     return result.rows[0] || null;
   }
 
-  async backfillMissingCheckinTokens() {
-    const result = await this.pool.query(
-      "SELECT id FROM cyclothon_registrations WHERE checkin_token IS NULL"
-    );
-
-    for (const row of result.rows) {
-      let assigned = false;
-      for (let attempt = 0; attempt < 5 && !assigned; attempt += 1) {
-        const token = this.generateCheckinToken();
-        try {
-          await this.pool.query(
-            `UPDATE cyclothon_registrations
-             SET checkin_token = $1
-             WHERE id = $2 AND checkin_token IS NULL`,
-            [token, row.id]
-          );
-          assigned = true;
-        } catch (error) {
-          if (error.code !== "23505") {
-            throw error;
-          }
-        }
-      }
-
-      if (!assigned) {
-        throw new ApiError(500, "Unable to backfill check-in token for registration");
+  async getOrCreateCheckinToken(registrationId) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        const result = await this.pool.query(
+          `UPDATE cyclothon_registrations
+           SET checkin_token = COALESCE(checkin_token, $1)
+           WHERE id = $2
+           RETURNING checkin_token`,
+          [this.generateCheckinToken(), registrationId]
+        );
+        return result.rows[0]?.checkin_token || null;
+      } catch (error) {
+        if (error.code !== "23505" || attempt === 4) throw error;
       }
     }
+    return null;
   }
 
   async close() {
@@ -1163,7 +1198,6 @@ class PostgresRepository {
         }
       }
 
-      const checkinToken = this.generateCheckinToken();
       const initialStatus = options.paymentEnabled ? "pending" : "approved";
       const initialPaymentStatus = options.paymentEnabled ? "pending" : "paid";
       const paymentVerifiedAt = options.paymentEnabled ? null : new Date();
@@ -1172,21 +1206,26 @@ class PostgresRepository {
       try {
         const insertResult = await client.query(
           `INSERT INTO cyclothon_registrations (
-             full_name, email, phone, age, city, gender, ride_category,
+             full_name, email, phone, age, city, address_line1, address_line2, state, postal_code, gender, ride_category,
              organization_type, organization_name,
              emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
              status, registration_fee_paise, payment_status, payment_verified_at,
-             checkin_token,
              whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
-             whatsapp_opt_in, whatsapp_consent_at
+             whatsapp_opt_in, whatsapp_consent_at,
+             guardian_name, guardian_relationship, guardian_email, guardian_phone,
+             guardian_consent_accepted, guardian_consent_at, media_consent_accepted,
+             media_consent_at, waiver_accepted_at, privacy_accepted_at, privacy_notice_version,
+             guardian_consent_source
            ) VALUES (
-             $1, $2, $3, $4, $5, $6, $7,
-             $8, $9,
-             $10, $11, TRUE, TRUE,
-             $12, $13, $14, $15, $16,
-             $17, $18, $19, $20, $21
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+             $12, $13,
+             $14, $15, TRUE, TRUE,
+             $16, $17, $18, $19,
+             $20, $21, $22, $23, $24,
+             $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, 'nvc-2026-1',
+             CASE WHEN $4 < 18 THEN 'participant-provided' ELSE 'not-applicable' END
            )
-            RETURNING id, full_name, email, phone, age, city, gender, ride_category,
+            RETURNING id, full_name, email, phone, age, city, address_line1, address_line2, state, postal_code, gender, ride_category,
                       organization_type, organization_name,
                       emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
                       status, registration_fee_paise, payment_status, payment_order_id,
@@ -1194,13 +1233,21 @@ class PostgresRepository {
                       checkin_token, checked_in_at, checked_in_by, checkin_method,
                       checkin_device, batch_name, created_at,
                       whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
-                      whatsapp_opt_in, whatsapp_consent_at`,
+                      whatsapp_opt_in, whatsapp_consent_at,
+                      guardian_name, guardian_relationship, guardian_email, guardian_phone,
+                      guardian_consent_accepted, guardian_consent_at, media_consent_accepted,
+                      media_consent_at, waiver_accepted_at, privacy_accepted_at, privacy_notice_version,
+                      guardian_consent_source`,
           [
             payload.full_name,
             payload.email.toLowerCase(),
             payload.phone,
             payload.age,
             payload.city,
+            payload.address_line1,
+            payload.address_line2 || null,
+            payload.state,
+            payload.postal_code,
             payload.gender,
             payload.ride_category,
             payload.organization_type || "Individual",
@@ -1211,7 +1258,6 @@ class PostgresRepository {
             fee,
             initialPaymentStatus,
             paymentVerifiedAt,
-            checkinToken,
             payload.whatsapp_use_primary !== false,
             payload.whatsapp_number || null,
             payload.preferred_whatsapp_number !== undefined
@@ -1221,6 +1267,16 @@ class PostgresRepository {
             payload.whatsapp_consent_at !== undefined
               ? payload.whatsapp_consent_at
               : (payload.whatsapp_opt_in ? new Date() : null),
+            payload.guardian_name || null,
+            payload.guardian_relationship || null,
+            payload.guardian_email || null,
+            payload.guardian_phone || null,
+            Boolean(payload.guardian_consent_accepted),
+            payload.guardian_consent_at || null,
+            Boolean(payload.media_consent_accepted),
+            payload.media_consent_at || null,
+            payload.waiver_accepted_at || new Date(),
+            payload.privacy_accepted_at || new Date(),
           ]
         );
         registration = insertResult.rows[0];
@@ -1228,9 +1284,6 @@ class PostgresRepository {
         if (error.code === "23505") {
           if (String(error.constraint || "").includes("email")) {
             throw new ConflictError("This email is already registered for NV Cyclothon");
-          }
-          if (String(error.constraint || "").includes("checkin_token")) {
-            throw new ConflictError("Unable to issue a check-in token. Please retry.");
           }
         }
         throw error;
@@ -1344,17 +1397,21 @@ class PostgresRepository {
                payment_id = $1,
                payment_signature = $2,
                payment_provider = 'cashfree',
-               payment_verified_at = NOW()
-           WHERE id = $3
+               payment_verified_at = NOW(),
+               payment_bank_reference = $3,
+               cashfree_payment_time = $4,
+               payment_method = $5
+           WHERE id = $6
            RETURNING id, full_name, email, phone, age, city, gender, ride_category,
                      emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
                      status, registration_fee_paise, payment_status,
-                     payment_order_id, payment_id, payment_signature, payment_provider, payment_verified_at,
+                     payment_order_id, payment_id, payment_bank_reference, payment_method, cashfree_payment_time,
+                     payment_signature, payment_provider, payment_verified_at,
                      checkin_token, checked_in_at, checked_in_by, checkin_method,
                      checkin_device, created_at,
                      whatsapp_use_primary, whatsapp_number, preferred_whatsapp_number,
                      whatsapp_opt_in, whatsapp_consent_at`,
-          [paymentId, signature, registrationId]
+          [paymentId, signature, payload.bank_reference || null, payload.payment_time || null, payload.payment_method || null, registrationId]
         );
         return updated.rows[0];
       } catch (error) {
@@ -1366,17 +1423,20 @@ class PostgresRepository {
     });
   }
 
-  async markCyclothonPaymentFromWebhook({ orderId, paymentId }) {
+  async markCyclothonPaymentFromWebhook({ orderId, paymentId, bankReference, paymentTime, paymentMethod }) {
     const result = await this.pool.query(
       `UPDATE cyclothon_registrations
        SET payment_status = 'paid',
            status = CASE WHEN status = 'pending' THEN 'approved' ELSE status END,
            payment_id = COALESCE(payment_id, $2),
            payment_provider = 'cashfree',
-           payment_verified_at = COALESCE(payment_verified_at, NOW())
+           payment_verified_at = COALESCE(payment_verified_at, NOW()),
+           payment_bank_reference = COALESCE(payment_bank_reference, $3),
+           cashfree_payment_time = COALESCE(cashfree_payment_time, $4),
+           payment_method = COALESCE(payment_method, $5)
        WHERE payment_order_id = $1
        RETURNING *`,
-      [orderId, paymentId]
+      [orderId, paymentId, bankReference || null, paymentTime || null, paymentMethod || null]
     );
     if (result.rows.length === 0) {
       throw new NotFoundError("Payment registration not found");
@@ -1436,22 +1496,29 @@ class PostgresRepository {
     }
 
     const query = `
-      SELECT cr.id, cr.full_name, cr.email, cr.phone, cr.age, cr.city, cr.gender, cr.ride_category,
+      SELECT cr.id, cr.full_name, cr.email, cr.phone, cr.age, cr.city, cr.address_line1, cr.address_line2, cr.state, cr.postal_code, cr.gender, cr.ride_category,
              cr.organization_type, cr.organization_name,
              cr.emergency_contact, cr.t_shirt_size, cr.waiver_accepted, cr.privacy_accepted,
              cr.status, cr.registration_fee_paise, cr.payment_status, cr.payment_order_id,
-             cr.payment_id, cr.payment_signature, cr.payment_provider, cr.payment_verified_at,
+             cr.payment_id, cr.payment_bank_reference, cr.payment_method, cr.cashfree_payment_time,
+             cr.payment_signature, cr.payment_provider, cr.payment_verified_at,
              cr.checkin_token, cr.checked_in_at, cr.checked_in_by, cr.checkin_method,
              cr.checkin_device, cr.batch_name, cr.created_at,
              cr.whatsapp_use_primary, cr.whatsapp_number, cr.preferred_whatsapp_number,
              cr.whatsapp_opt_in, cr.whatsapp_consent_at,
+             cr.guardian_name, cr.guardian_relationship, cr.guardian_email, cr.guardian_phone,
+             cr.guardian_consent_accepted, cr.guardian_consent_at,
+             cr.media_consent_accepted, cr.media_consent_at,
+             cr.waiver_accepted_at, cr.privacy_accepted_at, cr.privacy_notice_version,
+             cr.guardian_consent_source, cr.registration_details_completed_at,
              rp.status AS rider_pass_status,
              pc.status AS certificate_status,
              red_cert.recipient AS certificate_recipient,
              red_cert.status AS certificate_delivery_status,
              red_cert.sent_at AS certificate_sent_at,
              red_cert.attempt_count AS certificate_attempt_count,
-             red_conf.status AS registration_email_status
+             red_conf.status AS registration_email_status,
+             red_follow.status AS followup_email_status
       FROM cyclothon_registrations cr
       LEFT JOIN rider_passes rp ON rp.registration_id = cr.id
       LEFT JOIN participation_certificates pc ON pc.registration_id = cr.id
@@ -1459,6 +1526,8 @@ class PostgresRepository {
         ON red_cert.registration_id = cr.id AND red_cert.email_type = 'certificate'
       LEFT JOIN registration_email_deliveries red_conf 
         ON red_conf.registration_id = cr.id AND red_conf.email_type = 'registration_confirmation'
+      LEFT JOIN registration_email_deliveries red_follow
+        ON red_follow.registration_id = cr.id AND red_follow.email_type = 'registration_followup'
       ${whereClause}
       ORDER BY cr.created_at DESC
       ${paginationClause}
@@ -1581,19 +1650,79 @@ class PostgresRepository {
 
   async getRegistrationById(registrationId) {
     const result = await this.pool.query(
-      `SELECT id, full_name, email, phone, age, city, gender, ride_category,
+      `SELECT id, full_name, email, phone, age, city, address_line1, address_line2, state, postal_code, gender, ride_category,
               organization_type, organization_name,
               emergency_contact, t_shirt_size, waiver_accepted, privacy_accepted,
               status, registration_fee_paise, payment_status, payment_order_id,
               payment_id, payment_signature, payment_provider, payment_verified_at,
               checkin_token, checked_in_at, checked_in_by, checkin_method,
-              checkin_device, batch_name, created_at
+              checkin_device, batch_name, created_at,
+              guardian_name, guardian_relationship, guardian_email, guardian_phone,
+              guardian_consent_accepted, guardian_consent_at, media_consent_accepted,
+              media_consent_at, waiver_accepted_at, privacy_accepted_at, privacy_notice_version,
+              guardian_consent_source, registration_details_completed_at
        FROM cyclothon_registrations
        WHERE id = $1
        LIMIT 1`,
       [registrationId]
     );
     return result.rows[0] || null;
+  }
+
+  async upsertRegistrationFollowupToken(registrationId, tokenHash, expiresAt) {
+    const result = await this.pool.query(
+      `INSERT INTO registration_followup_tokens (registration_id, token_hash, expires_at, completed_at, created_at)
+       SELECT id, $2, $3, NULL, NOW() FROM cyclothon_registrations WHERE id = $1
+       ON CONFLICT (registration_id) DO UPDATE SET token_hash = EXCLUDED.token_hash,
+         expires_at = EXCLUDED.expires_at, completed_at = NULL, created_at = NOW()
+       RETURNING registration_id`,
+      [registrationId, tokenHash, expiresAt]
+    );
+    return result.rowCount > 0;
+  }
+
+  async getRegistrationFollowupByTokenHash(tokenHash) {
+    const result = await this.pool.query(
+      `SELECT r.id, r.full_name, r.age, r.address_line1, r.address_line2, r.state, r.postal_code,
+              r.emergency_contact, r.guardian_name, r.guardian_relationship, r.guardian_email, r.guardian_phone
+       FROM registration_followup_tokens t
+       JOIN cyclothon_registrations r ON r.id = t.registration_id
+       WHERE t.token_hash = $1 AND t.expires_at > NOW() AND t.completed_at IS NULL
+       LIMIT 1`,
+      [tokenHash]
+    );
+    return result.rows[0] || null;
+  }
+
+  async submitRegistrationFollowup(tokenHash, payload) {
+    return this.withTransaction(async (client) => {
+      const token = await client.query(
+        `SELECT registration_id FROM registration_followup_tokens
+         WHERE token_hash = $1 AND expires_at > NOW() AND completed_at IS NULL FOR UPDATE`,
+        [tokenHash]
+      );
+      if (!token.rowCount) return null;
+      const registrationId = token.rows[0].registration_id;
+      const updated = await client.query(
+        `UPDATE cyclothon_registrations SET address_line1 = $1, address_line2 = $2,
+           state = $3, postal_code = $4, emergency_contact = $5,
+           guardian_name = CASE WHEN age < 18 THEN $6 ELSE NULL END,
+           guardian_relationship = CASE WHEN age < 18 THEN $7 ELSE NULL END,
+           guardian_email = CASE WHEN age < 18 THEN $8 ELSE NULL END,
+           guardian_phone = CASE WHEN age < 18 THEN $9 ELSE NULL END,
+           guardian_consent_accepted = CASE WHEN age < 18 THEN guardian_consent_accepted ELSE FALSE END,
+           registration_details_completed_at = NOW()
+         WHERE id = $10 RETURNING id`,
+        [payload.address_line1, payload.address_line2 || null, payload.state, payload.postal_code,
+          payload.emergency_contact, payload.guardian_name || null, payload.guardian_relationship || null,
+          payload.guardian_email || null, payload.guardian_phone || null, registrationId]
+      );
+      await client.query(
+        `UPDATE registration_followup_tokens SET completed_at = NOW() WHERE registration_id = $1`,
+        [registrationId]
+      );
+      return updated.rows[0] || null;
+    });
   }
 
   async recordEmailDelivery({ registrationId, emailType, recipient, subject, sent, status = sent ? "sent" : "failed", errorMessage = null }) {
@@ -1618,7 +1747,7 @@ class PostgresRepository {
       `INSERT INTO rider_passes (registration_id, status, emailed_at)
        VALUES ($1, $2::varchar, CASE WHEN $2::varchar = 'sent'::varchar THEN NOW() ELSE NULL END)
        ON CONFLICT (registration_id) DO UPDATE SET
-         status = EXCLUDED.status,
+         status = CASE WHEN rider_passes.status = 'sent' THEN 'sent' ELSE EXCLUDED.status END,
          generated_at = NOW(),
          emailed_at = CASE WHEN EXCLUDED.status = 'sent' THEN NOW() ELSE rider_passes.emailed_at END`,
       [registrationId, sent ? "sent" : "generated"]
@@ -1649,6 +1778,26 @@ class PostgresRepository {
                  checkin_token, checked_in_at, checked_in_by, checkin_method,
                  checkin_device, created_at`,
       [status, registrationId]
+    );
+    return result.rows[0] || null;
+  }
+
+  async updateGuardianConsent(registrationId, payload) {
+    const result = await this.pool.query(
+      `UPDATE cyclothon_registrations
+       SET guardian_name = $1,
+           guardian_relationship = $2,
+           guardian_email = $3,
+           guardian_phone = $4,
+           guardian_consent_accepted = TRUE,
+           guardian_consent_at = $5,
+           guardian_consent_source = 'in-person-admin'
+       WHERE id = $6 AND age < 18
+       RETURNING id, full_name, age, guardian_name, guardian_relationship,
+                 guardian_email, guardian_phone, guardian_consent_accepted, guardian_consent_at,
+                 guardian_consent_source`,
+      [payload.guardian_name, payload.guardian_relationship, payload.guardian_email,
+       payload.guardian_phone, payload.guardian_consent_at, registrationId]
     );
     return result.rows[0] || null;
   }

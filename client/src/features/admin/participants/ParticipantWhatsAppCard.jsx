@@ -31,7 +31,7 @@ export function ParticipantWhatsAppCard({ rider }) {
     : null;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+    <section className="space-y-3 border-t border-slate-200 pt-5">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-2">
         <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -71,11 +71,11 @@ export function ParticipantWhatsAppCard({ rider }) {
           <div className="flex items-center justify-between py-1 border-b border-slate-100">
             <span className="text-slate-600 font-semibold">Consent Recorded</span>
             <span className="font-mono text-slate-600 text-[11px]">
-              {new Date(rider.whatsapp_consent_at).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
+              {new Date(rider.whatsapp_consent_at).toLocaleString("en-IN", {
+                dateStyle: "medium",
+                timeStyle: "medium",
+                timeZone: "Asia/Kolkata",
+              })} IST
             </span>
           </div>
         )}
@@ -100,12 +100,12 @@ export function ParticipantWhatsAppCard({ rider }) {
             </p>
           </>
         ) : (
-          <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-[11px] text-slate-600 leading-relaxed">
+          <div className="border-l-2 border-slate-300 py-1 pl-3 text-[11px] text-slate-600 leading-relaxed">
             Participant has not opted in to receive WhatsApp notifications. Direct message link is disabled to respect participant privacy.
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 

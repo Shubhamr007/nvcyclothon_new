@@ -29,7 +29,7 @@ export function ParticipantFinancialCard({ rider, copyToClipboard, copiedId }) {
   const waUrl = `https://wa.me/${formattedPhone}?text=${waReceiptText}`;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs space-y-3">
+    <section className="space-y-3">
       <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
         <span className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
           <CreditCard className="h-4 w-4 text-slate-600" />
@@ -99,11 +99,34 @@ export function ParticipantFinancialCard({ rider, copyToClipboard, copiedId }) {
           </div>
         </div>
 
+        <div className="flex items-center justify-between py-1 border-b border-slate-100">
+          <span className="text-slate-600 font-semibold">Bank reference</span>
+          <span className="font-mono text-slate-900 text-right break-all">
+            {rider.payment_bank_reference || "Not provided by Cashfree"}
+          </span>
+        </div>
+
+        {rider.payment_method && (
+          <div className="flex items-center justify-between py-1 border-b border-slate-100">
+            <span className="text-slate-600 font-semibold">Payment method</span>
+            <span className="font-bold text-slate-900">{rider.payment_method}</span>
+          </div>
+        )}
+
+        {rider.cashfree_payment_time && (
+          <div className="py-1 border-b border-slate-100">
+            <span className="text-xs text-slate-600 uppercase font-mono font-bold block">Cashfree payment time</span>
+            <p className="text-slate-900 font-mono text-xs font-semibold">
+              {new Date(rider.cashfree_payment_time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Kolkata" })} IST
+            </p>
+          </div>
+        )}
+
         {rider.payment_verified_at && (
           <div className="py-1">
-            <span className="text-xs text-slate-600 uppercase font-mono font-bold block">Settled At</span>
+            <span className="text-xs text-slate-600 uppercase font-mono font-bold block">Verified by server at</span>
             <p className="text-slate-900 font-mono text-xs font-semibold">
-              {new Date(rider.payment_verified_at).toLocaleString()}
+              {new Date(rider.payment_verified_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Kolkata" })} IST
             </p>
           </div>
         )}
@@ -133,6 +156,6 @@ export function ParticipantFinancialCard({ rider, copyToClipboard, copiedId }) {
           </a>
         )}
       </div>
-    </div>
+    </section>
   );
 }

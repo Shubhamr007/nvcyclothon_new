@@ -12,6 +12,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
 const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
 const CheckinPage = lazy(() => import("./pages/CheckinPage").then((module) => ({ default: module.CheckinPage })));
+const RegistrationDetailsPage = lazy(() => import("./pages/RegistrationDetailsPage").then((module) => ({ default: module.RegistrationDetailsPage })));
 const PartnerPage = lazy(() => import('./pages/PartnerPage').then((module) => ({ default: module.PartnerPage })));
 const VendorPage = lazy(() => import('./pages/VendorPage').then((module) => ({ default: module.VendorPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
@@ -68,8 +69,8 @@ function Seo() {
   useEffect(() => {
     const canonicalPath = canonicalPaths[pathname] || pathname;
     const page = metadata[canonicalPath] || metadata["/"];
-    const canonicalUrl = `${SITE_URL}${canonicalPath}`;
-    const shouldNoIndex = pathname.startsWith("/checkin");
+    const shouldNoIndex = pathname.startsWith("/checkin") || pathname.startsWith("/registration-details/");
+    const canonicalUrl = shouldNoIndex ? SITE_URL : `${SITE_URL}${canonicalPath}`;
     const title = page.title;
     const description = page.description;
     document.title = title;
@@ -100,7 +101,7 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    if (isCheckinRoute || sessionStorage.getItem(`nv-visit:${pathname}`)) return;
+    if (isCheckinRoute || pathname.startsWith("/registration-details/") || sessionStorage.getItem(`nv-visit:${pathname}`)) return;
     sessionStorage.setItem(`nv-visit:${pathname}`, "1");
     fetch(apiUrl("/content/visits"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: pathname, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: navigator.language }), keepalive: true }).catch(() => {});
   }, [pathname, isCheckinRoute]);
@@ -128,6 +129,7 @@ function PublicAppContent({ isCheckinRoute, theme, onToggleTheme }) {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/checkin" element={<CheckinPage />} />
+                <Route path="/registration-details/:token" element={<RegistrationDetailsPage />} />
                 <Route path="/partners" element={<PartnerPage />} />
                 <Route path="/partners/apply" element={<PartnerPage />} />
                 <Route path="/vendors" element={<VendorPage />} />

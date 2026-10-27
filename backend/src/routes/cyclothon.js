@@ -1,9 +1,13 @@
 const express = require("express");
+const crypto = require("crypto");
 const {
   parseSchema,
   registrationCreateSchema,
+  registrationFollowupSchema,
   cashfreePaymentVerifySchema,
   normalizeRegistrationInput,
+  normalizeIndianMobile,
+  normalizeEmail,
   validateCategoryAge,
 } = require("../services/validation");
 const { ValidationError, NotFoundError } = require("../errors");
@@ -25,6 +29,62 @@ function createCyclothonRouter({
 
   const sendAndRecordRegistrationConfirmation = (registration) =>
     sendConfirmation({ repository, emailService, config, registration });
+
+  const getFollowupHash = (token) => crypto.createHash("sha256").update(token).digest("hex");
+
+  router.get("/registrations/follow-up/:token", async (req, res) => {
+    const token = String(req.params.token || "");
+    if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) throw new NotFoundError("This form link is invalid or expired");
+    const participant = await repository.getRegistrationFollowupByTokenHash(getFollowupHash(token));
+    if (!participant) throw new NotFoundError("This form link is invalid, expired, or already submitted");
+    res.set("Cache-Control", "no-store");
+    res.json({ participant });
+  });
+
+  router.post(
+    "/registrations/follow-up/:token",
+    rateLimiter.middleware("registration-followup", 10, 900, "Too many form submissions. Please try again later."),
+    async (req, res) => {
+    const token = String(req.params.token || "");
+    if (!/^[A-Za-z0-9_-]{40,60}$/.test(token)) throw new NotFoundError("This form link is invalid or expired");
+    const tokenHash = getFollowupHash(token);
+    const participant = await repository.getRegistrationFollowupByTokenHash(tokenHash);
+    if (!participant) throw new NotFoundError("This form link is invalid, expired, or already submitted");
+    const payload = parseSchema(registrationFollowupSchema, req.body);
+    let emergencyContact;
+    try {
+      emergencyContact = normalizeIndianMobile(payload.emergency_contact);
+    } catch {
+      throw new ValidationError("Enter a valid emergency contact mobile number");
+    }
+    const update = {
+      ...payload,
+      emergency_contact: emergencyContact,
+      address_line2: payload.address_line2 || null,
+      ...(Number(participant.age) < 18 ? {} : {
+        guardian_name: null,
+        guardian_relationship: null,
+        guardian_email: null,
+        guardian_phone: null,
+      }),
+    };
+    if (Number(participant.age) < 18) {
+      if (!payload.guardian_name || !payload.guardian_relationship || !payload.guardian_email || !payload.guardian_phone) {
+        throw new ValidationError("Enter the guardian’s name, relationship, email, and phone for this under-18 participant");
+      }
+      update.guardian_email = normalizeEmail(payload.guardian_email);
+      try {
+        update.guardian_phone = normalizeIndianMobile(payload.guardian_phone);
+      } catch {
+        throw new ValidationError("Enter a valid guardian mobile number");
+      }
+    }
+    const saved = await repository.submitRegistrationFollowup(tokenHash, update);
+    if (!saved) throw new NotFoundError("This form link is invalid, expired, or already submitted");
+    res.set("Cache-Control", "no-store");
+    res.json({ status: "completed", registration_id: saved.id });
+    }
+  );
 
   const handlePaymentSuccess = (reg, orderId, paymentId) => {
     void sendAndRecordRegistrationConfirmation(reg);
@@ -94,6 +154,9 @@ function createCyclothonRouter({
         const updated = await repository.markCyclothonPaymentFromWebhook({
           orderId: order.order_id,
           paymentId: String(payment.cf_payment_id),
+          bankReference: payment.bank_reference ? String(payment.bank_reference) : null,
+          paymentTime: payment.payment_time || null,
+          paymentMethod: payment.payment_group || null,
         });
         if (updated) {
           adminEvents.publish({
@@ -204,6 +267,9 @@ function createCyclothonRouter({
       {
         order_id: payload.order_id,
         payment_id: payment.paymentId,
+        bank_reference: payment.bankReference,
+        payment_time: payment.paymentTime,
+        payment_method: payment.paymentMethod,
         signature: "cashfree-server-verified",
       },
       "cashfree-server-verified"
@@ -248,6 +314,9 @@ function createCyclothonRouter({
         {
           order_id: payload.order_id,
           payment_id: payment.paymentId,
+          bank_reference: payment.bankReference,
+          payment_time: payment.paymentTime,
+          payment_method: payment.paymentMethod,
           signature: "cashfree-server-verified",
         },
         "cashfree-server-verified"

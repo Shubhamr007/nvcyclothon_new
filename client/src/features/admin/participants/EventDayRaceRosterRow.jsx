@@ -9,6 +9,7 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
   onShowQr,
 }) {
   const isCheckedIn = rider.status === "checked_in";
+  const hasRiderPass = ["generated", "sent"].includes(rider.rider_pass_status);
 
   return (
     <tr
@@ -113,14 +114,21 @@ export const EventDayRaceRosterRow = React.memo(function EventDayRaceRosterRow({
         )}
       </td>
       <td className="py-3 px-3 text-center print:hidden" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onShowQr(rider)}
-          className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition"
-          title="View Check-In QR Pass"
-        >
-          <QrCode className="h-4 w-4" />
-        </button>
+        {rider.checkin_token && hasRiderPass ? (
+          <button
+            type="button"
+            onClick={() => onShowQr(rider)}
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition"
+            title="View Check-In QR Pass"
+            aria-label={`View check-in QR for ${rider.full_name}`}
+          >
+            <QrCode className="h-4 w-4" />
+          </button>
+        ) : (
+          <span className="text-[10px] text-slate-400" title="Generate the rider pass to issue a check-in QR">
+            Not issued
+          </span>
+        )}
       </td>
     </tr>
   );

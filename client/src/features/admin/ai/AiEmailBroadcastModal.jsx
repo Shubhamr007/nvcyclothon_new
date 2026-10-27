@@ -14,6 +14,7 @@ const CATEGORIES = [
 export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }) {
   const [prompt, setPrompt] = useState("");
   const [category, setCategory] = useState("all");
+  const [purpose, setPurpose] = useState("event_update");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [drafting, setDrafting] = useState(false);
@@ -40,7 +41,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
   }, [accessToken, prompt, category]);
 
   const handleSend = useCallback(async () => {
-    if (!subject.trim() || !body.trim()) {
+    if (purpose === "event_update" && (!subject.trim() || !body.trim())) {
       setError("Subject and message are required to broadcast an email.");
       return;
     }
@@ -48,18 +49,21 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
     setSending(true);
     try {
       const res = await sendAdminEventUpdateEmail(accessToken, {
-        subject: subject.trim(),
-        message: body.trim(),
+        subject: purpose === "event_update" ? subject.trim() : "",
+        message: purpose === "event_update" ? body.trim() : "",
         filter_category: category,
+        purpose,
       });
-      onFeedback?.(`Email broadcast queued for ${res.queued_recipients || "participants"}.`);
+      onFeedback?.(purpose === "registration_details"
+        ? `Secure participant detail forms queued for ${res.queued_recipients || 0} participants.`
+        : `Email broadcast queued for ${res.queued_recipients || "participants"}.`);
       onClose();
     } catch (err) {
       setError(err?.message || "Unable to queue broadcast email.");
     } finally {
       setSending(false);
     }
-  }, [accessToken, subject, body, category, onFeedback, onClose]);
+  }, [accessToken, subject, body, category, purpose, onFeedback, onClose]);
 
   const handleCopy = useCallback(() => {
     const text = `Subject: ${subject}\n\n${body}`;
@@ -81,10 +85,10 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900">Broadcast Participant Update</h3>
-                <span className="rounded-md bg-[#deecf9] border border-[#c7e0f4] px-2 py-0.5 text-[10px] font-bold text-[#005a9e]">
+                <h3 className="text-base font-bold text-slate-900">{purpose === "registration_details" ? "Request Missing Participant Details" : "Broadcast Participant Update"}</h3>
+                {purpose === "event_update" && <span className="rounded-md bg-[#deecf9] border border-[#c7e0f4] px-2 py-0.5 text-[10px] font-bold text-[#005a9e]">
                   AI ASSISTED
-                </span>
+                </span>}
               </div>
               <p className="text-xs text-slate-500">
                 Compose or auto-generate race updates for registered riders
@@ -108,6 +112,25 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
         )}
 
         <div className="mt-5 space-y-4">
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-mono">
+              Email type
+            </label>
+            <select
+              value={purpose}
+              onChange={(event) => setPurpose(event.target.value)}
+              className="h-9 w-full rounded-xl border border-slate-300 bg-[#faf9f6] px-3 text-xs text-slate-800"
+            >
+              <option value="event_update">Custom event announcement</option>
+              <option value="registration_details">Request missing participant details</option>
+            </select>
+            {purpose === "registration_details" && (
+              <p className="mt-2 rounded-lg bg-sky-50 p-3 text-xs leading-5 text-sky-900">
+                Each recipient gets their own one-time secure link. Only participants with missing address, emergency-contact, or under-18 guardian contact details are included. The form is linked to their existing registration.
+              </p>
+            )}
+          </div>
+
           {/* Category Filter */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-mono">
@@ -127,6 +150,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
             </select>
           </div>
 
+          {purpose === "event_update" && <>
           {/* AI Drafting Prompt Box */}
           <div className="rounded-xl border border-[#c7e0f4] bg-[#deecf9]/30 p-4 space-y-2.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#005a9e]">
@@ -189,6 +213,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
               className="w-full rounded-xl border border-slate-300 p-3 text-xs text-slate-800 leading-relaxed focus:border-[#0078d4] focus:ring-1 focus:ring-[#0078d4] focus:outline-none font-mono"
             />
           </div>
+          </>}
         </div>
 
         {/* Modal Actions */}
@@ -197,7 +222,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
             variant="outline"
             size="sm"
             onClick={handleCopy}
-            disabled={!body.trim()}
+            disabled={purpose !== "event_update" || !body.trim()}
             className="h-9 text-xs border-slate-200"
           >
             {copied ? (
@@ -225,7 +250,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
             <Button
               size="sm"
               onClick={handleSend}
-              disabled={sending || !subject.trim() || !body.trim()}
+              disabled={sending || (purpose === "event_update" && (!subject.trim() || !body.trim()))}
               className="h-9 text-xs font-bold bg-[#0078d4] hover:bg-[#005a9e] text-white shadow-xs"
             >
               {sending ? (
@@ -236,7 +261,7 @@ export function AiEmailBroadcastModal({ open, onClose, accessToken, onFeedback }
               ) : (
                 <>
                   <Send className="h-3.5 w-3.5 mr-1.5 text-blue-100" />
-                  <span>Send Broadcast</span>
+                    <span>{purpose === "registration_details" ? "Send detail form links" : "Send Broadcast"}</span>
                 </>
               )}
             </Button>

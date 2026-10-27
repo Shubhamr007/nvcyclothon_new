@@ -24,7 +24,7 @@ export function extractUniqueRoutes(riders = []) {
 
 export function filterDirectoryRiders(
   riders = [],
-  { certificateFilter = "all", routeFilter = "all", statusFilter = "all", searchText = "" }
+  { certificateFilter = "all", routeFilter = "all", statusFilter = "all", paymentFilter = "all", searchText = "" }
 ) {
   const query = searchText.trim().toLowerCase();
   return riders.filter((rider) => {
@@ -38,6 +38,8 @@ export function filterDirectoryRiders(
     if (statusFilter !== "all" && rider.status !== statusFilter) {
       return false;
     }
+    if (paymentFilter === "unpaid" && rider.payment_status === "paid") return false;
+    if (paymentFilter !== "all" && paymentFilter !== "unpaid" && rider.payment_status !== paymentFilter) return false;
     if (query) {
       const match = [
         rider.id,
@@ -46,6 +48,10 @@ export function filterDirectoryRiders(
         rider.phone,
         rider.ride_category,
         rider.city,
+        rider.address_line1,
+        rider.address_line2,
+        rider.state,
+        rider.postal_code,
         rider.status,
         rider.checked_in_by,
       ].some((val) =>
@@ -63,4 +69,20 @@ export function paginateDirectoryRiders(riders = [], page = 1, pageSize = 20) {
   const start = (currentPage - 1) * pageSize;
   const paginated = riders.slice(start, start + pageSize);
   return { paginated, totalPages, currentPage };
+}
+
+export function needsRegistrationFollowup(rider = {}) {
+  const isMissing = (value) => !String(value || "").trim();
+  return (
+    isMissing(rider.address_line1) ||
+    isMissing(rider.state) ||
+    isMissing(rider.postal_code) ||
+    isMissing(rider.emergency_contact) ||
+    (Number(rider.age) < 18 && (
+      isMissing(rider.guardian_name) ||
+      isMissing(rider.guardian_relationship) ||
+      isMissing(rider.guardian_email) ||
+      isMissing(rider.guardian_phone)
+    ))
+  );
 }

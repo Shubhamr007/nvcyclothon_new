@@ -1,11 +1,13 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import {
+  createAdminVendorApplication,
   getAdminVendorDocument,
   exportAdminVendorsCsv,
 } from "../../../api/http";
 import { useDebouncedValue } from "../../../components/useDebouncedValue";
 import { downloadBlobFile } from "../../../utils/csv";
 import { SelectedDeleteAction } from "../components/SelectedDeleteAction";
+import { PartnerVendorCreateDrawer } from "../components/PartnerVendorCreateDrawer";
 import {
   VendorDetailModal,
   VendorReviewModal,
@@ -35,6 +37,8 @@ import {
 export { VENDOR_STATUSES, FilterPill };
 
 export function VendorsTab({ accessToken: propAccessToken, onFeedback }) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const dispatch = useAppDispatch();
   const authAccessToken = useAppSelector((state) => state.auth?.accessToken);
   const accessToken = propAccessToken || authAccessToken;
@@ -114,6 +118,17 @@ export function VendorsTab({ accessToken: propAccessToken, onFeedback }) {
     }
   }, [accessToken, onFeedback]);
 
+  const handleCreate = useCallback(async (payload) => {
+    setCreating(true);
+    try {
+      await createAdminVendorApplication(accessToken, payload);
+      await dispatch(fetchVendors({ accessToken, status: filter, search: debouncedSearch }));
+      onFeedback?.("Vendor added successfully");
+    } finally {
+      setCreating(false);
+    }
+  }, [accessToken, dispatch, filter, debouncedSearch, onFeedback]);
+
   const handleToggleSelectVendor = useCallback(
     (id) => {
       dispatch(toggleSelectId(id));
@@ -156,6 +171,7 @@ export function VendorsTab({ accessToken: propAccessToken, onFeedback }) {
         allocationsCount={approvedVendors.length}
         onSubTabChange={(tab) => dispatch(setSubTab(tab))}
         onExportCsv={handleExportCsv}
+        onAdd={() => setCreateOpen(true)}
       />
 
       {subTab === "applications" && (
@@ -211,6 +227,7 @@ export function VendorsTab({ accessToken: propAccessToken, onFeedback }) {
         }
         onSave={handleUpdateStatus}
       />
+      <PartnerVendorCreateDrawer kind="vendor" isOpen={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreate} busy={creating} />
     </div>
   );
 }

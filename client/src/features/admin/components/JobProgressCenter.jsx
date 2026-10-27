@@ -37,6 +37,7 @@ export function JobProgressCenter({ accessToken }) {
   const [recentJobs, setRecentJobs] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   const refreshRecent = useCallback(async () => {
     if (!accessToken) return;
@@ -46,6 +47,7 @@ export function JobProgressCenter({ accessToken }) {
         setRecentJobs(data.jobs);
         const active = data.jobs.filter((j) => ["queued", "processing"].includes(j.status));
         setActiveJobs(active);
+        if (active.length > 0) setIsDismissed(false);
       }
     } catch (_) {}
   }, [accessToken]);
@@ -63,6 +65,7 @@ export function JobProgressCenter({ accessToken }) {
       const jobData = event.data || {};
       const jobId = event.id || jobData.id;
       if (!jobId) return;
+      setIsDismissed(false);
 
       setActiveJobs((prev) => {
         const existingIdx = prev.findIndex((j) => j.id === jobId);
@@ -132,7 +135,7 @@ export function JobProgressCenter({ accessToken }) {
   const hasActive = activeJobs.length > 0;
   const topActive = activeJobs[0];
 
-  if (!hasActive && recentJobs.length === 0) return null;
+  if (isDismissed || (!hasActive && recentJobs.length === 0)) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-40 max-w-sm w-full font-sans">
@@ -169,6 +172,21 @@ export function JobProgressCenter({ accessToken }) {
         </div>
 
         <div className="flex items-center gap-1 text-slate-400">
+          {!hasActive && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsOpen(false);
+                setIsDismissed(true);
+              }}
+              className="grid h-7 w-7 place-items-center rounded-lg hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Dismiss background task history"
+              title="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
           {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </div>
       </div>

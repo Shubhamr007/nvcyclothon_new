@@ -172,6 +172,7 @@ class MockRepository {
       rider_passes: [],
       participation_certificates: [],
       registration_email_deliveries: [],
+      registration_followup_tokens: [],
       admin_users: [],
       page_visits: [],
       partner_applications: [],
@@ -202,6 +203,7 @@ class MockRepository {
       rider_passes: 1,
       participation_certificates: 1,
       registration_email_deliveries: 1,
+      registration_followup_tokens: 1,
       admin_users: 1,
       page_visits: 1,
       partner_applications: 1,
@@ -483,6 +485,10 @@ class MockRepository {
       phone: payload.phone,
       age: payload.age,
       city: payload.city,
+      address_line1: payload.address_line1 || null,
+      address_line2: payload.address_line2 || null,
+      state: payload.state || null,
+      postal_code: payload.postal_code || null,
       gender: payload.gender,
       ride_category: payload.ride_category,
       organization_type: payload.organization_type || "Individual",
@@ -491,15 +497,31 @@ class MockRepository {
       t_shirt_size: payload.t_shirt_size,
       waiver_accepted: true,
       privacy_accepted: true,
+      waiver_accepted_at: this.now().toISOString(),
+      privacy_accepted_at: this.now().toISOString(),
+      privacy_notice_version: "nvc-2026-1",
+      registration_details_completed_at: null,
+      guardian_name: payload.guardian_name || null,
+      guardian_relationship: payload.guardian_relationship || null,
+      guardian_email: payload.guardian_email || null,
+      guardian_phone: payload.guardian_phone || null,
+      guardian_consent_accepted: Boolean(payload.guardian_consent_accepted),
+      guardian_consent_at: payload.guardian_consent_at || null,
+      guardian_consent_source: payload.guardian_consent_accepted ? "online-declaration" : (Number(payload.age) < 18 && payload.guardian_name ? "participant-provided" : "not-applicable"),
+      media_consent_accepted: Boolean(payload.media_consent_accepted),
+      media_consent_at: payload.media_consent_at || null,
       status: isPaidRegistration ? "pending" : "approved",
       registration_fee_paise: registrationFee,
       payment_status: isPaidRegistration ? "pending" : "paid",
       payment_order_id: null,
       payment_id: null,
+      payment_bank_reference: null,
+      payment_method: null,
+      cashfree_payment_time: null,
       payment_signature: null,
       payment_provider: "cashfree",
       payment_verified_at: isPaidRegistration ? null : this.now(),
-      checkin_token: this.generateCheckinToken(),
+      checkin_token: null,
       checked_in_at: null,
       checked_in_by: null,
       checkin_method: null,
@@ -593,6 +615,9 @@ class MockRepository {
       registration.status = "approved";
     }
     registration.payment_id = paymentId;
+    registration.payment_bank_reference = payload.bank_reference || null;
+    registration.payment_method = payload.payment_method || null;
+    registration.cashfree_payment_time = payload.payment_time || null;
     registration.payment_signature = signature;
     registration.payment_provider = "cashfree";
     registration.payment_verified_at = this.now();
@@ -600,7 +625,7 @@ class MockRepository {
     return this.clone(registration);
   }
 
-  async markCyclothonPaymentFromWebhook({ orderId, paymentId }) {
+  async markCyclothonPaymentFromWebhook({ orderId, paymentId, bankReference, paymentTime, paymentMethod }) {
     const registration = this.tables.cyclothon_registrations.find(
       (item) => item.payment_order_id === orderId
     );
@@ -613,6 +638,9 @@ class MockRepository {
     registration.payment_status = "paid";
     registration.status = registration.status === "pending" ? "approved" : registration.status;
     registration.payment_id = paymentId;
+    registration.payment_bank_reference = bankReference || null;
+    registration.payment_method = paymentMethod || null;
+    registration.cashfree_payment_time = paymentTime || null;
     registration.payment_provider = "cashfree";
     registration.payment_verified_at = this.now();
     return this.clone(registration);
@@ -662,6 +690,7 @@ class MockRepository {
       certificate_sent_at: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.sent_at || null,
       certificate_attempt_count: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "certificate")?.attempt_count || null,
       registration_email_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "registration_confirmation")?.status || null,
+      followup_email_status: this.tables.registration_email_deliveries.find((delivery) => delivery.registration_id === item.id && delivery.email_type === "registration_followup")?.status || null,
     }));
   }
 
@@ -670,6 +699,51 @@ class MockRepository {
       (item) => item.id === registrationId
     );
     return registration ? this.clone(registration) : null;
+  }
+
+  async getOrCreateCheckinToken(registrationId) {
+    const registration = this.tables.cyclothon_registrations.find(
+      (item) => item.id === Number(registrationId)
+    );
+    if (!registration) return null;
+    if (!registration.checkin_token) {
+      registration.checkin_token = this.generateCheckinToken();
+    }
+    return registration.checkin_token;
+  }
+
+  async upsertRegistrationFollowupToken(registrationId, tokenHash, expiresAt) {
+    const registration = this.tables.cyclothon_registrations.find((item) => item.id === Number(registrationId));
+    if (!registration) return false;
+    const entry = { registration_id: registration.id, token_hash: tokenHash, expires_at: expiresAt, completed_at: null, created_at: this.now().toISOString() };
+    const index = this.tables.registration_followup_tokens.findIndex((item) => item.registration_id === registration.id);
+    if (index >= 0) this.tables.registration_followup_tokens[index] = entry;
+    else this.tables.registration_followup_tokens.push(entry);
+    return true;
+  }
+
+  async getRegistrationFollowupByTokenHash(tokenHash) {
+    const token = this.tables.registration_followup_tokens.find((item) => item.token_hash === tokenHash && !item.completed_at && new Date(item.expires_at) > this.now());
+    if (!token) return null;
+    const registration = this.tables.cyclothon_registrations.find((item) => item.id === token.registration_id);
+    if (!registration) return null;
+    const { id, full_name, age, address_line1, address_line2, state, postal_code, emergency_contact, guardian_name, guardian_relationship, guardian_email, guardian_phone } = registration;
+    return this.clone({ id, full_name, age, address_line1, address_line2, state, postal_code, emergency_contact, guardian_name, guardian_relationship, guardian_email, guardian_phone });
+  }
+
+  async submitRegistrationFollowup(tokenHash, payload) {
+    const registration = this.tables.cyclothon_registrations.find((item) => {
+      const token = this.tables.registration_followup_tokens.find((entry) => entry.registration_id === item.id && entry.token_hash === tokenHash && !entry.completed_at && new Date(entry.expires_at) > this.now());
+      return Boolean(token);
+    });
+    if (!registration) return null;
+    Object.assign(registration, payload, {
+      guardian_consent_accepted: Number(registration.age) < 18 ? Boolean(registration.guardian_consent_accepted) : false,
+      registration_details_completed_at: this.now().toISOString(),
+    });
+    const token = this.tables.registration_followup_tokens.find((entry) => entry.registration_id === registration.id);
+    token.completed_at = this.now().toISOString();
+    return { id: registration.id };
   }
 
   async recordEmailDelivery({ registrationId, emailType, recipient, subject, sent, status = sent ? "sent" : "failed", errorMessage = null }) {
@@ -696,7 +770,7 @@ class MockRepository {
   async recordRiderPass(registrationId, sent) {
     const existing = this.tables.rider_passes.find((item) => item.registration_id === registrationId);
     if (existing) {
-      existing.status = sent ? "sent" : "generated";
+      existing.status = sent || existing.status === "sent" ? "sent" : "generated";
       existing.generated_at = this.now();
       existing.emailed_at = sent ? this.now() : existing.emailed_at;
       return;
@@ -723,6 +797,18 @@ class MockRepository {
       return null;
     }
     registration.status = status;
+    return this.clone(registration);
+  }
+
+  async updateGuardianConsent(registrationId, payload) {
+    const registration = this.tables.cyclothon_registrations.find(
+      (item) => item.id === Number(registrationId) && Number(item.age) < 18
+    );
+    if (!registration) return null;
+    Object.assign(registration, payload, {
+      guardian_consent_accepted: true,
+      guardian_consent_source: "in-person-admin",
+    });
     return this.clone(registration);
   }
 

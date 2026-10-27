@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 
 export function ParticipantQrModal({ rider, onClose }) {
-  if (!rider) return null;
+  if (!rider?.checkin_token) return null;
 
   return (
     <div
@@ -31,7 +31,7 @@ export function ParticipantQrModal({ rider, onClose }) {
         <div className="my-6 flex justify-center">
           <div className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs">
             <QRCodeSVG
-              value={`nvcyclothon-checkin:${rider.checkin_token || rider.id}`}
+              value={`nvcyclothon-checkin:${rider.checkin_token}`}
               size={190}
               level="H"
             />
@@ -41,7 +41,7 @@ export function ParticipantQrModal({ rider, onClose }) {
         <h3 className="text-base font-bold text-slate-900">{rider.full_name}</h3>
         <p className="text-xs text-slate-500 font-medium">{rider.ride_category}</p>
         <p className="mt-1 text-[11px] font-mono text-slate-400">
-          Token: {(rider.checkin_token || `ID-${rider.id}`).slice(0, 16)}…
+          Token: {rider.checkin_token.slice(0, 16)}…
         </p>
 
         <Button

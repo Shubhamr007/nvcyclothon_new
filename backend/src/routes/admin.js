@@ -1,5 +1,4 @@
 const fs = require("fs");
-const crypto = require("crypto");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const express = require("express");
@@ -21,6 +20,7 @@ const {
   bulkStatusUpdateSchema,
   bulkBatchSchema,
   statusUpdateSchema,
+  guardianConsentUpdateSchema,
   offerSchema,
   chiefGuestSchema,
   galleryItemSchema,
@@ -34,16 +34,22 @@ const {
   volunteerAccountUpdateSchema,
   financeBudgetSchema,
   normalizeOfferInput,
+  normalizeGuardianConsentInput,
   normalizeChiefGuestInput,
   normalizeGalleryItemInput,
   normalizeOrganizingMemberInput,
   normalizeDelegationInput,
   partnerVendorReviewSchema,
+  partnerApplicationSchema,
+  vendorApplicationSchema,
+  normalizePartnerApplicationInput,
+  normalizeVendorApplicationInput,
 } = require("../services/validation");
 const { deleteCommunityImage } = require("../services/communityMedia");
 const { getOrCreatePdf } = require("../services/documentStorage");
 const { storeProfileImage } = require("../services/profileMedia");
 const { createPartnerVendorMediaService } = require("../services/partnerVendorMedia");
+const { sendRegistrationFollowupLink, needsRegistrationFollowup } = require("../services/registrationFollowup");
 
 const EMAIL_REGEX = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 
@@ -1185,6 +1191,7 @@ function createAdminRouter({ config, repository, emailService, jobQueue }) {
     const sentIds = [];
     const failedIds = [];
     await mapWithConcurrency(eligible, 5, async (registration) => {
+      registration.checkin_token = await repository.getOrCreateCheckinToken(registration.id);
       const checkinPayload = registration.checkin_token
         ? `${config.checkinQrPrefix}${registration.checkin_token}`
         : "";
@@ -1212,12 +1219,14 @@ function createAdminRouter({ config, repository, emailService, jobQueue }) {
     if (registration.payment_status !== "paid" || registration.status === "cancelled") {
       throw new ConflictError("Only paid, active participants are eligible for rider passes");
     }
+    registration.checkin_token = await repository.getOrCreateCheckinToken(registration.id);
     const riderPassPdf = await getCachedRiderPass(
       config,
       repository,
       registration,
       registration.checkin_token ? `${config.checkinQrPrefix}${registration.checkin_token}` : ""
     );
+    await repository.recordRiderPass(registration.id, false);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename=\"nv-cyclothon-rider-pass-${registration.id}.pdf\"`);
     res.send(riderPassPdf);
@@ -1239,15 +1248,37 @@ function createAdminRouter({ config, repository, emailService, jobQueue }) {
     res.json(registration);
   });
 
+  router.patch("/registrations/:registrationId/guardian-consent", async (req, res) => {
+    const registrationId = parsePositiveInt(req.params.registrationId, "registration id");
+    const payload = normalizeGuardianConsentInput(parseSchema(guardianConsentUpdateSchema, req.body));
+    const registration = await repository.updateGuardianConsent(registrationId, payload);
+    if (!registration) throw new NotFoundError("Under-18 registration not found");
+    res.json(registration);
+  });
+
+  router.post("/registrations/:registrationId/follow-up-link", async (req, res) => {
+    const registrationId = parsePositiveInt(req.params.registrationId, "registration id");
+    const registration = await repository.getRegistrationById(registrationId);
+    if (!registration) throw new NotFoundError("Participant not found");
+    const result = await sendRegistrationFollowupLink({ config, repository, emailService, registration });
+    res.json({ sent: result.sent, form_url: result.formUrl, expires_at: result.expiresAt.toISOString() });
+  });
+
   router.post("/event-updates/email", async (req, res) => {
     const payload = parseSchema(eventUpdateEmailSchema, req.body);
-    const recipients = await repository.listRegistrationEmails();
+    const registrations = await repository.listRegistrations();
+    const audience = registrations.filter((registration) =>
+      (payload.filter_category === "all" || registration.ride_category === payload.filter_category) &&
+      (payload.purpose !== "registration_details" || needsRegistrationFollowup(registration))
+    );
+    const recipients = [...new Set(audience.map((registration) => String(registration.email || "").trim()).filter(Boolean))];
 
     if (jobQueue) {
       const job = await jobQueue.enqueue("event_update_email", {
         subject: payload.subject,
         message: payload.message,
         filter_category: payload.filter_category,
+        purpose: payload.purpose,
       });
       return res.status(202).json({
         job_id: job.id,
@@ -1255,6 +1286,21 @@ function createAdminRouter({ config, repository, emailService, jobQueue }) {
         queued_recipients: recipients.length,
         message: "Broadcast email queued as durable background job",
       });
+    }
+
+    if (payload.purpose === "registration_details") {
+      let sent = 0;
+      let failed = 0;
+      for (const registration of audience) {
+        try {
+          const result = await sendRegistrationFollowupLink({ config, repository, emailService, registration });
+          if (result.sent) sent += 1;
+          else failed += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      return res.status(202).json({ queued_recipients: audience.length, sent_recipients: sent, failed_recipients: failed });
     }
 
     await emailService.sendEventUpdate({
@@ -1362,6 +1408,19 @@ function createAdminRouter({ config, repository, emailService, jobQueue }) {
   router.delete("/delegations/:itemId", delegationCrud.remove);
 
   // --- Partner Applications ---
+  router.post('/partner-applications', async (req, res) => {
+    const payload = normalizePartnerApplicationInput(parseSchema(partnerApplicationSchema, req.body));
+    if (payload.sponsorship_tier_id) {
+      const tier = await repository.getSponsorshipTierById(payload.sponsorship_tier_id);
+      if (tier) {
+        payload.package_name = tier.name;
+        payload.application_fee_paise = tier.amount_paise || 0;
+      }
+    }
+    const item = await repository.createPartnerApplication({ ...payload, status: 'SUBMITTED' });
+    res.status(201).json(item);
+  });
+
   router.get('/partner-applications', async (req, res) => {
     const status = req.query.status || null;
     const search = req.query.search || null;
@@ -1459,6 +1518,12 @@ function createAdminRouter({ config, repository, emailService, jobQueue }) {
   });
 
   // --- Vendor Applications ---
+  router.post('/vendor-applications', async (req, res) => {
+    const payload = normalizeVendorApplicationInput(parseSchema(vendorApplicationSchema, req.body));
+    const item = await repository.createVendorApplication({ ...payload, status: 'SUBMITTED', stall_fee_paise: 0 });
+    res.status(201).json(item);
+  });
+
   router.get('/vendor-applications', async (req, res) => {
     const status = req.query.status || null;
     const search = req.query.search || null;

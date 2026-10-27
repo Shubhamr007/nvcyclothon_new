@@ -159,7 +159,7 @@ export function PolicyModal({ isOpen, onClose, initialTab = "refund" }) {
                   Official Event Policies & Legal Guidelines
                 </h2>
                 <p id={subtitleId} className="text-[11px] sm:text-xs text-white/70">
-                  NV Cyclothon 2026 · Rewa District Cycling Association (RDCA)
+                  NV Cyclothon 2026 · RDCA · Policy version nvc-2026-1 · 27 Oct 2026
                 </p>
               </div>
             </div>
@@ -292,18 +292,18 @@ function RefundPolicyContent({ searchQuery }) {
   const clauses = [
     {
       id: "no-refund",
-      title: "1. No Refunds Upon Cancellation",
-      summary: "Once paid, registrations cannot be refunded under any condition.",
-      badge: "Strict Non-Refundable",
+      title: "1. Participant cancellation",
+      summary: "Voluntary cancellations and no-shows are ordinarily not refundable after payment.",
+      badge: "Read before paying",
       badgeColor: "bg-red-100 text-red-800 border-red-300",
       content: (
         <>
           <p>
-            Once payment is completed, NV Cyclothon immediately commits funds for customized rider jerseys, personalized timing bibs with RFID chips, Finisher medals, municipal police escorts, and comprehensive event day insurance.
+            A participant may request cancellation by contacting the event team at nvcyclothon@gmail.com. Once payment is completed, a voluntary cancellation or failure to attend is ordinarily not refundable and the entry cannot be transferred to another person. This does not limit any refund or remedy required by applicable law, including where the event is not provided as agreed.
           </p>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-[#071313]/80">
-            <li>No voluntary cancellation request by a participant is eligible for a cash refund or payment reversal.</li>
-            <li>No partial refunds are issued if a participant opts not to collect their jersey or finisher kit.</li>
+            <li>Contact the event team promptly if you believe a payment was duplicated or charged incorrectly.</li>
+            <li>Not collecting an event item does not create a separate refund entitlement.</li>
           </ul>
         </>
       ),
@@ -311,8 +311,8 @@ function RefundPolicyContent({ searchQuery }) {
     {
       id: "no-show",
       title: "2. Participant Absence or No-Show on Race Day",
-      summary: "Missing the ride due to personal emergencies, illness, travel, or work will not yield a refund or rollover.",
-      badge: "Zero No-Show Reimbursement",
+      summary: "Voluntary absence does not ordinarily qualify for a refund or transfer.",
+      badge: "Participant cancellation",
       badgeColor: "bg-amber-100 text-amber-800 border-amber-300",
       content: (
         <>
@@ -321,7 +321,7 @@ function RefundPolicyContent({ searchQuery }) {
           </p>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-[#071313]/80">
             <li><strong>Personal Reasons:</strong> Illness, injury, family emergency, travel delay, or transport breakdown.</li>
-            <li><strong>No Credit or Rollover:</strong> Slots cannot be converted into store credits or rolled over to the 2027 edition.</li>
+            <li>Contact the event team if an exceptional circumstance affects your participation; any remedy will be assessed under applicable law and the circumstances.</li>
           </ul>
         </>
       ),
@@ -329,17 +329,17 @@ function RefundPolicyContent({ searchQuery }) {
     {
       id: "non-transferable",
       title: "3. Non-Transferability of Entry & Bib Numbers",
-      summary: "You cannot give or sell your bib to a friend. Doing so invalidates insurance and disqualifies both riders.",
+      summary: "A registration and bib are issued for the named participant and cannot be transferred without organiser approval.",
       badge: "Personal & Non-Transferable",
       badgeColor: "bg-blue-100 text-blue-800 border-blue-300",
       content: (
         <>
           <p>
-            Race bibs and registration entries are strictly unique to the registered individual and linked directly to emergency medical records and insurance coverage.
+            Registration details and bibs are assigned to the named participant so check-in, category eligibility, and safety coordination remain accurate.
           </p>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-[#071313]/80">
-            <li>Transferring, assigning, or selling your bib to another rider is strictly prohibited.</li>
-            <li>Riding under another person's name voids all medical indemnity and leads to immediate disqualification.</li>
+            <li>Do not transfer, assign, or sell a registration or bib. Contact the event team if a correction is needed.</li>
+            <li>The event team may refuse participation where identity or category eligibility cannot be confirmed or safety instructions are not followed.</li>
           </ul>
         </>
       ),
@@ -347,8 +347,8 @@ function RefundPolicyContent({ searchQuery }) {
     {
       id: "force-majeure",
       title: "4. Event Postponement, Bad Weather & Force Majeure",
-      summary: "If postponed due to severe weather, road safety, or police orders, your entry rolls over to the new date automatically.",
-      badge: "Automatic Rollover",
+      summary: "If the organiser changes or cancels the event, participants will be told the available options.",
+      badge: "Organiser changes",
       badgeColor: "bg-purple-100 text-purple-800 border-purple-300",
       content: (
         <>
@@ -356,7 +356,8 @@ function RefundPolicyContent({ searchQuery }) {
             If the event date or route must be adjusted due to adverse weather (heavy rain, dense fog), administrative or police directives, or unforeseen Force Majeure events:
           </p>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-[#071313]/80">
-            <li>Your registration will automatically remain valid for the rescheduled event date or revised route.</li>
+            <li>If postponed, participants may choose to transfer their entry to the announced replacement date or request a refund of the registration fee paid.</li>
+            <li>If cancelled without a replacement date, the registration fee paid will be refunded to the original payment method.</li>
             <li>The organizers are not liable for private travel, accommodation, or incidental expenses incurred.</li>
           </ul>
         </>
@@ -374,7 +375,7 @@ function RefundPolicyContent({ searchQuery }) {
             If a network disruption results in your card or UPI account being debited more than once for the same registration ID:
           </p>
           <p className="mt-1 text-xs text-[#071313]/80">
-            Notify our support desk at <strong>nvcyclothon@gmail.com</strong> with your Cashfree payment IDs or transaction reference. Following verification, the extra charge will be reversed to the original payment source within 7–10 banking days.
+            Notify our support desk at <strong>nvcyclothon@gmail.com</strong> with your Cashfree payment IDs or transaction reference. After verification, the extra charge will be refunded to the original payment method. Bank or payment-provider processing time may apply.
           </p>
         </>
       ),
@@ -388,11 +389,11 @@ function RefundPolicyContent({ searchQuery }) {
         <div className="flex items-center gap-2.5">
           <AlertTriangle className="h-5 w-5 text-[#ff5f3d] shrink-0" aria-hidden="true" />
           <h3 className="font-black text-sm uppercase tracking-wide text-[#ff5f3d]">
-            Key Takeaway: 100% Non-Refundable Entry
+            Key Takeaway: Cancellation and organiser changes
           </h3>
         </div>
         <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#071313]/90 font-medium">
-          Once confirmed, all registrations are <strong>final, non-refundable, and non-transferable</strong>. There are no exceptions for illness, travel delays, absence on event morning, or event rescheduling.
+          Voluntary cancellations and no-shows are ordinarily not refundable. If the organiser cancels or postpones the event, participants will be offered the options described above. Applicable legal rights remain unaffected.
         </p>
       </div>
 
@@ -409,7 +410,7 @@ function TermsPolicyContent({ searchQuery }) {
     {
       id: "categories",
       title: "1. Rider Age & Check-in",
-      summary: "Age rules apply to challenge routes, while Kid-o-thon (ages 10–13) is held in a closed, monitored area with parent or guardian accompaniment.",
+      summary: "Age rules apply to each route; under-18 participants need guardian contact details and event-day accompaniment.",
       badge: "Age Verification Required",
       badgeColor: "bg-blue-100 text-blue-800 border-blue-300",
       content: (
@@ -418,8 +419,9 @@ function TermsPolicyContent({ searchQuery }) {
           <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-[#071313]/80">
             <li><strong>60 Km Road Challenge:</strong> Open to riders aged 18 and above.</li>
             <li><strong>30 Km MTB Challenge:</strong> Open to riders aged 16 and above.</li>
-            <li><strong>Kid-o-thon:</strong> For children aged 10–13, in a closed and monitored riding area. A parent or legal guardian must accompany each child.</li>
-            <li><strong>Check-in:</strong> Please carry a government-issued ID if requested by the event team for age verification.</li>
+            <li><strong>Participants under 18:</strong> The participant enters a parent or lawful guardian’s contact details during registration. This does not itself record or verify guardian consent. A parent or lawful guardian must accompany the participant and confirm consent at check-in; staff may record that confirmation after checking the guardian’s identity and relationship.</li>
+            <li><strong>Kid-o-thon:</strong> For children aged 10–13, in a closed and monitored riding area. A parent or lawful guardian must accompany each child.</li>
+            <li><strong>Check-in:</strong> Please carry an age-verification document if requested. Do not upload Aadhaar or another identity document through this registration form. Staff should visually check eligibility and avoid copying or recording the document number.</li>
           </ul>
         </>
       ),
@@ -439,8 +441,20 @@ function TermsPolicyContent({ searchQuery }) {
       ),
     },
     {
+      id: "grievance-contact",
+      title: "3. Event complaints and support",
+      summary: "Participants can contact RDCA with registration, payment, safety, or service concerns.",
+      badge: "Event contact",
+      badgeColor: "bg-blue-100 text-blue-800 border-blue-300",
+      content: (
+        <p>
+          For an event or registration complaint, contact RDCA at <strong>nvcyclothon@gmail.com</strong> or <strong>+91 88395 03099</strong>. Include the rider ID and a short description so the team can locate the entry. RDCA will acknowledge complaints within 48 hours and redress them within one month. Privacy requests may also be sent through these channels.
+        </p>
+      ),
+    },
+    {
       id: "bicycle",
-      title: "3. Bicycle Roadworthiness & Mechanical Readiness",
+      title: "4. Bicycle Roadworthiness & Mechanical Readiness",
       summary: "Your bicycle brakes, gears, and tires must be in safe working order before you reach the venue.",
       badge: "Rider Responsibility",
       badgeColor: "bg-amber-100 text-amber-800 border-amber-300",
@@ -454,7 +468,7 @@ function TermsPolicyContent({ searchQuery }) {
     },
     {
       id: "conduct",
-      title: "4. Code of Conduct & Disqualification",
+      title: "5. Code of Conduct & Disqualification",
       summary: "Aggressive riding, littering, or motorized assistance will result in instant disqualification.",
       badge: "Fair Play & Ecology",
       badgeColor: "bg-purple-100 text-purple-800 border-purple-300",
@@ -470,14 +484,14 @@ function TermsPolicyContent({ searchQuery }) {
     },
     {
       id: "media-release",
-      title: "5. Media, Photography & Broadcast Consent",
-      summary: "Event photography and video footage may be used for official promotion, broadcast, and historical archives.",
-      badge: "Media Release",
+      title: "6. Event photography",
+      summary: "Optional permission is requested separately in the registration form for identifiable promotional use.",
+      badge: "Optional consent",
       badgeColor: "bg-green-100 text-green-800 border-green-300",
       content: (
         <>
           <p>
-            By entering the event zone, riders grant NV Cyclothon and RDCA irrevocable permission to record, photograph, and broadcast their participation across digital, print, and video channels for sports promotion and historical documentation without compensation.
+            The event may take general photographs or video for operational records and event coverage. We will rely on the separate optional checkbox in the registration form before using identifiable images of a participant in promotional materials. Declining has no effect on registration. A parent or lawful guardian gives this optional permission for a minor participant. Contact nvcyclothon@gmail.com to ask about an identifiable image.
           </p>
         </>
       ),
@@ -511,13 +525,13 @@ function WaiverPolicyContent({ searchQuery }) {
     {
       id: "medical-fitness",
       title: "1. Medical Fitness Self-Declaration",
-      summary: "You confirm you are in good physical health and medically certified for endurance cycling.",
+      summary: "You are responsible for considering your fitness and training before riding.",
       badge: "Health Declaration",
       badgeColor: "bg-green-100 text-green-800 border-green-300",
       content: (
         <>
           <p>
-            I declare that I am physically fit, sufficiently trained, and have no known cardiac, respiratory, or musculoskeletal impairments that would make long-distance cycling dangerous to my health. I have consulted a physician where appropriate.
+            I have considered my fitness and training for the selected ride. I will not start or continue if I feel unwell or unsafe, and I will seek medical advice before riding if I have a health concern. The registration form does not ask me to disclose a diagnosis or medical history.
           </p>
         </>
       ),
@@ -538,14 +552,14 @@ function WaiverPolicyContent({ searchQuery }) {
     },
     {
       id: "liability-release",
-      title: "3. Full Release of Liability & Indemnity",
-      summary: "You release RDCA, organizers, and volunteers from legal claims arising from participation.",
+      title: "3. Scope of this waiver",
+      summary: "Participants acknowledge the inherent risks of cycling; this waiver does not remove rights that cannot legally be waived.",
       badge: "Legal Release",
       badgeColor: "bg-purple-100 text-purple-800 border-purple-300",
       content: (
         <>
           <p>
-            I irrevocably release, waive, and hold harmless Rewa District Cycling Association (RDCA), NV Cyclothon organizers, district administration, event sponsors, medical responders, and volunteers from all claims, damages, liabilities, or losses arising from injury or property damage during the event.
+            I understand that cycling involves risks including falls, collisions, traffic, weather, road conditions, and physical exertion. I will follow safety instructions and stop if I feel unwell or unsafe. To the extent permitted by law, I accept the ordinary inherent risks of voluntary participation. Nothing in this waiver excludes liability or a consumer right that cannot legally be excluded. For a participant under 18, a parent or lawful guardian must confirm consent at check-in.
           </p>
         </>
       ),
@@ -553,13 +567,13 @@ function WaiverPolicyContent({ searchQuery }) {
     {
       id: "emergency-medical",
       title: "4. Authorization for Emergency Medical Treatment",
-      summary: "Medical staff are authorized to provide first aid and hospital transport if required.",
+      summary: "You consent to reasonable emergency first aid and transport if you cannot communicate a decision.",
       badge: "Medical Authorization",
       badgeColor: "bg-blue-100 text-blue-800 border-blue-300",
       content: (
         <>
           <p>
-            In the event of an accident or acute illness, I authorize official medical personnel and ambulances to administer first aid, stabilization, and transportation to the nearest hospital facility if deemed necessary.
+            If emergency care appears necessary and the participant cannot make or communicate a decision, I consent to reasonable first aid and emergency transport by event responders. The organisers will make reasonable efforts to contact the emergency details provided. This does not replace the participant's own medical assessment or guarantee a particular treatment outcome.
           </p>
         </>
       ),
@@ -576,7 +590,7 @@ function WaiverPolicyContent({ searchQuery }) {
           </h3>
         </div>
         <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#071313]/90">
-          Cycling is an active endurance sport. By registering, you confirm your medical readiness and agree to ride responsibly, releasing the organizers from accident liability.
+          Cycling has inherent risks. Participants must follow safety rules; the waiver does not remove rights that cannot legally be waived.
         </p>
       </div>
 
@@ -593,16 +607,18 @@ function PrivacyPolicyContent({ searchQuery }) {
     {
       id: "data-collection",
       title: "1. Information We Collect",
-      summary: "We only collect essential details needed to print bibs, allocate jersey sizes, and ensure safety.",
+      summary: "The form explains which registration, guardian, optional media, and payment details are collected and why.",
       badge: "Data Minimalism",
       badgeColor: "bg-blue-100 text-blue-800 border-blue-300",
       content: (
         <>
-          <p>We collect only the information strictly necessary for race administration:</p>
+          <p>Rewa District Cycling Association (RDCA), organiser of NV Cyclothon 2026, receives the information entered in the form:</p>
           <ul className="mt-2 list-disc pl-5 space-y-1 text-xs text-[#071313]/80">
-            <li><strong>Rider Identification:</strong> Full Name, Age, Gender, City, and Emergency Contact details.</li>
-            <li><strong>Kit Logistics:</strong> Jersey Size (XS through 3XL) and Cycling Club affiliation.</li>
-            <li><strong>Transaction Reference:</strong> Order ID and Payment Confirmation token.</li>
+            <li><strong>Participant details:</strong> Name, email, phone, age, gender, city, optional postal address, ride category, organisation (if supplied), and jersey size.</li>
+            <li><strong>Under-18 entries:</strong> Parent/lawful guardian name, relationship, email, and phone, entered by the participant. Consent is recorded separately at check-in after the guardian is present; contact details alone do not establish consent.</li>
+            <li><strong>Follow-up details:</strong> We may email an expiring, one-time link to the participant to collect missing postal address, emergency-contact, or guardian contact details and attach them to the existing registration.</li>
+            <li>We do not ask participants to upload Aadhaar or identity-document copies in the registration form.</li>
+            <li><strong>Choices and records:</strong> Rider waiver and privacy acknowledgement, optional media permission, optional WhatsApp opt-in, registration, check-in and payment order/status records. The registration phone is used as the operational emergency contact.</li>
           </ul>
         </>
       ),
@@ -610,41 +626,40 @@ function PrivacyPolicyContent({ searchQuery }) {
     {
       id: "data-use",
       title: "2. How Your Data is Used",
-      summary: "Your data is used solely for bib timing, race day updates, emergency dispatch, and finisher certificates.",
-      badge: "Legitimate Purpose",
+      summary: "Information is used to operate the event, communicate essential logistics, administer payments, and provide participant support.",
+      badge: "Event Administration",
       badgeColor: "bg-green-100 text-green-800 border-green-300",
       content: (
         <>
-          <p>
-            Your details are used exclusively to process your check-in, assign timing chips, provide medical staff with emergency contacts, issue official finisher certificates, and send race updates. We <strong>never sell, rent, or trade your data</strong> to third-party advertisers.
-          </p>
+          <p>We use participant and guardian details to create and manage entries, confirm category eligibility, allocate bibs and jerseys, check in riders, process and reconcile payments, send essential event updates, respond to safety issues, and issue event passes or certificates. The postal address is optional and is used for event correspondence or logistics if needed. WhatsApp messages are sent only after a separate opt-in. Promotional email or WhatsApp marketing is not part of registration.</p>
+          <p className="mt-2">Cashfree processes payment transactions. Our email, hosting, and database providers process information to operate the registration service. We do not ask this form for card credentials, UPI PINs, or banking passwords.</p>
         </>
       ),
     },
     {
       id: "payment-security",
       title: "3. Bank & Payment Gateway Security",
-      summary: "Payments are processed over 256-bit SSL encryption via Cashfree Payments. We never store bank or card numbers.",
-      badge: "PCI-DSS Level 1 Compliance",
+      summary: "Cashfree processes payment; NV Cyclothon stores payment references and status, not payment credentials.",
+      badge: "Payment Provider",
       badgeColor: "bg-purple-100 text-purple-800 border-purple-300",
       content: (
         <>
           <p>
-            All financial transactions are conducted directly through Cashfree Payments' certified PCI-DSS Level 1 payment gateway using 256-bit bank-grade encryption. The NV Cyclothon servers never touch or store raw credit card numbers, CVVs, UPI PINs, or net banking passwords.
+            Payment transactions are handled through Cashfree. Our registration records store the order/reference and payment status needed to reconcile an entry; payment credentials such as card numbers, CVVs, UPI PINs, and net banking passwords are not requested by this registration form.
           </p>
         </>
       ),
     },
     {
       id: "contact-dpo",
-      title: "4. Official Data Contact",
-      summary: "Have questions about your data? Reach out directly to our coordination desk.",
+      title: "4. Choices, data requests, retention, and contact",
+      summary: "Use the event contact channels to correct details, withdraw optional permissions, or raise a privacy concern.",
       badge: "Direct Support",
       badgeColor: "bg-amber-100 text-amber-800 border-amber-300",
       content: (
         <>
           <p>
-            For data correction, certificate reprints, or inquiries, email <strong>nvcyclothon@gmail.com</strong> or call Joint Secretary, Rewa District Cycling Association at <strong>+91 88395 03099</strong>.
+            For a correction, deletion request, WhatsApp opt-out, withdrawal of optional media permission, or privacy concern, email <strong>nvcyclothon@gmail.com</strong> or call the RDCA coordination desk at <strong>+91 88395 03099</strong>. We keep participant and guardian details for event administration and follow-up, then review them for deletion or anonymisation when no longer needed. Payment and transaction records may be retained for applicable accounting, tax, dispute, or legal requirements. We limit access to event staff who need the information to perform their duties. A request may be subject to records we must keep or information needed to resolve a live safety or payment issue.
           </p>
         </>
       ),
@@ -657,11 +672,11 @@ function PrivacyPolicyContent({ searchQuery }) {
         <div className="flex items-center gap-2.5">
           <Lock className="h-5 w-5 text-[#071313] shrink-0" aria-hidden="true" />
           <h3 className="font-black text-sm uppercase tracking-wide">
-            Key Takeaway: Safe, Minimal & Protected Data
+            Key Takeaway: Clear use and optional choices
           </h3>
         </div>
         <p className="mt-2 text-xs sm:text-sm leading-relaxed text-[#071313]/80">
-          Your details are strictly used for event safety and race timing. We do not sell data or share it with marketing third parties.
+            Registration information is used to run this event. WhatsApp and identifiable promotional media use are separate optional choices.
         </p>
       </div>
 

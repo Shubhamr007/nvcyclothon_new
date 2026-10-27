@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { adminRequest, bulkDeleteAdminRecords } from "../../../api/http";
+import { adminRequest, bulkDeleteAdminRecords, sendRegistrationFollowupLink } from "../../../api/http";
 import { useAppDispatch } from "../../../store/hooks";
 import {
   setDirectorySelectedIds,
@@ -73,6 +73,47 @@ export function useParticipantDirectoryActions({
     },
     [adminKey, onFeedback, refresh]
   );
+
+  const saveGuardianConsent = useCallback(
+    async (id, guardian) => {
+      try {
+        await adminRequest(`/registrations/${id}/guardian-consent`, adminKey, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...guardian, guardian_consent_accepted: true }),
+        });
+        onFeedback?.(`Guardian consent recorded for participant #${id}.`);
+        await refresh?.();
+        return true;
+      } catch (error) {
+        onFeedback?.(error.message || "Unable to record guardian consent.");
+        return false;
+      }
+    },
+    [adminKey, onFeedback, refresh]
+  );
+
+  const sendFollowupLink = useCallback(async (id) => {
+    try {
+      const result = await sendRegistrationFollowupLink(adminKey, id);
+      let copied = false;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(result.form_url);
+          copied = true;
+        }
+      } catch {
+        copied = false;
+      }
+      onFeedback?.(result.sent
+        ? `Follow-up form emailed to the participant${copied ? "; a backup link was copied" : ""}. It expires ${new Date(result.expires_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST.`
+        : `Email was not sent. ${copied ? "The link was copied so you can send it manually." : `Copy this link manually: ${result.form_url}`}`);
+      return result;
+    } catch (error) {
+      onFeedback?.(error.message || "Unable to create the follow-up form link.");
+      return null;
+    }
+  }, [adminKey, onFeedback]);
 
   const bulkSetStatus = useCallback(
     async (status) => {
@@ -150,12 +191,17 @@ export function useParticipantDirectoryActions({
         const url = URL.createObjectURL(riderPass);
         previewWindow.location.href = url;
         window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+        try {
+          await refresh?.();
+        } catch {
+          // The preview succeeded; the participant table can refresh on its next normal update.
+        }
       } catch (error) {
         previewWindow.close();
         onFeedback?.(error.message);
       }
     },
-    [adminKey, onFeedback, riderPassSelected]
+    [adminKey, onFeedback, refresh, riderPassSelected]
   );
 
   const generateCertificates = useCallback(
@@ -246,6 +292,8 @@ export function useParticipantDirectoryActions({
     copyToClipboard,
     deleteSelected,
     changeStatus,
+    saveGuardianConsent,
+    sendFollowupLink,
     bulkSetStatus,
     generateRiderPasses,
     previewRiderPass,

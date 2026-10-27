@@ -22,12 +22,10 @@ import {
   setDirectorySelectedIds,
   toggleDirectorySelectId,
   clearDirectorySelectedIds,
-  toggleDirectoryExpandedId,
-  expandAllDirectoryVisible,
-  collapseAllDirectory,
   setDirectoryQrModalRider,
 } from "../../../store/slices/participantsSlice";
 import { useParticipantDirectoryActions } from "./useParticipantDirectoryActions";
+import { ParticipantExpandedDetails } from "./ParticipantExpandedDetails";
 
 export function ParticipantDirectoryView({
   riders = [],
@@ -38,10 +36,11 @@ export function ParticipantDirectoryView({
   const dispatch = useAppDispatch();
   const reduxKey = useAppSelector((state) => state.auth?.accessToken);
   const adminKey = propAdminKey || reduxKey;
+  const [activeRiderId, setActiveRiderId] = useState(null);
+  const activeRider = riders.find((rider) => rider.id === activeRiderId) || null;
 
   const {
     selectedIds,
-    expandedIds,
     busy,
     batchProgress,
     searchText,
@@ -55,6 +54,7 @@ export function ParticipantDirectoryView({
   } = useAppSelector((state) => state.participants.directory);
 
   const [certificateFile, setCertificateFile] = useState(null);
+  const [paymentFilter, setPaymentFilter] = useState("all");
 
   const debouncedSearchText = useDebouncedValue(searchText.trim().toLowerCase(), 250);
 
@@ -70,9 +70,10 @@ export function ParticipantDirectoryView({
       certificateFilter,
       routeFilter,
       statusFilter,
+      paymentFilter,
       searchText: debouncedSearchText,
     });
-  }, [riders, certificateFilter, routeFilter, statusFilter, debouncedSearchText]);
+  }, [riders, certificateFilter, routeFilter, statusFilter, paymentFilter, debouncedSearchText]);
 
   // Pagination
   const {
@@ -85,7 +86,6 @@ export function ParticipantDirectoryView({
 
   // Selection Sets
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const expandedSet = useMemo(() => new Set(expandedIds), [expandedIds]);
   const checkedInSelected = useMemo(
     () => riders.filter((r) => selectedSet.has(r.id) && r.status === "checked_in"),
     [riders, selectedSet]
@@ -129,25 +129,14 @@ export function ParticipantDirectoryView({
     dispatch(clearDirectorySelectedIds());
   }, [dispatch]);
 
-  const toggleExpand = useCallback(
-    (id) => {
-      dispatch(toggleDirectoryExpandedId(id));
-    },
-    [dispatch]
-  );
-
-  const expandAllVisible = useCallback(() => {
-    dispatch(expandAllDirectoryVisible(paginatedRiders.map((r) => r.id)));
-  }, [paginatedRiders, dispatch]);
-
-  const collapseAll = useCallback(() => {
-    dispatch(collapseAllDirectory());
-  }, [dispatch]);
+  const openDetails = useCallback((id) => setActiveRiderId(id), []);
 
   const {
     copyToClipboard,
     deleteSelected,
     changeStatus,
+    saveGuardianConsent,
+    sendFollowupLink,
     bulkSetStatus,
     generateRiderPasses,
     previewRiderPass,
@@ -185,16 +174,17 @@ export function ParticipantDirectoryView({
         uniqueRoutes={uniqueRoutes}
         statusFilter={statusFilter}
         onStatusChange={(val) => dispatch(setDirectoryStatusFilter(val))}
+        paymentFilter={paymentFilter}
+        onPaymentChange={(value) => {
+          setPaymentFilter(value);
+          dispatch(setDirectoryPage(1));
+        }}
         totalCount={riders.length}
         approvedCount={riders.filter((r) => r.status === "approved").length}
         checkedInCount={riders.filter((r) => r.status === "checked_in").length}
         selectedCount={selectedIds.length}
         busy={busy}
         onDeleteSelected={deleteSelected}
-        onExpandAll={expandAllVisible}
-        onCollapseAll={collapseAll}
-        expandedCount={expandedIds.length}
-        visibleCount={paginatedRiders.length}
       />
 
       {/* BULK ACTION BAR */}
@@ -220,22 +210,13 @@ export function ParticipantDirectoryView({
       <ParticipantDirectoryTable
         paginatedRiders={paginatedRiders}
         selectedSet={selectedSet}
-        expandedIds={expandedSet}
         allVisibleSelected={allVisibleSelected}
         copiedId={copiedId}
-        busy={busy}
         onToggleSelectPage={toggleSelectPage}
         onToggleSelect={toggleSelect}
-        onToggleExpand={toggleExpand}
-        onExpandAll={expandAllVisible}
-        onCollapseAll={collapseAll}
+        onOpenDetails={openDetails}
         onCopyId={copyToClipboard}
-        onShowQr={(r) => dispatch(setDirectoryQrModalRider(r))}
         onChangeStatus={changeStatus}
-        generateRiderPasses={(ids) => generateRiderPasses(ids)}
-        previewRiderPass={previewRiderPass}
-        generateCertificates={(ids) => generateCertificates(ids)}
-        previewCertificate={previewCertificate}
         currentPage={currentPage}
         pageSize={pageSize}
         totalPages={totalPages}
@@ -243,6 +224,24 @@ export function ParticipantDirectoryView({
         onPageChange={(p) => dispatch(setDirectoryPage(p))}
         onPageSizeChange={(sz) => dispatch(setDirectoryPageSize(sz))}
       />
+
+      {activeRider && (
+        <ParticipantExpandedDetails
+          key={activeRider.id}
+          rider={activeRider}
+          onClose={() => setActiveRiderId(null)}
+          onSaveGuardianConsent={saveGuardianConsent}
+          onSendFollowupLink={sendFollowupLink}
+          onShowQr={(r) => dispatch(setDirectoryQrModalRider(r))}
+          copyToClipboard={copyToClipboard}
+          copiedId={copiedId}
+          previewRiderPass={previewRiderPass}
+          generateRiderPasses={(ids) => generateRiderPasses(ids)}
+          previewCertificate={previewCertificate}
+          generateCertificates={(ids) => generateCertificates(ids)}
+          busy={busy}
+        />
+      )}
 
       {/* QR MODAL LIGHTBOX */}
       <ParticipantQrModal

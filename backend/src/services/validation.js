@@ -201,6 +201,10 @@ const registrationCreateSchema = z
       ),
     age: z.number().int().min(5).max(100),
     city: z.string().trim().min(2).max(100),
+    address_line1: z.string().trim().max(200).optional().nullable().refine((value) => !value || value.length >= 3, "Enter at least 3 characters or leave blank"),
+    address_line2: z.string().trim().max(200).optional().nullable(),
+    state: z.string().trim().max(100).optional().nullable(),
+    postal_code: z.string().trim().max(16).optional().nullable().refine((value) => !value || (value.length >= 3 && /^[A-Za-z0-9 -]+$/.test(value)), "Enter a valid postal code"),
     gender: z.enum(["Female", "Male", "Non-binary", "Prefer not to say"]),
     ride_category: z.enum(Object.keys(RACE_CATEGORIES)),
     organization_type: z.enum(["School/College", "Corporate", "Cycling Club", "Individual"]).optional().nullable(),
@@ -209,6 +213,12 @@ const registrationCreateSchema = z
     t_shirt_size: z.enum(["XS", "S", "M", "L", "XL", "XXL", "N/A"]),
     waiver_accepted: z.boolean(),
     privacy_accepted: z.boolean(),
+    guardian_name: z.string().trim().min(2).max(160).optional().nullable(),
+    guardian_relationship: z.string().trim().min(2).max(80).optional().nullable(),
+    guardian_email: z.string().trim().email().max(255).optional().nullable(),
+    guardian_phone: z.string().trim().min(8).max(32).optional().nullable(),
+    guardian_consent_accepted: z.boolean().optional().default(false),
+    media_consent_accepted: z.boolean().optional().default(false),
     whatsapp_use_primary: z.boolean().default(true).optional(),
     whatsapp_number: z.string().trim().max(32).optional().nullable(),
     whatsapp_opt_in: z.boolean().optional(),
@@ -225,6 +235,18 @@ const registrationCreateSchema = z
     {
       message: "Enter your organization or institute name",
       path: ["organization_name"],
+    }
+  )
+  .refine(
+    (data) => data.age >= 18 || (
+      Boolean(data.guardian_name?.trim()) &&
+      Boolean(data.guardian_relationship?.trim()) &&
+      Boolean(data.guardian_email?.trim()) &&
+      Boolean(data.guardian_phone?.trim())
+    ),
+    {
+      message: "Enter the parent or lawful guardian’s name, relationship, email, and phone for participants under 18",
+      path: ["guardian_name"],
     }
   );
 
@@ -249,9 +271,45 @@ const paymentVerifySchema = z.object({
 
 const cashfreePaymentVerifySchema = paymentVerifySchema;
 
+const nullableFollowupText = (schema) => z.preprocess(
+  (value) => typeof value === "string" && value.trim() === "" ? null : value,
+  schema.optional().nullable()
+);
+
+const registrationFollowupSchema = z.object({
+  address_line1: z.string().trim().min(3, "Enter at least 3 characters for address line 1").max(200),
+  address_line2: z.string().trim().max(200).optional().nullable(),
+  state: z.string().trim().min(2, "Enter the full state or union territory name").max(100),
+  postal_code: z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit PIN code"),
+  emergency_contact: z.string().trim().min(8, "Enter a valid emergency contact mobile number").max(32),
+  guardian_name: nullableFollowupText(z.string().trim().min(2, "Enter the guardian’s full name").max(160)),
+  guardian_relationship: nullableFollowupText(z.string().trim().min(1, "Enter the guardian’s relationship").max(80)),
+  guardian_email: nullableFollowupText(z.string().trim().email().max(255)),
+  guardian_phone: nullableFollowupText(z.string().trim().min(8, "Enter a valid guardian mobile number").max(32)),
+});
+
 const statusUpdateSchema = z.object({
   status: z.enum(REGISTRATION_STATUSES),
 });
+
+const guardianConsentUpdateSchema = z.object({
+  guardian_name: z.string().trim().min(2).max(160),
+  guardian_relationship: z.string().trim().min(2).max(80),
+  guardian_email: z.string().trim().email().max(255),
+  guardian_phone: z.string().trim().min(8).max(32),
+  guardian_consent_accepted: z.literal(true),
+});
+
+function normalizeGuardianConsentInput(payload) {
+  return {
+    ...payload,
+    guardian_name: payload.guardian_name.trim(),
+    guardian_relationship: payload.guardian_relationship.trim(),
+    guardian_email: normalizeEmail(payload.guardian_email),
+    guardian_phone: normalizeIndianMobile(payload.guardian_phone),
+    guardian_consent_at: new Date().toISOString(),
+  };
+}
 
 const bulkStatusUpdateSchema = z.object({
   registration_ids: z.array(z.number().int().positive()).min(1).max(1000),
@@ -372,8 +430,17 @@ const checkinManualSchema = z.object({
 });
 
 const eventUpdateEmailSchema = z.object({
-  subject: z.string().trim().min(3).max(160),
-  message: z.string().trim().min(3).max(5000),
+  subject: z.string().trim().max(160).optional().default(""),
+  message: z.string().trim().max(5000).optional().default(""),
+  filter_category: z.enum(["all", ...Object.keys(RACE_CATEGORIES)]).default("all"),
+  purpose: z.enum(["event_update", "registration_details"]).default("event_update"),
+}).superRefine((data, context) => {
+  if (data.purpose === "event_update" && data.subject.length < 3) {
+    context.addIssue({ code: "custom", path: ["subject"], message: "Enter an email subject with at least 3 characters" });
+  }
+  if (data.purpose === "event_update" && data.message.length < 3) {
+    context.addIssue({ code: "custom", path: ["message"], message: "Enter an email message with at least 3 characters" });
+  }
 });
 const visitorEventSchema = z.object({ path: z.string().trim().min(1).max(160), timezone: z.string().trim().max(80).optional(), locale: z.string().trim().max(40).optional() });
 
@@ -549,10 +616,16 @@ function normalizeRegistrationInput(payload) {
       throw new ValidationError("Enter a valid WhatsApp phone number");
     }
   }
-  const optIn =
-    payload.whatsapp_opt_in !== undefined && payload.whatsapp_opt_in !== null
-      ? Boolean(payload.whatsapp_opt_in)
-      : (usePrimary || Boolean(normalizedWhatsappNumber));
+  const optIn = payload.whatsapp_opt_in === true;
+  const isMinor = Number(payload.age) < 18;
+  let guardianPhone = null;
+  if (isMinor) {
+    try {
+      guardianPhone = normalizeIndianMobile(payload.guardian_phone);
+    } catch {
+      throw new ValidationError("Enter a valid parent or guardian mobile number");
+    }
+  }
 
   const preferredWhatsappNumber = optIn
     ? (usePrimary ? normalizedPhone : normalizedWhatsappNumber)
@@ -569,10 +642,20 @@ function normalizeRegistrationInput(payload) {
     organization_type: payload.organization_type || "Individual",
     organization_name: payload.organization_name ? payload.organization_name.trim() : null,
     whatsapp_use_primary: usePrimary,
-    whatsapp_number: normalizedWhatsappNumber,
+    whatsapp_number: optIn ? normalizedWhatsappNumber : null,
     preferred_whatsapp_number: preferredWhatsappNumber,
     whatsapp_opt_in: optIn,
     whatsapp_consent_at: optIn ? (payload.whatsapp_consent_at || new Date().toISOString()) : null,
+    guardian_name: isMinor ? payload.guardian_name.trim() : null,
+    guardian_relationship: isMinor ? payload.guardian_relationship.trim() : null,
+    guardian_email: isMinor ? normalizeEmail(payload.guardian_email) : null,
+    guardian_phone: guardianPhone,
+    guardian_consent_accepted: isMinor && payload.guardian_consent_accepted === true,
+    guardian_consent_at: isMinor && payload.guardian_consent_accepted === true ? new Date().toISOString() : null,
+    media_consent_accepted: payload.media_consent_accepted === true,
+    media_consent_at: payload.media_consent_accepted === true ? new Date().toISOString() : null,
+    waiver_accepted_at: payload.waiver_accepted ? new Date().toISOString() : null,
+    privacy_accepted_at: payload.privacy_accepted ? new Date().toISOString() : null,
     expected_fee_paise: payload.expected_fee_paise !== undefined && payload.expected_fee_paise !== null ? Number(payload.expected_fee_paise) : null,
   };
 }
@@ -792,7 +875,10 @@ module.exports = {
   registrationCreateSchema,
   paymentVerifySchema,
   cashfreePaymentVerifySchema,
+  registrationFollowupSchema,
   statusUpdateSchema,
+  guardianConsentUpdateSchema,
+  normalizeGuardianConsentInput,
   bulkStatusUpdateSchema,
   bulkBatchSchema,
   offerSchema,

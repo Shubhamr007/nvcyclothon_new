@@ -89,7 +89,13 @@ function createCashfreeService(config) {
       });
       const entries = Array.isArray(payments) ? payments : [];
       const success = entries.find((payment) => payment.payment_status === "SUCCESS");
-      if (success) return { state: "paid", paymentId: String(success.cf_payment_id) };
+      if (success) return {
+        state: "paid",
+        paymentId: String(success.cf_payment_id),
+        bankReference: success.bank_reference ? String(success.bank_reference) : null,
+        paymentTime: success.payment_time || null,
+        paymentMethod: success.payment_group || null,
+      };
       if (entries.some((payment) => payment.payment_status === "PENDING")) return { state: "pending" };
       return { state: "failed" };
     },

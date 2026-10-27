@@ -5,6 +5,18 @@ export function apiUrl(path) {
   return `${API_BASE}${path}`;
 }
 
+export function getRegistrationFollowup(token) {
+  return request(`/cyclothon/registrations/follow-up/${encodeURIComponent(token)}`);
+}
+
+export function submitRegistrationFollowup(token, payload) {
+  return request(`/cyclothon/registrations/follow-up/${encodeURIComponent(token)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
 export function resolveApiAssetUrl(url) {
   if (!url || /^(data:|blob:)/i.test(url)) return url;
 
@@ -280,6 +292,10 @@ export function adminRequest(path, accessToken, options = {}) {
   });
 }
 
+export function sendRegistrationFollowupLink(accessToken, registrationId) {
+  return adminRequest(`/registrations/${registrationId}/follow-up-link`, accessToken, { method: "POST" });
+}
+
 export async function uploadAdminProfileImage(accessToken, file) {
   const body = new FormData();
   body.append("image", file);
@@ -394,6 +410,14 @@ export async function verifyVendorPayment(id, payload) {
 }
 
 // --- Admin Partner/Vendor API ---
+export function createAdminPartnerApplication(accessToken, payload) {
+  return adminRequest('/partner-applications', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
 export function listAdminPartnerApplications(accessToken, options = {}) {
   const params = new URLSearchParams();
   if (typeof options === 'string' && options) {
@@ -456,6 +480,14 @@ export function listAdminVendorApplications(accessToken, options = {}) {
   }
   const qs = params.toString() ? `?${params.toString()}` : '';
   return adminRequest(`/vendor-applications${qs}`, accessToken);
+}
+
+export function createAdminVendorApplication(accessToken, payload) {
+  return adminRequest('/vendor-applications', accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 export function reviewVendorApplication(accessToken, id, payload) {

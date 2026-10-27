@@ -7,23 +7,12 @@ export const ParticipantDirectoryTable = memo(function ParticipantDirectoryTable
   allVisibleSelected = false,
   onToggleSelectPage,
   selectedSet,
-  expandedIds,
   copiedId,
-  busy = false,
   onToggleSelect,
-  onToggleExpand,
+  onOpenDetails,
   onCopyId,
   onCopyText,
   onChangeStatus,
-  onShowQr,
-  previewRiderPass,
-  onPreviewPass,
-  generateRiderPasses,
-  onGeneratePass,
-  previewCertificate,
-  onPreviewCert,
-  generateCertificates,
-  onGenerateCert,
   currentPage,
   page,
   totalPages = 1,
@@ -34,15 +23,6 @@ export const ParticipantDirectoryTable = memo(function ParticipantDirectoryTable
 }) {
   const activePage = currentPage || page || 1;
   const handleCopy = onCopyId || onCopyText;
-  const handlePreviewPass = previewRiderPass || onPreviewPass;
-  const handleGeneratePass = generateRiderPasses || onGeneratePass;
-  const handlePreviewCert = previewCertificate || onPreviewCert;
-  const handleGenerateCert = generateCertificates || onGenerateCert;
-
-  const safeExpandedSet = useMemo(() => {
-    if (!expandedIds) return new Set();
-    return expandedIds instanceof Set ? expandedIds : new Set(expandedIds);
-  }, [expandedIds]);
 
   const safeSelectedSet = useMemo(() => {
     if (!selectedSet) return new Set();
@@ -65,7 +45,7 @@ export const ParticipantDirectoryTable = memo(function ParticipantDirectoryTable
                 />
               </th>
               <th className="p-3.5 w-10 text-center">
-                <span className="sr-only">Expand</span>
+                <span className="sr-only">View participant details</span>
               </th>
               <th className="p-3.5 font-bold text-slate-900 text-xs">Rider ID & Name</th>
               <th className="p-3.5 font-bold text-slate-900 text-xs">Contact</th>
@@ -87,18 +67,11 @@ export const ParticipantDirectoryTable = memo(function ParticipantDirectoryTable
                   key={rider.id}
                   rider={rider}
                   isChecked={safeSelectedSet.has(rider.id)}
-                  isExpanded={safeExpandedSet.has(rider.id)}
                   copiedId={copiedId}
-                  busy={busy}
                   onToggleSelect={onToggleSelect}
-                  onToggleExpand={onToggleExpand}
+                  onOpenDetails={onOpenDetails}
                   onCopyId={handleCopy}
                   onChangeStatus={onChangeStatus}
-                  onShowQr={onShowQr}
-                  previewRiderPass={handlePreviewPass}
-                  generateRiderPasses={handleGeneratePass}
-                  previewCertificate={handlePreviewCert}
-                  generateCertificates={handleGenerateCert}
                 />
               ))
             )}

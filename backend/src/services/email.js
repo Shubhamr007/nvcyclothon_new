@@ -322,6 +322,18 @@ function createEmailService(config, logger = console) {
   }
 
   return {
+    async sendRegistrationFollowup({ recipient, name, registrationId, formUrl, expiresAt }) {
+      const subject = "Please complete your NV Cyclothon 2026 participant details";
+      const expiry = new Date(expiresAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }) + " IST";
+      const text = `Hi ${name || "Participant"},\n\nPlease complete the missing contact and address details for NV Cyclothon 2026 registration #${registrationId}.\n\nOpen your secure form: ${formUrl}\n\nThis one-time link expires on ${expiry}. For an under-18 participant, enter the parent or lawful guardian’s contact details. Submitting contact details does not record guardian consent; that is confirmed separately at check-in.\n\nNV Cyclothon 2026`;
+      const html = emailShell({
+        title: "Complete your participant details",
+        greeting: name || "Participant",
+        body: `<p>Please complete the missing contact and address details for NV Cyclothon 2026 registration <strong>#${escapeHtml(registrationId)}</strong>.</p><p><a href="${escapeHtml(formUrl)}" style="display:inline-block;background:#ff5f3d;color:#071313;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Open secure form</a></p><p>This one-time link expires on <strong>${escapeHtml(expiry)}</strong>. For an under-18 participant, enter the parent or lawful guardian’s contact details. Submitting contact details does not record guardian consent; that is confirmed separately at check-in.</p>`,
+      });
+      return send({ recipient, subject, text, html });
+    },
+
     async sendRegistrationConfirmation({ recipient, registration, eventDate = "2026-11-22", eventLocation = "Rewa, Madhya Pradesh", eventStartTime = "5:30 AM" }) {
       const passRiderId = riderId(registration);
       const name = registration?.full_name || "Rider";
@@ -370,11 +382,14 @@ function createEmailService(config, logger = console) {
       return send({ recipient, subject, text, html, attachments: banner ? [banner] : [] });
     },
 
-    async sendEventUpdate({ recipients, subject, message }) {
+    async sendEventUpdate({ recipients, subject, message, signal, onProgress }) {
       const banner = await bannerAttachment();
-      for (const recipient of recipients) {
-        await send({
-          recipient,
+      let sentRecipients = 0;
+      let failedRecipients = 0;
+      for (let index = 0; index < recipients.length; index += 1) {
+        if (signal?.aborted) break;
+        const delivered = await send({
+          recipient: recipients[index],
           subject,
           text: message,
           html: emailShell({
@@ -385,7 +400,16 @@ function createEmailService(config, logger = console) {
           }),
           attachments: banner ? [banner] : [],
         });
+        if (delivered) sentRecipients += 1;
+        else failedRecipients += 1;
+        await onProgress?.({
+          current: index + 1,
+          total: recipients.length,
+          sent: sentRecipients,
+          failed: failedRecipients,
+        });
       }
+      return { sent_recipients: sentRecipients, failed_recipients: failedRecipients };
     },
 
     async sendParticipationCertificate({ recipient, name, riderId, route, certificatePdf }) {

@@ -13,7 +13,7 @@ function wrapRepositoryForSync(repository) {
         const result = await orig.apply(target, args);
 
         try {
-          if (prop === "bulkUpdateRegistrationStatus" || prop === "updateRegistrationStatus") {
+          if (prop === "bulkUpdateRegistrationStatus" || prop === "updateRegistrationStatus" || prop === "updateGuardianConsent") {
             adminEvents.publish({ type: "registrations", action: "updated" });
             adminEvents.publish({ type: "analytics", action: "updated" });
           } else if (prop === "bulkAssignCyclothonBatch") {

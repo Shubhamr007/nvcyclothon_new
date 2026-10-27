@@ -1,30 +1,21 @@
 import React from "react";
 import {
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   Copy,
   Check,
+  Eye,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
-import { ParticipantExpandedDetails } from "./ParticipantExpandedDetails";
 
 export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryRow({
   rider,
   isChecked,
-  isExpanded,
   copiedId,
-  busy,
   onToggleSelect,
-  onToggleExpand,
+  onOpenDetails,
   onCopyId,
   onChangeStatus,
-  onShowQr,
-  previewRiderPass,
-  generateRiderPasses,
-  previewCertificate,
-  generateCertificates,
 }) {
   const isCheckedIn = rider.status === "checked_in";
 
@@ -32,9 +23,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
     <React.Fragment>
       {/* COMPACT MAIN ROW */}
       <tr
-        className={`transition-colors cursor-pointer hover:bg-slate-50/70 ${
-          isChecked ? "bg-[#deecf9]/40" : isExpanded ? "bg-slate-50/80" : ""
-        }`}
+        className={`transition-colors cursor-pointer hover:bg-slate-50/70 ${isChecked ? "bg-[#deecf9]/40" : ""}`}
         onClick={(e) => {
           if (
             e.target.tagName === "INPUT" ||
@@ -44,7 +33,7 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
           ) {
             return;
           }
-          onToggleExpand(rider.id);
+          onOpenDetails(rider.id);
         }}
       >
         {/* 1. Selection Checkbox */}
@@ -62,13 +51,11 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
         <td className="p-3.5 text-center" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            onClick={() => onToggleExpand(rider.id)}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 transition-all hover:bg-slate-100 ${
-              isExpanded ? "rotate-90 bg-[#deecf9] text-[#005a9e] border-[#c7e0f4]" : ""
-            }`}
-            aria-label={isExpanded ? "Collapse row" : "Expand row"}
+            onClick={() => onOpenDetails(rider.id)}
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 transition-colors hover:bg-slate-100"
+            aria-label={`View details for ${rider.full_name}`}
           >
-            <ChevronRight className="h-4 w-4" />
+            <Eye className="h-4 w-4" />
           </button>
         </td>
 
@@ -99,6 +86,11 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
           <span className="text-xs text-slate-600 font-medium capitalize">
             {rider.gender || "Gender unstated"} • {rider.city || "Rewa"}
           </span>
+          {Number(rider.age) < 18 && (
+            <span className={`mt-1 inline-block rounded px-2 py-0.5 text-[10px] font-bold ${rider.guardian_consent_accepted ? "bg-emerald-100 text-emerald-800" : rider.guardian_name ? "bg-amber-100 text-amber-900" : "bg-rose-100 text-rose-800"}`}>
+              {!rider.guardian_name ? "Under 18 · Guardian details missing" : rider.guardian_consent_accepted ? "Under 18 · Guardian consent recorded" : "Under 18 · Guardian confirmation pending"}
+            </span>
+          )}
         </td>
 
         {/* 4. Contact */}
@@ -168,33 +160,15 @@ export const ParticipantDirectoryRow = React.memo(function ParticipantDirectoryR
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onToggleExpand(rider.id)}
+            onClick={() => onOpenDetails(rider.id)}
             className="h-7 text-xs font-bold px-2.5 gap-1 border border-slate-300 text-slate-800 bg-white hover:bg-slate-100"
           >
-            <span>{isExpanded ? "Hide" : "Details"}</span>
-            {isExpanded ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
+            <span>Details</span>
+            <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </td>
       </tr>
 
-      {/* EXPANDED DETAIL DRAWER ROW */}
-      {isExpanded && (
-        <ParticipantExpandedDetails
-          rider={rider}
-          onShowQr={onShowQr}
-          copyToClipboard={onCopyId}
-          copiedId={copiedId}
-          previewRiderPass={previewRiderPass}
-          generateRiderPasses={generateRiderPasses}
-          previewCertificate={previewCertificate}
-          generateCertificates={generateCertificates}
-          busy={busy}
-        />
-      )}
     </React.Fragment>
   );
 });

@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Button } from "../../../components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 
 export const PartnerHeaderBar = memo(function PartnerHeaderBar({
   subTab = "applications",
@@ -8,6 +8,7 @@ export const PartnerHeaderBar = memo(function PartnerHeaderBar({
   approvedCount = 0,
   onSubTabChange,
   onExportCsv,
+  onAdd,
 }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
@@ -52,6 +53,9 @@ export const PartnerHeaderBar = memo(function PartnerHeaderBar({
         >
           <Download className="h-3.5 w-3.5 mr-1" />
           Export CSV
+        </Button>
+        <Button size="sm" onClick={onAdd} className="h-8 bg-[#0078d4] text-xs text-white hover:bg-[#106ebe]">
+          <Plus className="mr-1 h-3.5 w-3.5" /> Add partner
         </Button>
       </div>
     </div>

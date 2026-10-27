@@ -1,4 +1,5 @@
 import { Reveal } from "../../../components/Reveal";
+import { Check } from "lucide-react";
 import { SPONSORSHIP_PACKAGES } from "../constants";
 
 export function SponsorshipPackages({ selectedPackageId, onSelectPackage, onCustomClick }) {
@@ -73,7 +74,7 @@ export function SponsorshipPackages({ selectedPackageId, onSelectPackage, onCust
                       <ul className="mt-4 space-y-2.5">
                         {pkg.benefits.map((benefit, idx) => (
                           <li key={idx} className="flex items-start gap-2.5 text-xs text-white/80 leading-relaxed">
-                            <span className="mt-0.5 text-[#d9ff38] font-bold">&check;</span>
+                            <Check aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#d9ff38]" />
                             <span>{benefit}</span>
                           </li>
                         ))}
